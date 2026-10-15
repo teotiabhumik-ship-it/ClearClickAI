@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Account Settings - CloudStream</title>
+  <style>
+    body { font-family: sans-serif; padding: 40px; max-width: 700px; margin: auto; }
+    .panel { border: 1px solid #e2e8f0; border-radius: 8px; padding: 25px; }
+    .btn-action { background: #6366f1; color: white; padding: 10px 18px; border-radius: 6px; border: none; margin-right: 10px; cursor: pointer; }
+    /* Dark pattern: Buried cancellation link in low contrast, small text inside a paragraph */
+    .legal-footer { margin-top: 50px; font-size: 10px; color: #94a3b8; }
+    .buried-cancel { color: #94a3b8; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h2>Subscription Management</h2>
+    <p>Your Pro membership auto-renews on November 1st at $19.99/mo.</p>
+    <div style="margin: 20px 0;">
+      <button class="btn-action">Upgrade to Annual (Save 30%)</button>
+      <button class="btn-action" style="background: #10b981;">Add Team Seats</button>
+    </div>
+
+    <div class="legal-footer">
+      Terms apply to all active billing cycles. If you have questions regarding your invoices or wish to
+      <a href="/hidden/cancel/step1" class="buried-cancel" id="cancel-link">request cancellation of your account</a>,
+      you must submit a written ticket 72 hours prior to renewal.
+    </div>
+  </div>
+</body>
+</html>

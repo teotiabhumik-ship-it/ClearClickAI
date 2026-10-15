@@ -1,0 +1,114 @@
+[
+  {
+    "id": "consent_preticked",
+    "file": "positive/consent_preticked.html",
+    "category": "consent",
+    "patterns": ["preticked_consent"],
+    "expected_evidence_keywords": ["promotional newsletters", "third-party advertising"],
+    "notes": "Pre-ticked checkbox opting user into marketing and third party data sharing"
+  },
+  {
+    "id": "consent_asymmetric_buttons",
+    "file": "positive/consent_asymmetric_buttons.html",
+    "category": "consent",
+    "patterns": ["unequal_button_emphasis"],
+    "expected_evidence_keywords": ["Reject optional cookies", "Accept All Cookies"],
+    "notes": "Accept button is vibrant green and prominent while Reject is faint grey underlined text"
+  },
+  {
+    "id": "consent_missing_reject",
+    "file": "positive/consent_missing_reject.html",
+    "category": "consent",
+    "patterns": ["missing_reject_option"],
+    "expected_evidence_keywords": ["Manage Preferences", "Accept All"],
+    "notes": "First layer only has Accept All and Manage Preferences; no direct Reject button"
+  },
+  {
+    "id": "consent_double_negative",
+    "file": "positive/consent_double_negative.html",
+    "category": "consent",
+    "patterns": ["double_negative_language"],
+    "expected_evidence_keywords": ["do not wish to not receive"],
+    "notes": "Confusing double-negative phrasing intentionally misleading user into keeping box checked"
+  },
+  {
+    "id": "charges_microprint_fee",
+    "file": "positive/charges_microprint_fee.html",
+    "category": "hidden_charges",
+    "patterns": ["microprint_fee", "low_contrast_fee"],
+    "expected_evidence_keywords": ["$45 resort and maintenance fee"],
+    "notes": "Mandatory fee displayed in 8px micro-print font with low contrast grey text"
+  },
+  {
+    "id": "charges_low_contrast_fee",
+    "file": "positive/charges_low_contrast_fee.html",
+    "category": "hidden_charges",
+    "patterns": ["low_contrast_fee"],
+    "expected_evidence_keywords": ["processing fee: $48.50"],
+    "notes": "Fee printed in faint grey text on white background failing WCAG contrast standards"
+  },
+  {
+    "id": "charges_drip_pricing",
+    "file": "positive/charges_drip_pricing.html",
+    "category": "hidden_charges",
+    "patterns": ["drip_pricing"],
+    "expected_evidence_keywords": ["Electronic Delivery Fee", "Venue Facilities Fee"],
+    "notes": "Significant late-appearing fee inflations added at final checkout step"
+  },
+  {
+    "id": "cancel_buried_link",
+    "file": "positive/cancel_buried_link.html",
+    "category": "cancellation",
+    "patterns": ["buried_cancel_link"],
+    "expected_evidence_keywords": ["request cancellation of your account"],
+    "notes": "Cancellation link hidden inside small-print footer text"
+  },
+  {
+    "id": "cancel_confirm_shaming",
+    "file": "positive/cancel_confirm_shaming.html",
+    "category": "cancellation",
+    "patterns": ["confirm_shaming"],
+    "expected_evidence_keywords": ["I hate saving money"],
+    "notes": "Manipulative guilt-tripping wording on cancellation opt-out button"
+  },
+  {
+    "id": "cancel_asymmetric_flow",
+    "file": "positive/cancel_asymmetric_flow.html",
+    "category": "cancellation",
+    "patterns": ["asymmetric_cancellation_steps"],
+    "expected_evidence_keywords": ["Step 4 of 6"],
+    "notes": "Multi-step hurdle maze required to cancel compared to one-click signup"
+  },
+  {
+    "id": "consent_equal_choice",
+    "file": "negative/consent_equal_choice.html",
+    "category": "consent",
+    "patterns": [],
+    "expected_evidence_keywords": [],
+    "notes": "Clean example: Accept and Reject buttons have identical size and prominence"
+  },
+  {
+    "id": "consent_unchecked_optin",
+    "file": "negative/consent_unchecked_optin.html",
+    "category": "consent",
+    "patterns": [],
+    "expected_evidence_keywords": [],
+    "notes": "Clean example: Marketing checkboxes unchecked by default"
+  },
+  {
+    "id": "charges_transparent_pricing",
+    "file": "negative/charges_transparent_pricing.html",
+    "category": "hidden_charges",
+    "patterns": [],
+    "expected_evidence_keywords": [],
+    "notes": "Clean example: All fees and total displayed upfront with clear contrast"
+  },
+  {
+    "id": "cancel_one_click",
+    "file": "negative/cancel_one_click.html",
+    "category": "cancellation",
+    "patterns": [],
+    "expected_evidence_keywords": [],
+    "notes": "Clean example: Transparent, straightforward cancellation option"
+  }
+]

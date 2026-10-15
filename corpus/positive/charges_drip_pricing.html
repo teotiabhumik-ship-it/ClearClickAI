@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Concert Pass Checkout - Step 3 of 3</title>
+  <style>
+    body { font-family: sans-serif; padding: 30px; max-width: 500px; margin: auto; }
+    .breakdown { border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; }
+    .row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .initial-advertised { color: #64748b; font-size: 14px; }
+    .total-row { font-size: 22px; font-weight: bold; border-top: 1px solid #cbd5e1; padding-top: 10px; margin-top: 10px; }
+    .late-fee { color: #b91c1c; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="breakdown">
+    <h3>Order Summary</h3>
+    <div class="row initial-advertised">
+      <span>Advertised Ticket Price:</span>
+      <span id="initial-price">$45.00</span>
+    </div>
+    <!-- Dark pattern: Late fees appearing only at final checkout step -->
+    <div class="row late-fee">
+      <span>Electronic Delivery Fee:</span>
+      <span>$9.50</span>
+    </div>
+    <div class="row late-fee">
+      <span>Venue Facilities Fee:</span>
+      <span>$14.25</span>
+    </div>
+    <div class="row late-fee">
+      <span>Payment Processing Surcharge:</span>
+      <span>$7.80</span>
+    </div>
+    <div class="row total-row">
+      <span>Final Total:</span>
+      <span id="final-total">$76.55</span>
+    </div>
+  </div>
+</body>
+</html>

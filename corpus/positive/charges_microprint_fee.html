@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Grand View Resort - Reservation</title>
+  <style>
+    body { font-family: sans-serif; padding: 30px; max-width: 600px; margin: auto; }
+    .card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .price-main { font-size: 38px; font-weight: 800; color: #1e293b; margin: 10px 0 2px 0; }
+    /* Dark pattern: Micro-print fee hidden under large headline */
+    .fee-micro { font-size: 8px; color: #94a3b8; margin-top: 2px; }
+    .btn-book { background: #e11d48; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Deluxe Ocean Suite</h2>
+    <p>Includes king bed, balcony, and ocean view.</p>
+    <div class="price-main">$120 <span style="font-size: 16px; font-weight: normal; color: #64748b;">/ night</span></div>
+    <div class="fee-micro" id="resort-fee-text">*Excludes mandatory $45 resort and maintenance fee per night billed at front desk.</div>
+    <button class="btn-book">Reserve Room</button>
+  </div>
+</body>
+</html>
