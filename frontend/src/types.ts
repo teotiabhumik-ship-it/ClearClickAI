@@ -50,11 +50,16 @@ export interface BenchmarkMetrics {
 }
 
 export interface BenchmarkResult {
+  split: string;
+  include_ai?: boolean;
+  ai_status?: string;
+  ai_status_message?: string;
   overall: BenchmarkMetrics & { total: number };
   categories: Record<CategoryType, BenchmarkMetrics>;
   details: Array<{
     id: string;
     status: 'PASS' | 'FAIL';
+    category?: string;
     expected: string[];
     detected: string[];
     tp: number;

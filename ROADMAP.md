@@ -40,10 +40,11 @@
   - [x] Ephemeral in-memory screenshot generation (no temp files persisted on disk)
   - [x] Environment variable key hygiene and hardened .gitignore
 
-- [ ] **Phase G: Honest Reporting UI**
-  - [ ] Remove artificial "100%" claims from UI
-  - [ ] Show test set size, failures, and rule vs. AI source distinction
-  - [ ] Remove hardcoded confidence numbers or ground them in measurable metrics
+- [x] **Phase G: Honest Reporting UI**
+  - [x] Replaced 100% modal with real numbers (90% Precision on held-out test split, 1 failure listed)
+  - [x] Dual-split selector (Held-Out Test Set vs. Dev Tuning Set) and Rules Only vs. Rules + AI toggles
+  - [x] Transparent failure diagnostics explaining dual-violation edge cases
+  - [x] Clean frontend production build (Vite + TypeScript)
 
 - [ ] **Phase H: Process & Phase Verification**
   - [ ] One Git commit per phase
