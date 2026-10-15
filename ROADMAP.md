@@ -1,38 +1,48 @@
-# ClearClick AI — Implementation Roadmap
+# ClearClick AI — Honest Implementation Roadmap
 
-- [x] **Phase 0: Spec, Planning & Ground-Truth Test Corpus**
-  - [x] Create `PROJECT.md`, `ROADMAP.md`, `PROMPT.md`
-  - [x] Generate 14 labelled HTML test fixtures across 3 focus categories (positive & negative clean controls)
-  - [x] Create `corpus/labels.json` with ground truth pattern types, targets, and annotations
+## Current Baseline: `v0` (Frozen & Audited)
 
-- [x] **Phase 1: End-to-End Application Skeleton**
-  - [x] Standardized finding schema (`schema.py`)
-  - [x] FastAPI backend with analysis endpoints and mock responses
-  - [x] Modern React + Vite frontend skeleton with interactive visualizer layout
+- [x] **Phase A: Freeze and Audit**
+  - [x] Tag existing state `v0` in Git
+  - [x] Comprehensive code audit identifying hardcoded strings, stubs, and untested areas
+  - [x] Update `PROJECT.md` and `ROADMAP.md` with honest scope and phase gates
 
-- [x] **Phase 2: Playwright Extraction Engine**
-  - [x] Headless Chromium extraction for DOM checkboxes, buttons, links, price texts, and bboxes
-  - [x] Computed styles and WCAG 2.1 color contrast calculation engine
-  - [x] Screenshot generation and element coordinate mapping
+- [ ] **Phase B: Rebuild Evaluation (Before Modifying Detectors)**
+  - [ ] Split corpus into **dev set** (for detector tuning) and **held-out test set** (never touched by detectors)
+  - [ ] Expand corpus to 40+ examples with >= 15 clean controls, including tricky clean controls
+  - [ ] Establish strict rule: AI / scripts may never edit held-out corpus or labels
+  - [ ] Record baseline precision/recall on held-out set and document initial failure modes
 
-- [x] **Phase 3: Deterministic Rule-Based Detectors**
-  - [x] Manipulative Consent detector (`preticked_consent`, `unequal_button_emphasis`, `missing_reject`)
-  - [x] Hidden Charges detector (`microprint_fee`, `low_contrast_fee`, `late_appearing_charge`)
-  - [x] Misleading Cancellation detector (`asymmetric_step_count`, `buried_cancel_link`)
-  - [x] Unit tests for each detector category passing deterministically (15/15 tests passing)
+- [ ] **Phase C: Make Detectors Honest (Ralph Loop on Dev Set Only)**
+  - [ ] Remove hardcoded fixture strings (e.g. `resort fee`, specific fee phrases, hardcoded confirm-shaming strings)
+  - [ ] Implement multi-step flow input (ordered sequence of steps for true step counting and cross-step price tracking)
+  - [ ] Real double-negative detection logic
+  - [ ] Contextual contrast checking (compare fee/link contrast relative to main page body contrast, resolve true background through parent hierarchy)
+  - [ ] Run Ralph loop on dev branch with 20 iteration cap
 
-- [x] **Phase 4: AI Detectors with Anti-Hallucination Guard**
-  - [x] Structured LLM prompt adapter for text analysis (confirm-shaming, double negatives)
-  - [x] Strict DOM quote verification engine (filters out any hallucinated quotes)
-  - [x] Modular support for Claude, Gemini, and heuristic fallback
+- [ ] **Phase D: Real AI Layer & Vision**
+  - [ ] Full Claude/Gemini text prompt returning structured JSON with verbatim quotes
+  - [ ] Implement `vision_analysis.py` for visual dominance & prominence
+  - [ ] Robust quote verifier (curly quotes, whitespace normalization, min-length requirement)
+  - [ ] Explicit UI indicator: `"AI analysis not run"` when key is missing or call fails
+  - [ ] Separate reporting for rules-only vs. rules+AI
 
-- [x] **Phase 5: Findings Aggregator & Interactive Report UI**
-  - [x] Unified finding consolidation, deduplication, and confidence scoring
-  - [x] Interactive React screenshot canvas with clickable/hoverable SVG bounding boxes
-  - [x] Categorized findings drawer with evidence, explanations, and fair design suggestions
-  - [x] Non-accusatory disclaimers and category breakdowns
+- [ ] **Phase E: Real-World Extraction Robustness**
+  - [ ] Handle iframes and shadow DOM (cookie banners like OneTrust)
+  - [ ] Dynamic wait conditions for late-loading elements
+  - [ ] Screen scaling (DPR) coordinate correction for highlight boxes
+  - [ ] Test on 10 external real-world pages
 
-- [x] **Phase 6: Evaluation & Benchmarking Suite**
-  - [x] Automated benchmark script evaluating precision, recall, FP and FN rates over the corpus
-  - [x] Separate scorecard for rule-based vs. AI detectors
-  - [x] Benchmark dashboard view in the frontend UI
+- [ ] **Phase F: Security & Hygiene**
+  - [ ] URL SSRF protection (block localhost, private subnets, cloud metadata IPs)
+  - [ ] Request timeouts, page size limits, rate limits
+  - [ ] Ephemeral screenshot storage (auto-cleanup after analysis)
+
+- [ ] **Phase G: Honest Reporting UI**
+  - [ ] Remove artificial "100%" claims from UI
+  - [ ] Show test set size, failures, and rule vs. AI source distinction
+  - [ ] Remove hardcoded confidence numbers or ground them in measurable metrics
+
+- [ ] **Phase H: Process & Phase Verification**
+  - [ ] One Git commit per phase
+  - [ ] User review gate at the conclusion of every phase before executing the next

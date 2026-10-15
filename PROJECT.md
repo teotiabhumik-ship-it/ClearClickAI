@@ -1,32 +1,21 @@
-# ClearClick AI — Project Specification
+# ClearClick AI — Project Specification & Honest Scope
 
 ## 1. Goal
-ClearClick AI inspects web pages and user flows (their DOM text, rendered screenshots, computed styles, and interaction steps) to detect and flag potentially manipulative design choices (dark patterns) that subtly steer users into unintended actions. It provides concrete, evidence-based visual highlights, explains why the pattern may mislead the user, and presents fairer, user-centric alternative designs.
+ClearClick AI inspects web pages and multi-step user flows (text, screenshots, DOM elements, and interaction sequences) to detect and flag potentially misleading dark patterns across three focus areas:
+1. **Hidden Charges**: Late-appearing fees, micro-print price exclusions, and low-contrast fee disclosures.
+2. **Misleading Cancellation**: Multi-step cancellation mazes (asymmetric friction compared to signup), buried cancellation links, and confirm-shaming copy.
+3. **Manipulative Consent**: Pre-ticked consent checkboxes, asymmetric button prominence in cookie banners, and deceptive double-negative language.
 
-## 2. Focus Areas & Finding Criteria
-The prototype focuses strictly on three distinct categories:
+## 2. Core Non-Negotiable Rules
+- **Evidence, Not Accusations**: Findings must provide verbatim quotes, measured WCAG contrast values, or step counts. All descriptions use cautious phrasing ("potentially misleading"), never accusations like "fraud".
+- **Rules Where Possible, AI Where Needed**: Deterministic rules govern exact, measurable attributes (checkbox states, contrast, font sizes, step counts). AI is strictly used for linguistic pressure and visual hierarchy judgment.
+- **Honest Measurement**:
+  - The model and detectors are evaluated on a **held-out test set** that detectors are NEVER tuned to or trained on.
+  - Zero-failure results on self-authored tests are treated as warning signs of overfitting, not achievements.
+  - Failures and false positives must be documented honestly.
+  - If an AI API key is not present, the system MUST state explicitly: `"AI analysis not run"`.
 
-1. **Hidden Charges**:
-   - Fees or costs introduced late in checkout flows without upfront disclosure.
-   - Price disclosures rendered in micro-print (font size significantly smaller than baseline) or low visual contrast against the background (failing WCAG standards).
-   - Pre-selected add-ons or bundled charges where the base product total is obscured.
-
-2. **Misleading Cancellation**:
-   - Asymmetric friction: cancellation processes requiring substantially more steps, interactions, or hurdles than subscription signup.
-   - De-emphasized or hidden cancellation links (e.g. tiny font, low contrast, buried behind multiple non-intuitive sub-menus).
-   - Confirm-shaming or guilt-inducing retention dialogues ("No thanks, I hate saving money").
-
-3. **Manipulative Consent**:
-   - Pre-ticked consent/marketing checkboxes (opt-out instead of opt-in).
-   - Asymmetric visual emphasis on cookie banners (e.g. vibrant, high-contrast "Accept All" button beside an invisible, greyed-out, or missing "Reject" option).
-   - Confusing double negatives and ambiguous language designed to trick users into giving consent.
-
-## 3. Core Principles
-- **Evidence, Not Accusations**: Every finding must include concrete proof—an exact text quote, measured contrast ratio, font size comparison, or bounding box coordinates. Findings are always characterized neutrally as "potentially misleading" or "de-emphasized", never as "fraud" or "scam".
-- **Rules Where Possible, AI Where Needed**: Deterministic rules govern exact, measurable attributes (checkbox state, contrast calculations, font sizes, step counters). AI is employed strictly for linguistic nuance and visual hierarchy judgment.
-- **Honest Measurement**: The system measures and reports its own performance (true positives, false positives, false negatives, precision, and recall) against a ground-truth corpus.
-
-## 4. Out of Scope
-- Detecting unrelated dark pattern categories (e.g. fake countdown timers, artificial scarcity tickers, forced social logins).
-- Live browser extension or automated multi-domain web crawler.
-- Legal determinations or compliance certification.
+## 3. Engineering Boundaries & Safety
+- **No SSRF**: Outbound URLs must be strictly validated (only public http/https, blocking `localhost`, `127.0.0.1`, `10.0.0.0/8`, `192.168.0.0/16`, `169.254.169.254`).
+- **No Corpus Tampering**: Code/agent may NEVER edit the held-out corpus or its labels to pass tests.
+- **Phase Verification Gates**: Every phase must be reviewed and approved before moving to the next phase.
