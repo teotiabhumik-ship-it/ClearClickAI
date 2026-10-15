@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NightOwl Stream - Consent</title>
+  <style>
+    body { background: #090d16; color: #f8fafc; font-family: sans-serif; padding: 20px; }
+    .banner { background: #111827; border: 1px solid #1f2937; padding: 20px; border-radius: 8px; max-width: 550px; margin: auto; }
+    .btn-accept { background: #3b82f6; color: white; padding: 10px 20px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; }
+    /* Dark pattern: Reject button background color blends into banner background (#191f2e on #111827, contrast 1.2:1) */
+    .btn-hidden-reject { background: #191f2e; color: #374151; padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; margin-right: 10px; }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    <h3>Data Privacy & Advertising</h3>
+    <p>We process personal browsing behavior for targeted advertiser matchmaking.</p>
+    <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+      <button class="btn-hidden-reject" id="reject-dark">Decline optional trackers</button>
+      <button class="btn-accept" id="accept-dark">Accept All</button>
+    </div>
+  </div>
+</body>
+</html>

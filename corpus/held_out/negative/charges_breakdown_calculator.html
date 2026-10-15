@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Price Calculator</title>
+  <style>
+    body { font-family: sans-serif; padding: 30px; max-width: 500px; margin: auto; }
+    .box { border: 1px solid #cbd5e1; padding: 20px; border-radius: 8px; }
+    .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: #1e293b; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h3>Order Calculation</h3>
+    <div class="row"><span>Software License:</span><span>$50.00</span></div>
+    <div class="row"><span>Cloud Hosting Addon:</span><span>$10.00</span></div>
+    <!-- Tricky clean: Explicit taxes clearly listed with 14px font and high contrast -->
+    <div class="row"><span>Applicable Sales Tax (8%):</span><span>$4.80</span></div>
+    <div class="row" style="font-size: 20px; font-weight: bold; border-top: 2px solid #0f172a; padding-top: 10px; margin-top: 10px;">
+      <span>Grand Total:</span><span>$64.80</span>
+    </div>
+  </div>
+</body>
+</html>

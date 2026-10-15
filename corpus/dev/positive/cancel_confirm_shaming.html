@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cancel Subscription</title>
+  <style>
+    body { font-family: sans-serif; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+    .modal { background: white; padding: 30px; border-radius: 12px; max-width: 450px; text-align: center; box-shadow: 0 20px 25px rgba(0,0,0,0.2); }
+    .btn-keep { background: #16a34a; color: white; border: none; padding: 12px 24px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; margin-bottom: 12px; }
+    /* Dark pattern: Confirm-shaming manipulative text */
+    .btn-shame { background: none; border: none; color: #dc2626; font-size: 13px; text-decoration: underline; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="modal">
+    <h2>Wait! Don't lose your 50% discount!</h2>
+    <p>If you cancel now, you will lose access to all cloud backups and premium priority support immediately.</p>
+    <button class="btn-keep">Keep My Benefits and Save 50%</button>
+    <br>
+    <button class="btn-shame" id="shame-cancel">No thanks, I hate saving money and don't care about losing my data</button>
+  </div>
+</body>
+</html>

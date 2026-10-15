@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cancel Confirmation</title>
+  <style>
+    body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f1f5f9; }
+    .dialog { background: white; padding: 24px; border-radius: 8px; max-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+    /* Tricky Clean: Two neutral, respectful buttons without guilt tripping */
+    .btn { flex: 1; padding: 10px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; text-align: center; }
+    .btn-cancel { background: #dc2626; color: white; border: none; }
+    .btn-keep { background: #e2e8f0; color: #1e293b; border: none; }
+  </style>
+</head>
+<body>
+  <div class="dialog">
+    <h3>Cancel Subscription</h3>
+    <p>Are you sure you wish to cancel? You will keep access until the end of your current billing period on October 31.</p>
+    <div class="btn-group">
+      <button class="btn btn-keep">Keep Subscription</button>
+      <button class="btn btn-cancel">Yes, Cancel</button>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Privacy Choices</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #f8fafc; padding: 20px; }
+    .banner { position: fixed; bottom: 20px; left: 20px; right: 20px; max-width: 620px; margin: auto; background: white; border-radius: 12px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    .btn-accept { background: #2563eb; color: white; padding: 12px 24px; border-radius: 6px; font-weight: 600; border: none; cursor: pointer; }
+    .link-faint { color: #94a3b8; font-size: 12px; text-decoration: underline; margin-right: 15px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    <h3>Cookie & Analytics Notice</h3>
+    <p>We use tracking technologies to personalize content and ads across partner platforms.</p>
+    <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 15px;">
+      <a href="/reject" class="link-faint" id="faint-reject">Continue without accepting</a>
+      <button class="btn-accept" id="btn-accept">Accept All</button>
+    </div>
+  </div>
+</body>
+</html>

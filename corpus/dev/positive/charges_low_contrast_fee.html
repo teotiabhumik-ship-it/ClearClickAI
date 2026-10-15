@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SkyHigh Airlines Checkout</title>
+  <style>
+    body { font-family: sans-serif; background: #ffffff; padding: 30px; max-width: 550px; margin: auto; }
+    .ticket-summary { border: 1px solid #ddd; padding: 20px; border-radius: 8px; }
+    .fare { font-size: 32px; font-weight: bold; color: #0f172a; }
+    /* Dark pattern: extremely low contrast fee on white background (WCAG contrast ~1.3:1) */
+    .hidden-surcharge { color: #d6d9dc; font-size: 13px; margin: 8px 0; }
+    .btn-pay { background: #0284c7; color: white; border: none; padding: 12px; width: 100%; font-size: 16px; border-radius: 6px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="ticket-summary">
+    <h3>New York (JFK) to London (LHR)</h3>
+    <div class="fare">Ticket: $280.00</div>
+    <div class="hidden-surcharge" id="low-contrast-fee">+ Mandatory processing fee: $48.50 and fuel surcharge: $22.00 applied at settlement</div>
+    <button class="btn-pay">Continue to Payment</button>
+  </div>
+</body>
+</html>

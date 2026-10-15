@@ -1,7 +1,6 @@
 """
 Automated Evaluation and Benchmarking Suite for ClearClick AI
-Calculates True Positives, False Positives, False Negatives, Precision, and Recall
-across all corpus fixtures in corpus/labels.json.
+Supports independent evaluation on 'dev' set and 'held_out' test set.
 """
 
 import os
@@ -17,12 +16,18 @@ from ..detectors.hidden_charges import HiddenChargesDetector
 from ..detectors.cancellation import CancellationDetector
 
 
-async def run_benchmark() -> Dict[str, Any]:
+async def run_benchmark(split: str = "held_out") -> Dict[str, Any]:
     corpus_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "corpus"))
-    labels_file = os.path.join(corpus_dir, "labels.json")
+    
+    if split == "dev":
+        labels_file = os.path.join(corpus_dir, "dev_labels.json")
+    elif split == "held_out":
+        labels_file = os.path.join(corpus_dir, "held_out_labels.json")
+    else:
+        labels_file = os.path.join(corpus_dir, "held_out_labels.json")
 
     if not os.path.exists(labels_file):
-        raise FileNotFoundError(f"labels.json not found at {labels_file}")
+        raise FileNotFoundError(f"Labels file not found at {labels_file}")
 
     with open(labels_file, "r", encoding="utf-8") as f:
         cases = json.load(f)
@@ -32,6 +37,7 @@ async def run_benchmark() -> Dict[str, Any]:
     cancel_detector = CancellationDetector()
 
     stats = {
+        "split": split,
         "overall": {"tp": 0, "fp": 0, "fn": 0, "total": len(cases)},
         "categories": {
             "consent": {"tp": 0, "fp": 0, "fn": 0},
@@ -42,7 +48,7 @@ async def run_benchmark() -> Dict[str, Any]:
     }
 
     print("=================================================================")
-    print("  ClearClick AI - Running Ground-Truth Evaluation Benchmark       ")
+    print(f"  ClearClick AI — Evaluation Benchmark [SPLIT: {split.upper()}]  ")
     print("=================================================================\n")
 
     for case in cases:
@@ -71,7 +77,7 @@ async def run_benchmark() -> Dict[str, Any]:
         detected_findings.extend(charges_detector.detect(page_data))
         detected_findings.extend(cancel_detector.detect(page_data))
 
-        detected_pattern_types = [f.type for f in detected_findings]
+        detected_pattern_types = list(set(f.type for f in detected_findings))
         is_clean_control = len(expected_patterns) == 0
 
         # Evaluate against ground truth
@@ -79,8 +85,6 @@ async def run_benchmark() -> Dict[str, Any]:
         tp = len(matched_tp)
         fn = len(set(expected_patterns) - set(detected_pattern_types))
         
-        # If clean control, any finding is false positive.
-        # If positive case, any unexpected pattern is false positive.
         if is_clean_control:
             fp = len(detected_findings)
         else:
@@ -96,11 +100,12 @@ async def run_benchmark() -> Dict[str, Any]:
             stats["categories"][expected_category]["fn"] += fn
 
         status_flag = "PASS" if (fn == 0 and fp == 0) else "FAIL"
-        print(f"[{status_flag}] {case_id:30} Expected: {expected_patterns} | Detected: {detected_pattern_types}")
+        print(f"[{status_flag:4}] {case_id:45} Expected: {expected_patterns} | Detected: {detected_pattern_types}")
 
         stats["details"].append({
             "id": case_id,
             "status": status_flag,
+            "category": expected_category,
             "expected": expected_patterns,
             "detected": detected_pattern_types,
             "tp": tp,
@@ -108,7 +113,6 @@ async def run_benchmark() -> Dict[str, Any]:
             "fn": fn
         })
 
-    # Calculate metrics
     def calc_metrics(d):
         tp, fp, fn = d["tp"], d["fp"], d["fn"]
         precision = round(tp / (tp + fp), 3) if (tp + fp) > 0 else (1.0 if fp == 0 else 0.0)
@@ -123,15 +127,16 @@ async def run_benchmark() -> Dict[str, Any]:
         stats["categories"][cat].update(calc_metrics(stats["categories"][cat]))
 
     print("\n-----------------------------------------------------------------")
-    print(f"OVERALL RESULTS: Precision: {overall_metrics['precision']:.1%} | Recall: {overall_metrics['recall']:.1%} | F1: {overall_metrics['f1']:.3f}")
-    print(f"TP: {stats['overall']['tp']} | FP: {stats['overall']['fp']} | FN: {stats['overall']['fn']}")
+    print(f"OVERALL [{split.upper()}]: Precision: {overall_metrics['precision']:.1%} | Recall: {overall_metrics['recall']:.1%} | F1: {overall_metrics['f1']:.3f}")
+    print(f"Counts: Total Cases: {len(cases)} | TP: {stats['overall']['tp']} | FP: {stats['overall']['fp']} | FN: {stats['overall']['fn']}")
     print("-----------------------------------------------------------------")
     for cat, m in stats["categories"].items():
-        print(f"  - {cat:15}: Precision={m['precision']:.1%}, Recall={m['recall']:.1%}, F1={m['f1']:.3f}")
+        print(f"  - {cat:15}: Precision={m['precision']:.1%}, Recall={m['recall']:.1%}, F1={m['f1']:.3f} (TP={stats['categories'][cat]['tp']}, FP={stats['categories'][cat]['fp']}, FN={stats['categories'][cat]['fn']})")
     print("=================================================================\n")
 
     return stats
 
 
 if __name__ == "__main__":
-    asyncio.run(run_benchmark())
+    split_arg = sys.argv[1] if len(sys.argv) > 1 else "held_out"
+    asyncio.run(run_benchmark(split=split_arg))

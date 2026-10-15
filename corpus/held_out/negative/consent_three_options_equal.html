@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cookie Options</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .banner { max-width: 650px; margin: auto; border: 1px solid #d1d5db; padding: 20px; border-radius: 8px; background: white; }
+    .btn-row { display: flex; gap: 10px; margin-top: 15px; }
+    /* Tricky Clean: Three buttons with identical font size, equal padding, high contrast */
+    .btn { flex: 1; padding: 10px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; text-align: center; }
+    .btn-rej { background: white; color: #1e293b; border: 1px solid #94a3b8; }
+    .btn-cust { background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; }
+    .btn-acc { background: #0f172a; color: white; border: 1px solid #0f172a; }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    <h3>Privacy Settings</h3>
+    <p>Choose your tracking preferences below:</p>
+    <div class="btn-row">
+      <button class="btn btn-rej">Reject All</button>
+      <button class="btn btn-cust">Customize</button>
+      <button class="btn btn-acc">Accept All</button>
+    </div>
+  </div>
+</body>
+</html>

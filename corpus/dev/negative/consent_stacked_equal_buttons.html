@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Stacked Equal Cookie Choice</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .banner { max-width: 500px; margin: auto; border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
+    /* Tricky Clean: Two stacked buttons with different colors but identical 14px size, equal padding, high contrast */
+    .btn { display: block; width: 100%; padding: 12px; margin-top: 10px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; text-align: center; }
+    .btn-accept { background: #0f172a; color: white; border: 1px solid #0f172a; }
+    .btn-reject { background: white; color: #0f172a; border: 2px solid #0f172a; }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    <h3>Cookie Preferences</h3>
+    <p>We respect your privacy. Choose whether you accept optional cookies:</p>
+    <button class="btn btn-accept">Accept Optional Cookies</button>
+    <button class="btn btn-reject">Reject Optional Cookies</button>
+  </div>
+</body>
+</html>

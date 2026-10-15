@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Consent Choices</title>
+  <style>
+    body { font-family: sans-serif; padding: 40px; }
+    .banner { background: #1e293b; color: white; padding: 20px; border-radius: 8px; }
+    .btn-accept { background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+    .btn-more { background: #475569; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    <h3>Cookie Preferences</h3>
+    <p>We use cookies to analyze web traffic. By clicking Accept you agree to data collection.</p>
+    <div>
+      <button class="btn-more">Manage Preferences</button>
+      <button class="btn-accept">Accept All</button>
+      <!-- Dark pattern: Missing Reject option on the first layer -->
+    </div>
+  </div>
+</body>
+</html>

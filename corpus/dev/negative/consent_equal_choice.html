@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fair Cookie Notice</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .cookie-banner {
+      position: fixed; bottom: 20px; left: 20px; right: 20px; max-width: 600px;
+      margin: auto; background: #ffffff; padding: 20px; border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #d1d5db;
+    }
+    .btn-group { display: flex; gap: 12px; justify-content: flex-end; margin-top: 15px; }
+    /* Fair design: Equal prominence, equal size, accessible contrast */
+    .btn-equal {
+      flex: 1; padding: 10px 16px; font-size: 14px; font-weight: 600;
+      border-radius: 6px; cursor: pointer; text-align: center;
+    }
+    .btn-reject { background: #ffffff; color: #1f2937; border: 1px solid #9ca3af; }
+    .btn-accept { background: #1f2937; color: #ffffff; border: 1px solid #1f2937; }
+  </style>
+</head>
+<body>
+  <div class="cookie-banner">
+    <p style="margin: 0 0 10px 0; color: #374151;">We use necessary cookies for site security and optional cookies for analytics. Choose an option below:</p>
+    <div class="btn-group">
+      <button class="btn-equal btn-reject" id="btn-reject-all">Reject Optional Cookies</button>
+      <button class="btn-equal btn-accept" id="btn-accept-all">Accept Optional Cookies</button>
+    </div>
+  </div>
+</body>
+</html>

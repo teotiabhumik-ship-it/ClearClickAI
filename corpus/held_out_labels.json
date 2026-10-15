@@ -1,0 +1,130 @@
+[
+  {
+    "id": "heldout_consent_dark_theme_hidden_reject",
+    "file": "held_out/positive/consent_dark_theme_hidden_reject.html",
+    "category": "consent",
+    "patterns": ["unequal_button_emphasis"],
+    "expected_evidence_keywords": ["Decline optional trackers"],
+    "notes": "Reject button blends into dark background with 1.2:1 contrast"
+  },
+  {
+    "id": "heldout_consent_nested_optout_vendor",
+    "file": "held_out/positive/consent_nested_optout_vendor.html",
+    "category": "consent",
+    "patterns": ["preticked_consent"],
+    "expected_evidence_keywords": ["AdPartner Network"],
+    "notes": "Pre-selected checkboxes across 400+ ad partners"
+  },
+  {
+    "id": "heldout_consent_confusing_double_toggle",
+    "file": "held_out/positive/consent_confusing_double_toggle.html",
+    "category": "consent",
+    "patterns": ["double_negative_language"],
+    "expected_evidence_keywords": ["Prevent us from not sharing"],
+    "notes": "Confusing double-negative toggle"
+  },
+  {
+    "id": "heldout_charges_rental_cleaning_fee",
+    "file": "held_out/positive/charges_rental_cleaning_fee.html",
+    "category": "hidden_charges",
+    "patterns": ["microprint_fee", "low_contrast_fee"],
+    "expected_evidence_keywords": ["$120 cleaning fee"],
+    "notes": "Late microprint cleaning and booking fees"
+  },
+  {
+    "id": "heldout_charges_tiny_print_renewal",
+    "file": "held_out/positive/charges_tiny_print_renewal.html",
+    "category": "hidden_charges",
+    "patterns": ["microprint_fee"],
+    "expected_evidence_keywords": ["Auto-renews at $49.99/mo"],
+    "notes": "7.5px fine print price hike after initial trial"
+  },
+  {
+    "id": "heldout_charges_payment_method_fee",
+    "file": "held_out/positive/charges_payment_method_fee.html",
+    "category": "hidden_charges",
+    "patterns": ["low_contrast_fee"],
+    "expected_evidence_keywords": ["processing surcharge"],
+    "notes": "Low-contrast payment fee added late"
+  },
+  {
+    "id": "heldout_cancel_phone_call_required",
+    "file": "held_out/positive/cancel_phone_call_required.html",
+    "category": "cancellation",
+    "patterns": ["asymmetric_cancellation_steps"],
+    "expected_evidence_keywords": ["call our retention department"],
+    "notes": "Online signup vs forced phone call cancellation"
+  },
+  {
+    "id": "heldout_cancel_guilt_trip_avatar",
+    "file": "held_out/positive/cancel_guilt_trip_avatar.html",
+    "category": "cancellation",
+    "patterns": ["confirm_shaming"],
+    "expected_evidence_keywords": ["break our heart", "like overpaying"],
+    "notes": "Emotional guilt tripping and confirm shaming button"
+  },
+  {
+    "id": "heldout_consent_three_options_equal",
+    "file": "held_out/negative/consent_three_options_equal.html",
+    "category": "consent",
+    "patterns": [],
+    "expected_evidence_keywords": [],
+    "notes": "Tricky Clean: Three buttons with identical 13px font size, equal padding, high contrast"
+  },
+  {
+    "id": "heldout_consent_no_tracking_banner",
+    "file": "held_out/negative/consent_no_tracking_banner.html",
+    "category": "consent",
+    "patterns": [],
+    "expected_evidence_keywords": [],
+    "notes": "Clean example: Zero-tracking informational notice"
+  },
+  {
+    "id": "heldout_consent_explicit_optin_newsletter",
+    "file": "held_out/negative/consent_explicit_optin_newsletter.html",
+    "category": "consent",
+    "patterns": [],
+    "expected_evidence_keywords": [],
+    "notes": "Clean example: Explicit optional newsletter checkbox, unticked by default"
+  },
+  {
+    "id": "heldout_charges_breakdown_calculator",
+    "file": "held_out/negative/charges_breakdown_calculator.html",
+    "category": "hidden_charges",
+    "patterns": [],
+    "expected_evidence_keywords": [],
+    "notes": "Tricky Clean: Explicit itemized sales tax with 14px font and high contrast"
+  },
+  {
+    "id": "heldout_charges_transparent_hotel",
+    "file": "held_out/negative/charges_transparent_hotel.html",
+    "category": "hidden_charges",
+    "patterns": [],
+    "expected_evidence_keywords": [],
+    "notes": "Tricky Clean: Upfront all-inclusive room rate with legible taxes"
+  },
+  {
+    "id": "heldout_charges_annual_billing_toggle",
+    "file": "held_out/negative/charges_annual_billing_toggle.html",
+    "category": "hidden_charges",
+    "patterns": [],
+    "expected_evidence_keywords": [],
+    "notes": "Tricky Clean: Clear toggle stating full yearly total upfront"
+  },
+  {
+    "id": "heldout_cancel_immediate_pause_or_cancel",
+    "file": "held_out/negative/cancel_immediate_pause_or_cancel.html",
+    "category": "cancellation",
+    "patterns": [],
+    "expected_evidence_keywords": [],
+    "notes": "Tricky Clean: Transparent choice to pause or cancel with 1 click"
+  },
+  {
+    "id": "heldout_cancel_transparent_faq",
+    "file": "held_out/negative/cancel_transparent_faq.html",
+    "category": "cancellation",
+    "patterns": [],
+    "expected_evidence_keywords": [],
+    "notes": "Tricky Clean: Standard 14px link directly leading to cancellation"
+  }
+]
