@@ -122,6 +122,10 @@ export const App: React.FC = () => {
                 selectedFindingIndex={selectedFindingIndex}
                 onSelectFinding={(idx) => setSelectedFindingIndex(idx)}
                 disclaimer={report.disclaimer}
+                aiStatus={report.ai_status}
+                aiStatusMessage={report.ai_status_message}
+                ruleFindingsCount={report.rule_findings_count}
+                aiFindingsCount={report.ai_findings_count}
               />
             </div>
           </div>

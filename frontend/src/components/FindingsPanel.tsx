@@ -7,7 +7,9 @@ import {
   ExternalLink,
   SlidersHorizontal,
   ChevronRight,
-  Info
+  Info,
+  Cpu,
+  Sparkles
 } from 'lucide-react';
 import { Finding, CategoryType } from '../types';
 
@@ -17,6 +19,10 @@ interface FindingsPanelProps {
   selectedFindingIndex: number | null;
   onSelectFinding: (idx: number) => void;
   disclaimer: string;
+  aiStatus?: 'not_run' | 'completed' | 'failed';
+  aiStatusMessage?: string;
+  ruleFindingsCount?: number;
+  aiFindingsCount?: number;
 }
 
 export const FindingsPanel: React.FC<FindingsPanelProps> = ({
@@ -25,12 +31,21 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
   selectedFindingIndex,
   onSelectFinding,
   disclaimer,
+  aiStatus = 'not_run',
+  aiStatusMessage,
+  ruleFindingsCount,
+  aiFindingsCount,
 }) => {
   const [filterCategory, setFilterCategory] = useState<CategoryType | 'all'>('all');
+  const [filterSource, setFilterSource] = useState<'all' | 'rule' | 'ai'>('all');
+
+  const ruleCount = ruleFindingsCount ?? findings.filter((f) => f.source === 'rule').length;
+  const aiCount = aiFindingsCount ?? findings.filter((f) => f.source === 'ai').length;
 
   const filteredFindings = findings
     .map((f, originalIndex) => ({ ...f, originalIndex }))
-    .filter((f) => filterCategory === 'all' || f.category === filterCategory);
+    .filter((f) => filterCategory === 'all' || f.category === filterCategory)
+    .filter((f) => filterSource === 'all' || f.source === filterSource);
 
   const getSeverityBadge = (sev: string) => {
     switch (sev) {
@@ -58,7 +73,7 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl flex flex-col h-full shadow-xl overflow-hidden">
-      {/* Category Breakdown Header (No single verdict score!) */}
+      {/* Category Breakdown Header */}
       <div className="p-4 bg-slate-950 border-b border-slate-800">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
@@ -105,6 +120,70 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
           >
             <div className="text-[11px] text-slate-400 font-medium">Cancellation Friction</div>
             <div className="text-lg font-bold text-white mt-0.5">{summaryByCategory.cancellation || 0}</div>
+          </button>
+        </div>
+
+        {/* AI Status Banner */}
+        {aiStatus === 'not_run' && (
+          <div className="mt-3 p-2 bg-slate-900/90 border border-amber-500/30 rounded-lg flex items-center justify-between text-[11px]">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+              <span className="font-semibold text-amber-300">AI analysis not run</span>
+              <span className="text-slate-400">— No API key set. Showing rule detections only.</span>
+            </div>
+          </div>
+        )}
+        {aiStatus === 'failed' && (
+          <div className="mt-3 p-2 bg-rose-950/40 border border-rose-500/30 rounded-lg flex items-center justify-between text-[11px]">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-rose-400 shrink-0" />
+              <span className="font-semibold text-rose-300">AI analysis failed</span>
+              <span className="text-slate-400">— {aiStatusMessage || 'API call failed'}. Rule-only findings.</span>
+            </div>
+          </div>
+        )}
+        {aiStatus === 'completed' && (
+          <div className="mt-3 p-2 bg-purple-950/40 border border-purple-500/30 rounded-lg flex items-center justify-between text-[11px]">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+              <span className="font-semibold text-purple-200">AI analysis completed</span>
+              <span className="text-purple-300">— {aiCount} AI finding{aiCount !== 1 ? 's' : ''} verified against page</span>
+            </div>
+          </div>
+        )}
+
+        {/* Source Filter Tabs: All / Rule-Only / AI */}
+        <div className="mt-3 flex items-center gap-2 pt-2 border-t border-slate-800/80">
+          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Source:</span>
+          <button
+            onClick={() => setFilterSource('all')}
+            className={`px-2 py-0.5 rounded text-[11px] font-mono transition-all ${
+              filterSource === 'all'
+                ? 'bg-blue-600 text-white font-semibold'
+                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+            }`}
+          >
+            All ({findings.length})
+          </button>
+          <button
+            onClick={() => setFilterSource('rule')}
+            className={`px-2 py-0.5 rounded text-[11px] font-mono transition-all ${
+              filterSource === 'rule'
+                ? 'bg-cyan-700 text-white font-semibold'
+                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+            }`}
+          >
+            Rules Only ({ruleCount})
+          </button>
+          <button
+            onClick={() => setFilterSource('ai')}
+            className={`px-2 py-0.5 rounded text-[11px] font-mono transition-all ${
+              filterSource === 'ai'
+                ? 'bg-purple-700 text-white font-semibold'
+                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+            }`}
+          >
+            AI ({aiCount})
           </button>
         </div>
 

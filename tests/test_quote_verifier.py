@@ -1,6 +1,6 @@
 import pytest
 from backend.app.schema import Finding
-from backend.app.ai.quote_verifier import QuoteVerifier
+from backend.app.ai.quote_verifier import QuoteVerifier, normalize_text
 
 
 def test_quote_verifier_accepts_valid_quote():
@@ -20,6 +20,45 @@ def test_quote_verifier_accepts_valid_quote():
     valid, reason = QuoteVerifier.verify_finding(finding, page_text)
     assert valid is True
     assert "verified" in reason.lower()
+
+
+def test_quote_verifier_normalizes_curly_quotes_and_whitespace():
+    # DOM contains curly quotes and irregular spaces
+    page_text = "Click here if you “do not agree to decline” promotional emails."
+    # Finding contains straight ASCII quotes and extra spacing
+    finding = Finding(
+        category="consent",
+        type="double_negative_language",
+        severity="medium",
+        confidence=0.85,
+        evidence='"do not agree to decline"',
+        bbox=[0, 0, 0, 0],
+        why="Misleading negative toggle",
+        safer_alternative="Provide clean opt-out",
+        source="ai"
+    )
+
+    valid, reason = QuoteVerifier.verify_finding(finding, page_text)
+    assert valid is True, f"Failed curly quote normalization: {reason}"
+
+
+def test_quote_verifier_rejects_too_short_quote():
+    page_text = "Cancel subscription anytime without fee."
+    finding = Finding(
+        category="cancellation",
+        type="cancel_barrier",
+        severity="low",
+        confidence=0.5,
+        evidence="Cancel",  # Only 6 characters (< 12)
+        bbox=[0, 0, 0, 0],
+        why="Vague wording",
+        safer_alternative="Clear cancellation",
+        source="ai"
+    )
+
+    valid, reason = QuoteVerifier.verify_finding(finding, page_text)
+    assert valid is False
+    assert "too short" in reason.lower()
 
 
 def test_quote_verifier_rejects_hallucinated_quote():
@@ -42,3 +81,21 @@ def test_quote_verifier_rejects_hallucinated_quote():
 
     filtered = QuoteVerifier.filter_findings([finding], page_text)
     assert len(filtered) == 0, "Hallucinated finding was not pruned by filter_findings!"
+
+
+def test_quote_verifier_preserves_rule_measurements():
+    finding = Finding(
+        category="hidden_charges",
+        type="low_contrast_fee",
+        severity="medium",
+        confidence=0.85,
+        evidence="contrast ratio: 1.8:1 below 4.5:1 threshold (fee: $15.00)",
+        bbox=[10, 20, 100, 30],
+        why="Contrast too low",
+        safer_alternative="Increase contrast",
+        source="rule"
+    )
+
+    valid, reason = QuoteVerifier.verify_finding(finding, "Some page content")
+    assert valid is True
+    assert "measurement accepted" in reason.lower()

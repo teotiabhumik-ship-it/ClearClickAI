@@ -110,7 +110,14 @@ class AnalysisReport(BaseModel):
     disclaimer: str = "ClearClick AI findings are automated warnings for human review, not legal conclusions."
     summary_by_category: dict[CategoryType, int]
     findings: List[Finding]
+    rule_findings: List[Finding] = Field(default_factory=list)
+    ai_findings: List[Finding] = Field(default_factory=list)
+    rule_findings_count: int = 0
+    ai_findings_count: int = 0
+    ai_status: Literal["not_run", "completed", "failed"] = "not_run"
+    ai_status_message: str = "AI analysis not run (no API key configured)"
     screenshot_base64: Optional[str] = None
     page_title: str = ""
     is_flow: bool = False
     step_count: int = 1
+

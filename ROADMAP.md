@@ -20,12 +20,13 @@
   - [x] Contextual contrast checking (walk DOM parent tree for true background color, support dark themes)
   - [x] Results: Dev Set 100% Precision / 100% Recall; Held-out Test Set 90.0% Precision / 100.0% Recall (TP=9, FP=1, FN=0)
 
-- [ ] **Phase D: Real AI Layer & Vision**
-  - [ ] Full Claude/Gemini text prompt returning structured JSON with verbatim quotes
-  - [ ] Implement `vision_analysis.py` for visual dominance & prominence
-  - [ ] Robust quote verifier (curly quotes, whitespace normalization, min-length requirement)
-  - [ ] Explicit UI indicator: `"AI analysis not run"` when key is missing or call fails
-  - [ ] Separate reporting for rules-only vs. rules+AI
+- [x] **Phase D: Real AI Layer & Vision**
+  - [x] Full Claude/Gemini text prompt returning structured JSON with verbatim quotes
+  - [x] Implement `vision_analysis.py` for visual dominance & prominence
+  - [x] Robust quote verifier (curly quotes, whitespace normalization, min-length >= 12 chars requirement)
+  - [x] Explicit UI indicator: `"AI analysis not run"` when key is missing or call fails
+  - [x] Separate reporting for rules-only vs. rules+AI in benchmark and UI
+  - [x] 22/22 unit tests passing including mock API calls, quote validation, and failure tracking
 
 - [ ] **Phase E: Real-World Extraction Robustness**
   - [ ] Handle iframes and shadow DOM (cookie banners like OneTrust)

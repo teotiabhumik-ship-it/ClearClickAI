@@ -1,6 +1,7 @@
 """
 Automated Evaluation and Benchmarking Suite for ClearClick AI
-Supports independent evaluation on 'dev' set and 'held_out' test set.
+Supports independent evaluation on 'dev' set and 'held_out' test set,
+with separate reporting for rule-only vs. rule-plus-AI detectors.
 """
 
 import os
@@ -14,9 +15,12 @@ from ..extract.playwright_extractor import PageExtractor
 from ..detectors.consent import ConsentDetector
 from ..detectors.hidden_charges import HiddenChargesDetector
 from ..detectors.cancellation import CancellationDetector
+from ..ai.text_analysis import AITextDetector
+from ..ai.vision_analysis import AIVisionDetector
+from ..ai.client import AIClient
 
 
-async def run_benchmark(split: str = "held_out") -> Dict[str, Any]:
+async def run_benchmark(split: str = "held_out", include_ai: bool = False) -> Dict[str, Any]:
     corpus_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "corpus"))
     
     if split == "dev":
@@ -36,8 +40,15 @@ async def run_benchmark(split: str = "held_out") -> Dict[str, Any]:
     charges_detector = HiddenChargesDetector()
     cancel_detector = CancellationDetector()
 
+    ai_text_detector = AITextDetector() if include_ai else None
+    ai_vision_detector = AIVisionDetector() if include_ai else None
+    ai_client = AIClient()
+
     stats = {
         "split": split,
+        "include_ai": include_ai,
+        "ai_status": "completed" if (include_ai and ai_client.has_any_key) else ("not_run" if not include_ai else "no_key"),
+        "ai_status_message": "AI analysis active" if (include_ai and ai_client.has_any_key) else "AI analysis not run (rules-only mode or no key)",
         "overall": {"tp": 0, "fp": 0, "fn": 0, "total": len(cases)},
         "categories": {
             "consent": {"tp": 0, "fp": 0, "fn": 0},
@@ -47,8 +58,9 @@ async def run_benchmark(split: str = "held_out") -> Dict[str, Any]:
         "details": []
     }
 
+    mode_label = "RULES + AI" if include_ai else "RULES ONLY"
     print("=================================================================")
-    print(f"  ClearClick AI — Evaluation Benchmark [SPLIT: {split.upper()}]  ")
+    print(f"  ClearClick AI — Evaluation Benchmark [SPLIT: {split.upper()} | {mode_label}]  ")
     print("=================================================================\n")
 
     for case in cases:
@@ -71,11 +83,18 @@ async def run_benchmark(split: str = "held_out") -> Dict[str, Any]:
             html_content=html_content
         )
 
-        # Run detectors
+        # Run rule detectors
         detected_findings: List[Finding] = []
         detected_findings.extend(consent_detector.detect(page_data))
         detected_findings.extend(charges_detector.detect(page_data))
         detected_findings.extend(cancel_detector.detect(page_data))
+
+        # Run AI detectors if enabled
+        if include_ai and ai_text_detector and ai_vision_detector:
+            ai_tf, _, _ = await ai_text_detector.detect(page_data)
+            ai_vf, _, _ = await ai_vision_detector.detect(page_data)
+            detected_findings.extend(ai_tf)
+            detected_findings.extend(ai_vf)
 
         detected_pattern_types = list(set(f.type for f in detected_findings))
         is_clean_control = len(expected_patterns) == 0
@@ -127,7 +146,7 @@ async def run_benchmark(split: str = "held_out") -> Dict[str, Any]:
         stats["categories"][cat].update(calc_metrics(stats["categories"][cat]))
 
     print("\n-----------------------------------------------------------------")
-    print(f"OVERALL [{split.upper()}]: Precision: {overall_metrics['precision']:.1%} | Recall: {overall_metrics['recall']:.1%} | F1: {overall_metrics['f1']:.3f}")
+    print(f"OVERALL [{split.upper()} - {mode_label}]: Precision: {overall_metrics['precision']:.1%} | Recall: {overall_metrics['recall']:.1%} | F1: {overall_metrics['f1']:.3f}")
     print(f"Counts: Total Cases: {len(cases)} | TP: {stats['overall']['tp']} | FP: {stats['overall']['fp']} | FN: {stats['overall']['fn']}")
     print("-----------------------------------------------------------------")
     for cat, m in stats["categories"].items():
@@ -138,5 +157,13 @@ async def run_benchmark(split: str = "held_out") -> Dict[str, Any]:
 
 
 if __name__ == "__main__":
-    split_arg = sys.argv[1] if len(sys.argv) > 1 else "held_out"
-    asyncio.run(run_benchmark(split=split_arg))
+    split_arg = "held_out"
+    with_ai_arg = False
+
+    for arg in sys.argv[1:]:
+        if arg in ["dev", "held_out"]:
+            split_arg = arg
+        elif arg in ["--with-ai", "--ai"]:
+            with_ai_arg = True
+
+    asyncio.run(run_benchmark(split=split_arg, include_ai=with_ai_arg))

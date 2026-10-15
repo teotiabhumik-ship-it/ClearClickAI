@@ -20,8 +20,16 @@ export interface AnalysisReport {
   disclaimer: string;
   summary_by_category: Record<CategoryType, number>;
   findings: Finding[];
+  rule_findings?: Finding[];
+  ai_findings?: Finding[];
+  rule_findings_count?: number;
+  ai_findings_count?: number;
+  ai_status?: 'not_run' | 'completed' | 'failed';
+  ai_status_message?: string;
   screenshot_base64?: string;
   page_title: string;
+  is_flow?: boolean;
+  step_count?: number;
 }
 
 export interface CorpusItem {
