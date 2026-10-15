@@ -7,11 +7,11 @@
   - [x] Comprehensive code audit identifying hardcoded strings, stubs, and untested areas
   - [x] Update `PROJECT.md` and `ROADMAP.md` with honest scope and phase gates
 
-- [ ] **Phase B: Rebuild Evaluation (Before Modifying Detectors)**
-  - [ ] Split corpus into **dev set** (for detector tuning) and **held-out test set** (never touched by detectors)
-  - [ ] Expand corpus to 40+ examples with >= 15 clean controls, including tricky clean controls
-  - [ ] Establish strict rule: AI / scripts may never edit held-out corpus or labels
-  - [ ] Record baseline precision/recall on held-out set and document initial failure modes
+- [x] **Phase B: Rebuild Evaluation (Before Modifying Detectors)**
+  - [x] Split corpus into **dev set** (25 cases) and **held-out test set** (16 cases)
+  - [x] Expand corpus to 41 total examples with 18 clean controls, including tricky cleans
+  - [x] Established strict rule: AI / scripts may never edit held-out corpus or labels
+  - [x] Recorded authentic baseline on held-out test set: **Precision 83.3%**, **Recall 55.6%**, with full list of honest failures
 
 - [ ] **Phase C: Make Detectors Honest (Ralph Loop on Dev Set Only)**
   - [ ] Remove hardcoded fixture strings (e.g. `resort fee`, specific fee phrases, hardcoded confirm-shaming strings)
