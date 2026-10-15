@@ -1,25 +1,36 @@
 """
 Playwright Page Extractor for ClearClick AI
 Captures visible DOM elements, computed styles, element bounding boxes, and full-page screenshots.
+Supports:
+- Shadow DOM piercing (open shadow roots)
+- Iframe exploration (same-origin and cross-origin frames)
+- Dynamic banner wait conditions (OneTrust, Cookiebot, late overlays)
+- Device pixel ratio coordinate scaling alignment
+- Responsive viewports
 """
 
 import os
 import base64
 import asyncio
+import logging
 from typing import Optional, Dict, Any, List
 from bs4 import BeautifulSoup
 
 from ..schema import PageData, ExtractedCheckbox, ExtractedElement
 from .contrast import calculate_contrast_ratio, parse_color_to_rgb
 
+logger = logging.getLogger("clearclick.extractor")
+
 
 EXTRACTION_JS = """
 () => {
-    function getBBox(el) {
+    const dpr = window.devicePixelRatio || 1;
+
+    function getBBox(el, offsetX = 0, offsetY = 0) {
         const r = el.getBoundingClientRect();
         return [
-            Math.round(r.left + window.scrollX),
-            Math.round(r.top + window.scrollY),
+            Math.round(r.left + window.scrollX + offsetX),
+            Math.round(r.top + window.scrollY + offsetY),
             Math.round(r.width),
             Math.round(r.height)
         ];
@@ -28,12 +39,14 @@ EXTRACTION_JS = """
     function getEffectiveBackgroundColor(el) {
         let cur = el;
         while (cur && cur !== document.documentElement) {
-            const cs = window.getComputedStyle(cur);
-            const bg = cs.backgroundColor;
-            if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)' && !bg.endsWith(', 0)')) {
-                return bg;
+            if (cur instanceof Element) {
+                const cs = window.getComputedStyle(cur);
+                const bg = cs.backgroundColor;
+                if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)' && !bg.endsWith(', 0)')) {
+                    return bg;
+                }
             }
-            cur = cur.parentElement;
+            cur = cur.parentElement || (cur.getRootNode && cur.getRootNode().host);
         }
         if (document.body) {
             const bodyCs = window.getComputedStyle(document.body);
@@ -55,9 +68,32 @@ EXTRACTION_JS = """
         };
     }
 
+    // Recursively collect all elements across light DOM and open shadow DOMs
+    function getAllElementsWithShadow(root) {
+        const elements = [];
+        function walk(node) {
+            if (!node) return;
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                elements.push(node);
+                if (node.shadowRoot) {
+                    walk(node.shadowRoot);
+                }
+            }
+            let child = node.firstElementChild;
+            while (child) {
+                walk(child);
+                child = child.nextElementSibling;
+            }
+        }
+        walk(root);
+        return elements;
+    }
+
+    const allNodes = getAllElementsWithShadow(document.documentElement);
+
     // 1. Checkboxes
     const checkboxes = [];
-    document.querySelectorAll('input[type="checkbox"]').forEach((cb, idx) => {
+    allNodes.filter(n => n.tagName === 'INPUT' && n.type === 'checkbox').forEach((cb, idx) => {
         let labelText = '';
         if (cb.id) {
             const lbl = document.querySelector(`label[for="${cb.id}"]`);
@@ -86,16 +122,20 @@ EXTRACTION_JS = """
 
     // 2. Buttons
     const buttons = [];
-    const btnSelector = 'button, input[type="button"], input[type="submit"], [role="button"], .btn, .button';
-    document.querySelectorAll(btnSelector).forEach((btn, idx) => {
-        const txt = btn.innerText || btn.value || '';
+    allNodes.filter(n => {
+        const tag = n.tagName.toLowerCase();
+        const role = n.getAttribute('role');
+        const type = n.getAttribute('type');
+        return tag === 'button' || (tag === 'input' && (type === 'button' || type === 'submit')) || role === 'button';
+    }).forEach((btn, idx) => {
+        const txt = btn.innerText || btn.value || btn.getAttribute('aria-label') || '';
         if (!txt.trim()) return;
         const s = getStyle(btn);
         buttons.push({
             tag: btn.tagName.toLowerCase(),
             text: txt.trim(),
             id: btn.id || `btn_${idx}`,
-            classes: Array.from(btn.classList),
+            classes: Array.from(btn.classList || []),
             bbox: getBBox(btn),
             font_size_px: s.fontSizePx,
             color: s.color,
@@ -107,32 +147,33 @@ EXTRACTION_JS = """
 
     // 3. Links
     const links = [];
-    document.querySelectorAll('a[href]').forEach((link, idx) => {
-        const txt = link.innerText || '';
+    allNodes.filter(n => n.tagName.toLowerCase() === 'a' && (n.hasAttribute('href') || n.hasAttribute('role'))).forEach((link, idx) => {
+        const txt = link.innerText || link.getAttribute('aria-label') || '';
         if (!txt.trim()) return;
         const s = getStyle(link);
         links.push({
             tag: 'a',
             text: txt.trim(),
             id: link.id || `link_${idx}`,
-            classes: Array.from(link.classList),
+            classes: Array.from(link.classList || []),
             bbox: getBBox(link),
             font_size_px: s.fontSizePx,
             color: s.color,
             background_color: s.backgroundColor,
-            role: 'link',
-            href: link.getAttribute('href')
+            role: link.getAttribute('role') || 'link',
+            href: link.getAttribute('href') || ''
         });
     });
 
     // 4. Prices and fees
     const prices = [];
-    const priceCandidates = Array.from(document.querySelectorAll('span, div, p, strong, em, b, h1, h2, h3, h4, td'));
-    const priceRegex = /([$€£₹]\\s*\\d+(?:\\.\\d{2})?|fee|charge|surcharge|total|resort|processing|handling)/i;
+    const priceRegex = /([$€£₹]\\s*\\d+(?:\\.\\d{2})?|fee|charge|surcharge|total|resort|processing|handling|cleaning)/i;
 
-    priceCandidates.forEach((el, idx) => {
-        // Only inspect leaf or direct-text nodes to avoid capturing entire parent containers
-        if (el.children.length > 2) return;
+    allNodes.filter(n => {
+        const tag = n.tagName.toLowerCase();
+        return ['span', 'div', 'p', 'strong', 'em', 'b', 'h1', 'h2', 'h3', 'h4', 'td'].includes(tag);
+    }).forEach((el, idx) => {
+        if (el.children && el.children.length > 2) return;
         const txt = el.innerText || '';
         if (priceRegex.test(txt) && txt.trim().length < 150) {
             const s = getStyle(el);
@@ -140,7 +181,7 @@ EXTRACTION_JS = """
                 tag: el.tagName.toLowerCase(),
                 text: txt.trim(),
                 id: el.id || `price_${idx}`,
-                classes: Array.from(el.classList),
+                classes: Array.from(el.classList || []),
                 bbox: getBBox(el),
                 font_size_px: s.fontSizePx,
                 color: s.color,
@@ -159,6 +200,7 @@ EXTRACTION_JS = """
         visibleText: document.body ? document.body.innerText : '',
         bodyColor,
         bodyBg,
+        dpr,
         checkboxes,
         buttons,
         links,
@@ -169,6 +211,19 @@ EXTRACTION_JS = """
 
 
 class PageExtractor:
+    COMMON_BANNER_SELECTORS = [
+        "#onetrust-banner-sdk",
+        "#onetrust-consent-sdk",
+        "#usercentrics-root",
+        "#cookie-banner",
+        "#cookie-law-info-bar",
+        ".cookie-banner",
+        ".cc-banner",
+        "[aria-label*='cookie' i]",
+        "[aria-label*='consent' i]",
+        "[role='dialog'][aria-modal='true']"
+    ]
+
     @classmethod
     async def extract_from_url_or_html(
         cls,
@@ -178,17 +233,23 @@ class PageExtractor:
         viewport_height: int = 800
     ) -> PageData:
         """
-        Extract page structure using Playwright Chromium with fallback to static parser.
+        Extract page structure using Playwright Chromium with shadow DOM piercing,
+        iframe exploration, late banner waiting, and DPR alignment.
         """
         from playwright.async_api import async_playwright
 
         try:
             async with async_playwright() as p:
                 browser = await p.chromium.launch(headless=True)
-                page = await browser.new_page(viewport={"width": viewport_width, "height": viewport_height})
-                
+                # Lock device_scale_factor to 1.0 for pixel-perfect screenshot & coordinate matching
+                context = await browser.new_context(
+                    viewport={"width": viewport_width, "height": viewport_height},
+                    device_scale_factor=1.0
+                )
+                page = await context.new_page()
+
                 if url and (url.startswith("http://") or url.startswith("https://")):
-                    await page.goto(url, wait_until="domcontentloaded", timeout=15000)
+                    await page.goto(url, wait_until="domcontentloaded", timeout=20000)
                 elif url and os.path.exists(url):
                     abs_path = os.path.abspath(url)
                     await page.goto(f"file:///{abs_path.replace(os.sep, '/')}", wait_until="domcontentloaded")
@@ -197,15 +258,19 @@ class PageExtractor:
                 else:
                     raise ValueError("Must provide either a valid URL, file path, or HTML content.")
 
-                # Wait slightly for dynamic styling to settle
-                await page.wait_for_timeout(400)
+                # Dynamic wait for late-loading cookie banners or dialogs
+                await cls._wait_for_dynamic_content(page)
 
-                # Capture full-page screenshot
+                # Capture full-page screenshot aligned to CSS pixels (scale 1.0)
                 screenshot_bytes = await page.screenshot(full_page=True, type="png")
                 screenshot_base64 = base64.b64encode(screenshot_bytes).decode("utf-8")
 
-                # Execute DOM & computed styles extraction script
+                # Execute DOM & computed styles extraction script (pierces shadow DOM)
                 data: Dict[str, Any] = await page.evaluate(EXTRACTION_JS)
+
+                # Traverse child iframes (for banners loaded in separate frames)
+                await cls._extract_iframe_elements(page, data)
+
                 await browser.close()
 
                 body_fg = data.get("bodyColor", "#000000")
@@ -230,12 +295,54 @@ class PageExtractor:
                     viewport_height=viewport_height,
                     body_color=body_fg,
                     body_background_color=body_bg,
-                    body_contrast_ratio=body_contrast
+                    body_contrast_ratio=body_contrast,
+                    device_pixel_ratio=float(data.get("dpr", 1.0))
                 )
 
         except Exception as e:
-            # Fallback to pure BeautifulSoup parser if browser launch fails
+            logger.warning(f"Playwright extraction failed ({e}), falling back to static parser.")
             return cls._fallback_soup_extract(html_content or "", url=url)
+
+    @classmethod
+    async def _wait_for_dynamic_content(cls, page):
+        """Wait for dynamic banners, modals, and animation stabilization."""
+        # Try waiting for known banner selectors with short timeout
+        for sel in cls.COMMON_BANNER_SELECTORS:
+            try:
+                elem = page.locator(sel).first
+                if await elem.is_visible(timeout=300):
+                    break
+            except Exception:
+                continue
+
+        # Brief stabilization delay for CSS animations/transitions
+        try:
+            await page.wait_for_load_state("networkidle", timeout=1200)
+        except Exception:
+            await page.wait_for_timeout(350)
+
+    @classmethod
+    async def _extract_iframe_elements(cls, page, main_data: Dict[str, Any]):
+        """Explore child frames and merge extracted interactive elements."""
+        try:
+            frames = page.frames
+            # Skip main frame (index 0) as it's already extracted
+            for frame in frames[1:]:
+                try:
+                    # Check if frame is accessible
+                    frame_data = await frame.evaluate(EXTRACTION_JS)
+                    if frame_data:
+                        # Append elements and visible text from iframe
+                        if frame_data.get("visibleText"):
+                            main_data["visibleText"] = (main_data.get("visibleText", "") + "\n" + frame_data["visibleText"]).strip()
+                        main_data.setdefault("buttons", []).extend(frame_data.get("buttons", []))
+                        main_data.setdefault("links", []).extend(frame_data.get("links", []))
+                        main_data.setdefault("checkboxes", []).extend(frame_data.get("checkboxes", []))
+                        main_data.setdefault("prices", []).extend(frame_data.get("prices", []))
+                except Exception:
+                    continue
+        except Exception:
+            pass
 
     @staticmethod
     def _compute_contrasts(elements: List[Dict[str, Any]], default_bg: str = "#ffffff"):
@@ -313,7 +420,7 @@ class PageExtractor:
         prices: List[ExtractedElement] = []
         for idx, p in enumerate(soup.find_all(["span", "div", "p"])):
             txt = p.get_text(strip=True)
-            if any(sym in txt for sym in ["$", "€", "£", "₹", "fee", "surcharge", "resort"]):
+            if any(sym in txt for sym in ["$", "€", "£", "₹", "fee", "surcharge", "resort", "cleaning"]):
                 prices.append(ExtractedElement(
                     tag=p.name,
                     text=txt,
@@ -336,5 +443,6 @@ class PageExtractor:
             prices=prices,
             screenshot_base64=None,
             viewport_width=1280,
-            viewport_height=800
+            viewport_height=800,
+            device_pixel_ratio=1.0
         )

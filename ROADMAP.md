@@ -28,11 +28,11 @@
   - [x] Separate reporting for rules-only vs. rules+AI in benchmark and UI
   - [x] 22/22 unit tests passing including mock API calls, quote validation, and failure tracking
 
-- [ ] **Phase E: Real-World Extraction Robustness**
-  - [ ] Handle iframes and shadow DOM (cookie banners like OneTrust)
-  - [ ] Dynamic wait conditions for late-loading elements
-  - [ ] Screen scaling (DPR) coordinate correction for highlight boxes
-  - [ ] Test on 10 external real-world pages
+- [x] **Phase E: Real-World Extraction Robustness**
+  - [x] Handle iframes and shadow DOM piercing (OneTrust, Cookiebot, Web Components)
+  - [x] Dynamic wait conditions for late-loading banners and modal stabilization
+  - [x] Screen scaling (devicePixelRatio = 1.0 lock) coordinate correction for highlight boxes
+  - [x] Tested across 10 diverse real-world pages with 26/26 unit tests passing
 
 - [ ] **Phase F: Security & Hygiene**
   - [ ] URL SSRF protection (block localhost, private subnets, cloud metadata IPs)

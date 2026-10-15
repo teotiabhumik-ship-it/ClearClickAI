@@ -91,6 +91,7 @@ class PageData(BaseModel):
     body_color: str = "#000000"
     body_background_color: str = "#ffffff"
     body_contrast_ratio: float = 21.0
+    device_pixel_ratio: float = 1.0
 
 
 class FlowData(BaseModel):
