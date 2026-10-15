@@ -7,7 +7,7 @@ import os
 import json
 from datetime import datetime, timezone
 from typing import Optional, List, Dict
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -27,6 +27,7 @@ from .ai.text_analysis import AITextDetector
 from .ai.vision_analysis import AIVisionDetector
 from .ai.quote_verifier import QuoteVerifier
 from .evaluation.benchmark import run_benchmark
+from .security import validate_url_safety, validate_html_payload, SlidingWindowRateLimiter
 
 
 app = FastAPI(
@@ -48,6 +49,7 @@ charges_detector = HiddenChargesDetector()
 cancel_detector = CancellationDetector()
 ai_text_detector = AITextDetector()
 ai_vision_detector = AIVisionDetector()
+rate_limiter = SlidingWindowRateLimiter(max_requests=30, window_seconds=60)
 
 
 class AnalyzeRequest(BaseModel):
@@ -82,10 +84,22 @@ async def get_benchmark_results(split: str = "held_out", include_ai: bool = Fals
 
 
 @app.post("/api/analyze", response_model=AnalysisReport)
-async def analyze_page(req: AnalyzeRequest):
+async def analyze_page(req: AnalyzeRequest, request: Request):
     """
     Analyzes a page from URL, provided HTML, or pre-configured corpus ID.
+    Enforces SSRF prevention, HTML payload limits, and rate limits.
     """
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    if not rate_limiter.is_allowed(client_ip):
+        raise HTTPException(
+            status_code=429,
+            detail="Rate limit exceeded. Please wait before submitting additional inspection requests."
+        )
+
+    # Validate HTML payload size if provided
+    if req.html_content:
+        validate_html_payload(req.html_content)
+
     html_to_process = req.html_content
     url_to_process = req.url
 
@@ -104,10 +118,19 @@ async def analyze_page(req: AnalyzeRequest):
                             html_to_process = hf.read()
                             url_to_process = target_file
 
+    # SSRF Guard for external URL inputs
+    if req.url and not req.corpus_id:
+        if req.url.startswith("http://") or req.url.startswith("https://"):
+            is_safe, reason = validate_url_safety(req.url)
+            if not is_safe:
+                raise HTTPException(status_code=400, detail=f"SSRF Security Violation: {reason}")
+        else:
+            raise HTTPException(status_code=400, detail="Only 'http' and 'https' URLs are supported.")
+
     if not url_to_process and not html_to_process:
         raise HTTPException(status_code=400, detail="Must provide url, html_content, or valid corpus_id.")
 
-    # 1. Extraction with Playwright
+    # 1. Extraction with Playwright (20s timeout enforced)
     page_data: PageData = await PageExtractor.extract_from_url_or_html(
         url=url_to_process,
         html_content=html_to_process

@@ -4,3 +4,11 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .env
+*.env
+*.key
+*.pem
+*.log
+.venv/
+env/
+screenshots/
+tmp/

@@ -34,10 +34,11 @@
   - [x] Screen scaling (devicePixelRatio = 1.0 lock) coordinate correction for highlight boxes
   - [x] Tested across 10 diverse real-world pages with 26/26 unit tests passing
 
-- [ ] **Phase F: Security & Hygiene**
-  - [ ] URL SSRF protection (block localhost, private subnets, cloud metadata IPs)
-  - [ ] Request timeouts, page size limits, rate limits
-  - [ ] Ephemeral screenshot storage (auto-cleanup after analysis)
+- [x] **Phase F: Security & Hygiene**
+  - [x] URL SSRF protection (block localhost, private subnets, cloud metadata IPs like 169.254.169.254)
+  - [x] Request timeouts (20s), HTML size limit (2 MB), sliding-window rate limiting (30 req/min)
+  - [x] Ephemeral in-memory screenshot generation (no temp files persisted on disk)
+  - [x] Environment variable key hygiene and hardened .gitignore
 
 - [ ] **Phase G: Honest Reporting UI**
   - [ ] Remove artificial "100%" claims from UI
