@@ -142,12 +142,30 @@ async def test_ai_vision_detector_matches_element_bbox(monkeypatch):
 @pytest.mark.asyncio
 async def test_ai_layer_handles_api_exception(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "dummy_key")
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     client = AIClient()
 
     with patch("anthropic.AsyncAnthropic") as mock_anthropic:
         mock_client = AsyncMock()
         mock_client.messages.create.side_effect = RuntimeError("Rate limit reached (429)")
         mock_anthropic.return_value = mock_client
+
+        items, status, msg = await client.analyze_text("sys", "user")
+        assert items == []
+        assert status == "failed"
+        assert "request failed" in msg.lower()
+
+
+@pytest.mark.asyncio
+async def test_ai_layer_handles_gemini_exception(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "dummy_gemini_key")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    client = AIClient()
+
+    with patch("google.genai.Client") as mock_genai_cls:
+        mock_genai_client = AsyncMock()
+        mock_genai_client.models.generate_content.side_effect = RuntimeError("Gemini Quota Exceeded")
+        mock_genai_cls.return_value = mock_genai_client
 
         items, status, msg = await client.analyze_text("sys", "user")
         assert items == []

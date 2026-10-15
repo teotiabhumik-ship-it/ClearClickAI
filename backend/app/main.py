@@ -7,6 +7,10 @@ import os
 import json
 from datetime import datetime, timezone
 from typing import Optional, List, Dict
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
