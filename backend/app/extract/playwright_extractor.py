@@ -25,12 +25,33 @@ EXTRACTION_JS = """
         ];
     }
 
+    function getEffectiveBackgroundColor(el) {
+        let cur = el;
+        while (cur && cur !== document.documentElement) {
+            const cs = window.getComputedStyle(cur);
+            const bg = cs.backgroundColor;
+            if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)' && !bg.endsWith(', 0)')) {
+                return bg;
+            }
+            cur = cur.parentElement;
+        }
+        if (document.body) {
+            const bodyCs = window.getComputedStyle(document.body);
+            if (bodyCs.backgroundColor && bodyCs.backgroundColor !== 'transparent' && bodyCs.backgroundColor !== 'rgba(0, 0, 0, 0)') {
+                return bodyCs.backgroundColor;
+            }
+        }
+        return 'rgb(255, 255, 255)';
+    }
+
     function getStyle(el) {
         const cs = window.getComputedStyle(el);
         return {
             fontSizePx: parseFloat(cs.fontSize) || 14,
             color: cs.color,
-            backgroundColor: cs.backgroundColor
+            backgroundColor: (cs.backgroundColor && cs.backgroundColor !== 'transparent' && cs.backgroundColor !== 'rgba(0, 0, 0, 0)') 
+                ? cs.backgroundColor 
+                : getEffectiveBackgroundColor(el)
         };
     }
 
@@ -130,9 +151,14 @@ EXTRACTION_JS = """
         }
     });
 
+    const bodyColor = document.body ? window.getComputedStyle(document.body).color : 'rgb(0, 0, 0)';
+    const bodyBg = document.body ? getEffectiveBackgroundColor(document.body) : 'rgb(255, 255, 255)';
+
     return {
         title: document.title || '',
         visibleText: document.body ? document.body.innerText : '',
+        bodyColor,
+        bodyBg,
         checkboxes,
         buttons,
         links,
@@ -182,10 +208,14 @@ class PageExtractor:
                 data: Dict[str, Any] = await page.evaluate(EXTRACTION_JS)
                 await browser.close()
 
-                # Post-process contrast ratios on extracted elements
-                cls._compute_contrasts(data.get("buttons", []))
-                cls._compute_contrasts(data.get("links", []))
-                cls._compute_contrasts(data.get("prices", []))
+                body_fg = data.get("bodyColor", "#000000")
+                body_bg = data.get("bodyBg", "#ffffff")
+                body_contrast = calculate_contrast_ratio(body_fg, body_bg)
+
+                # Post-process contrast ratios on extracted elements with resolved page background
+                cls._compute_contrasts(data.get("buttons", []), default_bg=body_bg)
+                cls._compute_contrasts(data.get("links", []), default_bg=body_bg)
+                cls._compute_contrasts(data.get("prices", []), default_bg=body_bg)
 
                 return PageData(
                     url=url,
@@ -197,7 +227,10 @@ class PageExtractor:
                     prices=[ExtractedElement(**p) for p in data.get("prices", [])],
                     screenshot_base64=screenshot_base64,
                     viewport_width=viewport_width,
-                    viewport_height=viewport_height
+                    viewport_height=viewport_height,
+                    body_color=body_fg,
+                    body_background_color=body_bg,
+                    body_contrast_ratio=body_contrast
                 )
 
         except Exception as e:
@@ -205,11 +238,11 @@ class PageExtractor:
             return cls._fallback_soup_extract(html_content or "", url=url)
 
     @staticmethod
-    def _compute_contrasts(elements: List[Dict[str, Any]]):
+    def _compute_contrasts(elements: List[Dict[str, Any]], default_bg: str = "#ffffff"):
         for el in elements:
             fg = el.get("color", "#000000")
-            bg = el.get("background_color", "#ffffff")
-            el["contrast_ratio"] = calculate_contrast_ratio(fg, bg)
+            bg = el.get("background_color") or default_bg
+            el["contrast_ratio"] = calculate_contrast_ratio(fg, bg, default_bg=default_bg)
 
     @classmethod
     def _fallback_soup_extract(cls, html: str, url: Optional[str] = None) -> PageData:

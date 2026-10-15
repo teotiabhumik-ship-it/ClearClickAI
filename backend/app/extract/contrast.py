@@ -70,7 +70,7 @@ def relative_luminance(rgb: Tuple[int, int, int]) -> float:
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
 
-def calculate_contrast_ratio(fg: str, bg: str) -> float:
+def calculate_contrast_ratio(fg: str, bg: str, default_bg: str = "#ffffff") -> float:
     """
     Calculate contrast ratio between foreground and background.
     Returns float from 1.0 (identical) to 21.0 (black on white).
@@ -79,7 +79,7 @@ def calculate_contrast_ratio(fg: str, bg: str) -> float:
     bg_clean = (bg or "").strip().lower()
     
     if not bg_clean or bg_clean in ["transparent", "rgba(0, 0, 0, 0)", "rgba(0,0,0,0)"]:
-        bg_rgb = (255, 255, 255)
+        bg_rgb = parse_color_to_rgb(default_bg) if default_bg else (255, 255, 255)
     else:
         bg_rgb = parse_color_to_rgb(bg)
     

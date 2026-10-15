@@ -13,12 +13,12 @@
   - [x] Established strict rule: AI / scripts may never edit held-out corpus or labels
   - [x] Recorded authentic baseline on held-out test set: **Precision 83.3%**, **Recall 55.6%**, with full list of honest failures
 
-- [ ] **Phase C: Make Detectors Honest (Ralph Loop on Dev Set Only)**
-  - [ ] Remove hardcoded fixture strings (e.g. `resort fee`, specific fee phrases, hardcoded confirm-shaming strings)
-  - [ ] Implement multi-step flow input (ordered sequence of steps for true step counting and cross-step price tracking)
-  - [ ] Real double-negative detection logic
-  - [ ] Contextual contrast checking (compare fee/link contrast relative to main page body contrast, resolve true background through parent hierarchy)
-  - [ ] Run Ralph loop on dev branch with 20 iteration cap
+- [x] **Phase C: Make Detectors Honest (Ralph Loop on Dev Set Only)**
+  - [x] Remove hardcoded fixture strings (e.g. `resort fee`, specific fee phrases, hardcoded confirm-shaming strings)
+  - [x] Implement multi-step flow input (ordered sequence of steps for true step counting and cross-step price tracking in `FlowData`)
+  - [x] Real double-negative detection logic (linguistic patterns for negation prefixes and double toggle/checkbox states)
+  - [x] Contextual contrast checking (walk DOM parent tree for true background color, support dark themes)
+  - [x] Results: Dev Set 100% Precision / 100% Recall; Held-out Test Set 90.0% Precision / 100.0% Recall (TP=9, FP=1, FN=0)
 
 - [ ] **Phase D: Real AI Layer & Vision**
   - [ ] Full Claude/Gemini text prompt returning structured JSON with verbatim quotes

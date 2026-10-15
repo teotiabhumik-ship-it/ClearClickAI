@@ -88,6 +88,14 @@ class PageData(BaseModel):
     viewport_width: int = 1280
     viewport_height: int = 800
     step_info: Optional[str] = None
+    body_color: str = "#000000"
+    body_background_color: str = "#ffffff"
+    body_contrast_ratio: float = 21.0
+
+
+class FlowData(BaseModel):
+    flow_type: Literal["cancellation", "checkout", "signup", "general"] = "general"
+    steps: List[PageData] = Field(default_factory=list)
 
 
 class CategorySummary(BaseModel):
@@ -104,3 +112,5 @@ class AnalysisReport(BaseModel):
     findings: List[Finding]
     screenshot_base64: Optional[str] = None
     page_title: str = ""
+    is_flow: bool = False
+    step_count: int = 1

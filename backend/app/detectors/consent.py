@@ -16,7 +16,7 @@ from .base import BaseDetector
 MARKETING_CONSENT_KEYWORDS = [
     r"promotional",
     r"marketing",
-    r"partner\s+offers?",
+    r"partner",
     r"newsletter",
     r"third[- ]party",
     r"advertising",
@@ -24,6 +24,10 @@ MARKETING_CONSENT_KEYWORDS = [
     r"share\s+my\s+profile",
     r"tracking\s+cookies?",
     r"send\s+me\s+offers",
+    r"ad\s*partner",
+    r"vendor",
+    r"telemetry",
+    r"analytics",
 ]
 
 DOUBLE_NEGATIVE_PATTERNS = [
@@ -58,8 +62,13 @@ class ConsentDetector(BaseDetector):
                 continue
             
             label_lower = box.label.lower()
+
+            # If the box uses deceptive double negatives, let the double negative detector handle it
+            if any(re.search(pat, label_lower) for pat in DOUBLE_NEGATIVE_PATTERNS):
+                continue
+
             # Exclude required terms of service / privacy policy acknowledgment
-            if ("agree to the terms" in label_lower or "terms of service" in label_lower) and not any(kw in label_lower for kw in ["marketing", "promotional", "partner", "advertising"]):
+            if ("agree to the terms" in label_lower or "terms of service" in label_lower) and not any(kw in label_lower for kw in ["marketing", "promotional", "partner", "advertising", "telemetry"]):
                 continue
 
             matches = [kw for kw in MARKETING_CONSENT_KEYWORDS if re.search(kw, label_lower)]
@@ -83,25 +92,25 @@ class ConsentDetector(BaseDetector):
         # Identify cookie / consent context
         is_consent_context = any(
             term in visible_text.lower()
-            for term in ["cookie", "privacy notice", "we value your privacy", "tracking", "preferences"]
+            for term in ["cookie", "privacy notice", "we value your privacy", "tracking", "preferences", "data privacy"]
         )
         if not is_consent_context:
             return findings
 
         accept_elements = [
             b for b in buttons + links
-            if re.search(r"\b(accept(\s+all)?|agree|allow(\s+all)?)\b", b.text, re.IGNORECASE)
+            if re.search(r"\b(accept(\s+all)?|agree|allow(\s+all)?|got\s+it)\b", b.text, re.IGNORECASE)
         ]
         
         reject_elements = [
             b for b in buttons + links
-            if re.search(r"\b(reject(\s+all)?|decline|refuse|reject\s+optional)\b", b.text, re.IGNORECASE)
+            if re.search(r"\b(reject(\s+all)?|decline|refuse|reject\s+optional|continue\s+without\s+accepting)\b", b.text, re.IGNORECASE)
         ]
 
         if accept_elements and not reject_elements:
-            # Check if there is only "Manage Preferences" / "More options"
+            # Check if there is only "Manage Preferences" / "Customize"
             has_manage = any(
-                re.search(r"\b(manage|settings|preferences|more\s+options)\b", b.text, re.IGNORECASE)
+                re.search(r"\b(manage|settings|preferences|customize|more\s+options)\b", b.text, re.IGNORECASE)
                 for b in buttons + links
             )
             if has_manage:
@@ -121,27 +130,36 @@ class ConsentDetector(BaseDetector):
             acc = accept_elements[0]
             rej = reject_elements[0]
             
-            # Check visual asymmetry:
-            # 1. Area ratio: acc area significantly greater than rej
+            # Check if both are equally prominent (Tricky clean check)
             acc_area = acc.bbox[2] * acc.bbox[3] if len(acc.bbox) == 4 and acc.bbox[2] > 0 and acc.bbox[3] > 0 else 0
             rej_area = rej.bbox[2] * rej.bbox[3] if len(rej.bbox) == 4 and rej.bbox[2] > 0 and rej.bbox[3] > 0 else 0
-            
-            # 2. Styling: reject is text link or low contrast or font size difference
-            font_ratio = acc.font_size_px / max(1.0, rej.font_size_px)
-            is_reject_faint = rej.contrast_ratio < 4.0 or rej.color.lower() in ["#9ca3af", "#94a3b8", "#a1a1aa", "#d1d5db", "gray", "grey"]
-            is_reject_link_style = rej.tag == "a" or "underline" in rej.classes or (acc.tag == "button" and rej.background_color in ["transparent", "#ffffff", "rgba(0,0,0,0)"])
 
-            is_asymmetric = (acc_area > 0 and rej_area > 0 and acc_area >= 2.0 * rej_area) or font_ratio >= 1.25 or is_reject_faint
+            # Equal check: similar font size, acceptable contrast, and comparable area
+            font_diff = abs(acc.font_size_px - rej.font_size_px)
+            has_equal_font = font_diff <= 1.0
+            both_have_contrast = acc.contrast_ratio >= 4.0 and rej.contrast_ratio >= 3.5
+            both_have_button_tag = acc.tag in ["button", "input"] and rej.tag in ["button", "input"]
+            area_similar = (acc_area > 0 and rej_area > 0) and (abs(acc_area - rej_area) / max(acc_area, rej_area) < 0.35)
 
-            if is_asymmetric:
+            if has_equal_font and both_have_contrast and both_have_button_tag and (area_similar or acc_area == 0):
+                # Clean equal buttons: do not flag
+                return findings
+
+            # Otherwise check visual asymmetry indicators:
+            area_asymmetric = acc_area > 0 and rej_area > 0 and (acc_area >= 1.8 * rej_area)
+            font_asymmetric = acc.font_size_px >= rej.font_size_px * 1.25
+            reject_low_contrast = rej.contrast_ratio < 3.0
+            reject_link_style = rej.tag == "a" or (acc.tag in ["button", "input"] and rej.tag not in ["button", "input"])
+
+            if area_asymmetric or font_asymmetric or reject_low_contrast or reject_link_style:
                 findings.append(Finding(
                     category="consent",
                     type="unequal_button_emphasis",
                     severity="medium",
                     confidence=0.88,
-                    evidence=f"Accept: '{acc.text}' (font: {acc.font_size_px}px, bg: {acc.background_color}) vs Reject: '{rej.text}' (font: {rej.font_size_px}px, contrast: {rej.contrast_ratio}:1)",
+                    evidence=f"Accept: '{acc.text}' (font: {acc.font_size_px}px, contrast: {acc.contrast_ratio}:1) vs Reject: '{rej.text}' (font: {rej.font_size_px}px, contrast: {rej.contrast_ratio}:1)",
                     bbox=rej.bbox if rej.bbox != [0,0,0,0] else acc.bbox,
-                    why="The Accept button uses high-contrast styling and visual prominence, whereas the Reject option is visually subdued or formatted as a secondary text link.",
+                    why="The Accept button uses high-contrast styling and visual prominence, whereas the Reject option is visually subdued, formatted as a faint link, or has inferior visual weight.",
                     safer_alternative="Present both 'Accept' and 'Reject' choices with equal visual weight, matching button shapes, and equivalent font styling.",
                     source="rule"
                 ))

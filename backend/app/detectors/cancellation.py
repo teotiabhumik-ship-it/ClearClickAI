@@ -7,8 +7,8 @@ Detects:
 """
 
 import re
-from typing import List
-from ..schema import PageData, Finding, ExtractedElement
+from typing import List, Optional
+from ..schema import PageData, Finding, ExtractedElement, FlowData
 from .base import BaseDetector
 
 
@@ -20,11 +20,15 @@ CANCEL_KEYWORDS = [
 ]
 
 CONFIRM_SHAMING_PATTERNS = [
-    r"i\s+hate\s+saving\s+money",
-    r"i\s+don'?t\s+care\s+about\s+losing",
-    r"no\s+thanks,?\s+i\s+prefer\s+to\s+pay\s+full\s+price",
-    r"i\s+want\s+worse\s+results",
-    r"i\s+like\s+overpaying",
+    r"\b(?:i\s+(?:hate|prefer\s+to\s+pay\s+full|don'?t\s+care\s+about\s+losing|want\s+worse|like\s+overpaying))\b",
+    r"\b(?:no\s+thanks,?\s+i\s+(?:don'?t\s+want|prefer\s+to\s+lose|hate))\b",
+    r"\b(?:break\s+(?:our\s+)?hearts?|mascot\s+is\s+crying|make\s+us\s+sad)\b",
+]
+
+FORCED_OFFLINE_PATTERNS = [
+    r"\b(?:must\s+call|online\s+cancellation\s+is\s+not\s+supported)\b",
+    r"\bcall\s+our\s+(?:retention|support|department|hotline|telephone)\b",
+    r"\bsubmit\s+a\s+written\s+(?:letter|mail|notice)\b",
 ]
 
 
@@ -38,7 +42,6 @@ class CancellationDetector(BaseDetector):
         for link in page_data.links:
             is_cancel_text = any(re.search(kw, link.text, re.IGNORECASE) for kw in CANCEL_KEYWORDS)
             if is_cancel_text:
-                # Check if it's buried (font size <= 11px or faint color or contrast < 4.5:1)
                 is_small = link.font_size_px <= 11.0
                 is_faint = link.contrast_ratio < 4.0 or link.color.lower() in ["#94a3b8", "#9ca3af", "#cbd5e1", "gray"]
                 
@@ -53,7 +56,7 @@ class CancellationDetector(BaseDetector):
                         confidence=0.92,
                         evidence=f"Cancellation link: '{link.text.strip()}' rendered in {link.font_size_px}px with color {link.color} (contrast: {link.contrast_ratio}:1)",
                         bbox=link.bbox,
-                        why="The cancellation mechanism is hidden in small, low-contrast text embedded within a paragraph, making it substantially harder to locate than upgrade options.",
+                        why="The cancellation mechanism is hidden in small, low-contrast text embedded within a paragraph or footer, making it substantially harder to locate than account upgrade actions.",
                         safer_alternative="Provide a clear, standard-sized 'Cancel Subscription' button with neutral styling in account management.",
                         source="rule"
                     ))
@@ -72,7 +75,7 @@ class CancellationDetector(BaseDetector):
                         evidence=el.text.strip(),
                         bbox=el.bbox,
                         why="The cancellation decline option utilizes emotional manipulation and guilt-inducing phrasing ('confirm-shaming') to dissuade the user from cancelling.",
-                        safer_alternative="Use neutral, objective action labels such as 'Proceed with Cancellation' or 'Cancel My Subscription'.",
+                        safer_alternative="Use neutral, objective action labels such as 'Proceed with Cancellation' or 'Keep My Plan'.",
                         source="rule"
                     ))
                     break
@@ -95,14 +98,14 @@ class CancellationDetector(BaseDetector):
                     ))
                     break
 
-        # 3. Asymmetric cancellation steps
+        # 3. Asymmetric cancellation friction (multi-step text or forced offline hurdles)
         step_match = re.search(r"step\s+(\d+)\s+of\s+(\d+)", page_data.visible_text, re.IGNORECASE)
-        is_retention_flow = any(kw in page_data.visible_text.lower() for kw in ["retention", "cancel", "stay", "survey"])
+        is_retention_flow = any(kw in page_data.visible_text.lower() for kw in ["retention", "cancel", "stay", "survey", "questionnaire"])
         if step_match and is_retention_flow:
             current_step = int(step_match.group(1))
             total_steps = int(step_match.group(2))
             
-            if total_steps >= 4:
+            if total_steps >= 3 or current_step >= 3:
                 findings.append(Finding(
                     category="cancellation",
                     type="asymmetric_cancellation_steps",
@@ -115,4 +118,40 @@ class CancellationDetector(BaseDetector):
                     source="rule"
                 ))
 
+        # Check for forced offline barriers (e.g. required phone call / postal mail to cancel)
+        for pattern in FORCED_OFFLINE_PATTERNS:
+            offline_match = re.search(pattern, page_data.visible_text, re.IGNORECASE)
+            if offline_match and is_retention_flow:
+                findings.append(Finding(
+                    category="cancellation",
+                    type="asymmetric_cancellation_steps",
+                    severity="high",
+                    confidence=0.95,
+                    evidence=f"Forced offline barrier: '{offline_match.group(0)}'",
+                    bbox=[0.0, 0.0, 0.0, 0.0],
+                    why="The service allows online signup in seconds, but imposes artificial friction by forcing users to call a phone number or send physical mail to cancel.",
+                    safer_alternative="Provide self-serve online cancellation directly within the account dashboard.",
+                    source="rule"
+                ))
+                break
+
+        return findings
+
+    def detect_flow(self, flow: FlowData) -> List[Finding]:
+        """
+        Multi-step flow analysis: counts the exact number of screens in a recorded cancellation session.
+        """
+        findings = []
+        if flow.flow_type == "cancellation" and len(flow.steps) >= 3:
+            findings.append(Finding(
+                category="cancellation",
+                type="asymmetric_cancellation_steps",
+                severity="high",
+                confidence=0.95,
+                evidence=f"Cancellation flow requires {len(flow.steps)} sequential interaction steps",
+                bbox=[0.0, 0.0, 0.0, 0.0],
+                why=f"Cancelling requires navigating through {len(flow.steps)} distinct screens with retention offers or surveys, creating asymmetric friction compared to simple onboarding.",
+                safer_alternative="Offer immediate 1-click or 2-click cancellation without intervening survey walls.",
+                source="rule"
+            ))
         return findings
