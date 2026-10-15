@@ -18,6 +18,26 @@ export const ScreenshotViewer: React.FC<ScreenshotViewerProps> = ({
   const [zoom, setZoom] = useState<number>(1);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [naturalDims, setNaturalDims] = useState<{ width: number; height: number }>({ width: 1280, height: 800 });
+
+  // Update natural dimensions when image changes or completes loading
+  useEffect(() => {
+    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth) {
+      setNaturalDims({
+        width: imgRef.current.naturalWidth,
+        height: imgRef.current.naturalHeight,
+      });
+    }
+  }, [screenshotBase64]);
+
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const nw = e.currentTarget.naturalWidth;
+    const nh = e.currentTarget.naturalHeight;
+    if (nw && nh) {
+      setNaturalDims({ width: nw, height: nh });
+    }
+  };
 
   // Filter findings that have non-zero bounding box
   const visualFindings = findings.map((f, i) => ({ ...f, originalIndex: i }))
@@ -86,15 +106,19 @@ export const ScreenshotViewer: React.FC<ScreenshotViewerProps> = ({
             style={{ transform: `scale(${zoom})` }}
           >
             <img
+              ref={imgRef}
               src={`data:image/png;base64,${screenshotBase64}`}
               alt="Page Screenshot"
               className="max-w-none block select-none"
               style={{ width: '100%', maxWidth: '1000px' }}
+              onLoad={handleImageLoad}
             />
 
             {/* SVG Interactive Overlay for Bounding Boxes */}
             <svg
               className="absolute inset-0 w-full h-full pointer-events-auto"
+              viewBox={`0 0 ${naturalDims.width} ${naturalDims.height}`}
+              preserveAspectRatio="none"
               style={{ overflow: 'visible' }}
             >
               {visualFindings.map((f) => {
@@ -102,6 +126,7 @@ export const ScreenshotViewer: React.FC<ScreenshotViewerProps> = ({
                 const isHovered = hoveredIdx === f.originalIndex;
                 const strokeColor = getSeverityColor(f.severity, isSelected);
                 const [x, y, w, h] = f.bbox;
+                const badgeY = y > 24 ? y - 6 : y + h + 22;
 
                 return (
                   <g
@@ -121,27 +146,28 @@ export const ScreenshotViewer: React.FC<ScreenshotViewerProps> = ({
                       stroke={strokeColor}
                       strokeWidth={isSelected ? 3 : 2}
                       strokeDasharray={isSelected ? 'none' : '4 2'}
+                      vectorEffect="non-scaling-stroke"
                       rx={3}
                       className="transition-all"
                     />
 
                     {/* Tag badge above bbox */}
-                    <g transform={`translate(${x}, ${Math.max(16, y - 6)})`}>
+                    <g transform={`translate(${x}, ${badgeY})`}>
                       <rect
                         x={0}
-                        y={-14}
-                        width={Math.max(60, f.type.length * 6.5 + 16)}
-                        height={18}
+                        y={-18}
+                        width={Math.max(70, f.type.length * 8 + 18)}
+                        height={22}
                         fill={strokeColor}
-                        rx={3}
+                        rx={4}
                       />
                       <text
                         x={8}
-                        y={-2}
+                        y={-3}
                         fill="#ffffff"
-                        fontSize="10"
+                        fontSize="13"
                         fontWeight="bold"
-                        fontFamily="monospace"
+                        fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
                       >
                         {f.type}
                       </text>

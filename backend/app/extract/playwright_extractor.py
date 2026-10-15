@@ -240,16 +240,67 @@ class PageExtractor:
 
         try:
             async with async_playwright() as p:
-                browser = await p.chromium.launch(headless=True)
+                browser = await p.chromium.launch(
+                    headless=True,
+                    args=[
+                        "--disable-blink-features=AutomationControlled",
+                        "--no-sandbox",
+                        "--disable-setuid-sandbox",
+                        "--disable-dev-shm-usage",
+                        "--disable-infobars",
+                        "--window-position=0,0",
+                        "--ignore-certificate-errors",
+                        "--ignore-certificate-errors-spki-list",
+                    ]
+                )
                 # Lock device_scale_factor to 1.0 for pixel-perfect screenshot & coordinate matching
+                # Set realistic desktop Chrome User-Agent, locale, and client headers to prevent bot blocking
                 context = await browser.new_context(
                     viewport={"width": viewport_width, "height": viewport_height},
-                    device_scale_factor=1.0
+                    device_scale_factor=1.0,
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+                    locale="en-US",
+                    timezone_id="America/New_York",
+                    extra_http_headers={
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                        "Accept-Language": "en-US,en;q=0.9",
+                        "Sec-Ch-Ua": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+                        "Sec-Ch-Ua-Mobile": "?0",
+                        "Sec-Ch-Ua-Platform": '"Windows"',
+                        "Sec-Fetch-Dest": "document",
+                        "Sec-Fetch-Mode": "navigate",
+                        "Sec-Fetch-Site": "none",
+                        "Sec-Fetch-User": "?1",
+                        "Upgrade-Insecure-Requests": "1",
+                    }
                 )
+
+                # Stealth initialization script: remove navigator.webdriver and mock plugins & chrome object
+                await context.add_init_script("""
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined
+                });
+                Object.defineProperty(navigator, 'languages', {
+                    get: () => ['en-US', 'en']
+                });
+                Object.defineProperty(navigator, 'plugins', {
+                    get: () => [1, 2, 3, 4, 5]
+                });
+                window.chrome = {
+                    runtime: {},
+                    loadTimes: function() {},
+                    csi: function() {},
+                    app: {}
+                };
+                """)
+
                 page = await context.new_page()
 
                 if url and (url.startswith("http://") or url.startswith("https://")):
-                    await page.goto(url, wait_until="domcontentloaded", timeout=20000)
+                    try:
+                        await page.goto(url, wait_until="domcontentloaded", timeout=25000)
+                    except Exception as nav_e:
+                        logger.warning(f"Navigation warning or partial timeout for {url}: {nav_e}")
                 elif url and os.path.exists(url):
                     abs_path = os.path.abspath(url)
                     await page.goto(f"file:///{abs_path.replace(os.sep, '/')}", wait_until="domcontentloaded")
