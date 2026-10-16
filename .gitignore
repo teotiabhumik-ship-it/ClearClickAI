@@ -14,3 +14,4 @@ screenshots/
 tmp/
 stitch_reference/
 new_ui/
+.agents/
