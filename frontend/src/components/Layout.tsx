@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, Link, Outlet } from 'react-router-dom';
-import { ShieldCheck, Search, BookOpen, Info, Sun, Moon } from 'lucide-react';
+import { ShieldCheck, Search, BookOpen, Info, Sun, Moon, Server } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { ServerSettingsModal } from './ServerSettingsModal';
 
 export const Layout: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
+  const [isServerModalOpen, setIsServerModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-paper dark:bg-[#0B1220] font-sans text-ink dark:text-[#E2E8F0] flex flex-col transition-colors duration-150">
@@ -75,6 +77,17 @@ export const Layout: React.FC = () => {
                 About
               </NavLink>
             </nav>
+
+            {/* Server Settings Button */}
+            <button
+              type="button"
+              onClick={() => setIsServerModalOpen(true)}
+              aria-label="Configure backend server connection"
+              title="Backend Server Connection"
+              className="p-1.5 rounded-sm border border-border-hairline dark:border-[#26324A] bg-white dark:bg-[#111A2E] text-ink-muted dark:text-[#94A3B8] hover:text-ink dark:hover:text-[#E2E8F0] transition-colors focus-visible:ring-2 focus-visible:ring-red-pen"
+            >
+              <Server className="w-4 h-4" aria-hidden="true" />
+            </button>
 
             {/* Theme Toggle Button */}
             <button
@@ -182,6 +195,12 @@ export const Layout: React.FC = () => {
           </NavLink>
         </div>
       </nav>
+
+      {/* Backend Server Settings Modal */}
+      <ServerSettingsModal
+        isOpen={isServerModalOpen}
+        onClose={() => setIsServerModalOpen(false)}
+      />
     </div>
   );
 };

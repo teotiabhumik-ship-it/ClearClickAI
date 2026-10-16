@@ -3,15 +3,20 @@ import { AnalysisReport, CorpusItem } from '../types';
 import { InputForm } from '../components/InputForm';
 import { ScreenshotViewer } from '../components/ScreenshotViewer';
 import { FindingsPanel } from '../components/FindingsPanel';
-import { AlertCircle, X } from 'lucide-react';
+import { AlertCircle, X, Server } from 'lucide-react';
+import { buildApiUrl } from '../config/api';
+import corpusCatalog from '../data/corpusCatalog.json';
+import sampleReports from '../data/sampleReports.json';
+import { ServerSettingsModal } from '../components/ServerSettingsModal';
 
 export const AnalysePage: React.FC = () => {
   const [report, setReport] = useState<AnalysisReport | null>(null);
-  const [corpusList, setCorpusList] = useState<CorpusItem[]>([]);
+  const [corpusList, setCorpusList] = useState<CorpusItem[]>(corpusCatalog as CorpusItem[]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedFindingIndex, setSelectedFindingIndex] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showInputForm, setShowInputForm] = useState<boolean>(true);
+  const [isServerModalOpen, setIsServerModalOpen] = useState<boolean>(false);
   const analyzeAbortRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef<boolean>(true);
 
@@ -24,22 +29,22 @@ export const AnalysePage: React.FC = () => {
     };
   }, []);
 
-  // Load available corpus catalog on startup
+  // Synchronize corpus catalog with live backend if reachable
   useEffect(() => {
     const controller = new AbortController();
-    fetch('/api/corpus', { signal: controller.signal })
+    fetch(buildApiUrl('/api/corpus'), { signal: controller.signal })
       .then((res) => {
-        if (!res.ok) throw new Error('Failed to load sample fixtures');
+        if (!res.ok) throw new Error('Offline or static mode');
         return res.json();
       })
       .then((data: CorpusItem[]) => {
-        if (isMountedRef.current) {
+        if (isMountedRef.current && Array.isArray(data) && data.length > 0) {
           setCorpusList(data);
         }
       })
       .catch((err) => {
         if (err.name !== 'AbortError') {
-          console.error('Failed to load corpus catalog:', err);
+          // Pre-bundled corpus catalog is already loaded as state default
         }
       });
 
@@ -66,48 +71,74 @@ export const AnalysePage: React.FC = () => {
     setReport(null);
 
     try {
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
+      // Check for precomputed ground-truth report if a sample fixture was chosen
+      const precomputed = payload.corpus_id
+        ? (sampleReports as Record<string, any>)[payload.corpus_id]
+        : null;
 
-      if (!res.ok) {
-        let detail = 'Analysis failed';
-        try {
-          const err = await res.json();
-          if (typeof err === 'string') {
-            detail = err;
-          } else if (typeof err.detail === 'string') {
-            detail = err.detail;
-          } else if (Array.isArray(err.detail)) {
-            detail = err.detail
-              .map((d: any) => {
-                if (d && typeof d === 'object') {
-                  const loc = Array.isArray(d.loc) ? d.loc.filter((l: any) => l !== 'body').join('.') : '';
-                  return loc ? `${loc}: ${d.msg || 'Invalid value'}` : (d.msg || JSON.stringify(d));
+      let data: AnalysisReport | null = null;
+
+      try {
+        const res = await fetch(buildApiUrl('/api/analyze'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+
+        if (!res.ok) {
+          // If API returns 404 or fails on a sample fixture, use precomputed ground-truth
+          if (precomputed) {
+            data = precomputed as AnalysisReport;
+          } else {
+            let detail = '';
+            if (res.status === 404) {
+              detail =
+                'Backend inspection server not found (HTTP 404). Live URL analysis requires the ClearClick Python backend (FastAPI + Playwright). If running locally, start the service with: "python -m uvicorn backend.app.main:app --port 8000". If visiting on a static web host, configure a live backend URL via Server Settings, or explore our pre-computed Ground-Truth Sample Cases.';
+            } else {
+              try {
+                const err = await res.json();
+                if (typeof err === 'string') {
+                  detail = err;
+                } else if (typeof err.detail === 'string') {
+                  detail = err.detail;
+                } else if (Array.isArray(err.detail)) {
+                  detail = err.detail
+                    .map((d: any) => {
+                      if (d && typeof d === 'object') {
+                        const loc = Array.isArray(d.loc) ? d.loc.filter((l: any) => l !== 'body').join('.') : '';
+                        return loc ? `${loc}: ${d.msg || 'Invalid value'}` : (d.msg || JSON.stringify(d));
+                      }
+                      return String(d);
+                    })
+                    .join('; ');
+                } else if (err.detail && typeof err.detail === 'object') {
+                  detail = err.detail.msg || err.detail.message || JSON.stringify(err.detail);
+                } else if (typeof err.error === 'string') {
+                  detail = err.error;
+                } else if (typeof err.msg === 'string') {
+                  detail = err.msg;
+                } else if (err.message) {
+                  detail = err.message;
                 }
-                return String(d);
-              })
-              .join('; ');
-          } else if (err.detail && typeof err.detail === 'object') {
-            detail = err.detail.msg || err.detail.message || JSON.stringify(err.detail);
-          } else if (typeof err.error === 'string') {
-            detail = err.error;
-          } else if (typeof err.msg === 'string') {
-            detail = err.msg;
-          } else if (err.message) {
-            detail = err.message;
+              } catch {
+                detail = `Server error (${res.status}: ${res.statusText || 'Analysis failed'})`;
+              }
+            }
+            throw new Error(detail.trim() || 'Analysis failed');
           }
-        } catch {
-          detail = `Server error (${res.status}: ${res.statusText || 'Analysis failed'})`;
+        } else {
+          data = await res.json();
         }
-        throw new Error(detail.trim() || 'Analysis failed');
+      } catch (fetchErr: any) {
+        if (precomputed) {
+          data = precomputed as AnalysisReport;
+        } else {
+          throw fetchErr;
+        }
       }
 
-      const data: AnalysisReport = await res.json();
-      if (isMountedRef.current) {
+      if (isMountedRef.current && data) {
         setReport(data);
         setShowInputForm(false); // Collapse form so user sees report immediately
       }
@@ -127,7 +158,7 @@ export const AnalysePage: React.FC = () => {
         ));
 
       const msg = isConnectionError
-        ? 'Unable to connect to the backend server. Please verify the service is running and try again.'
+        ? 'Unable to connect to the backend inspection server. If running locally, verify: "python -m uvicorn backend.app.main:app --port 8000". If on a web host, configure your backend URL in Server Settings.'
         : (errMsg || 'An unexpected error occurred during inspection');
       if (isMountedRef.current) {
         setErrorMsg(msg);
@@ -146,16 +177,26 @@ export const AnalysePage: React.FC = () => {
         <div
           role="alert"
           aria-live="polite"
-          className="mb-6 p-4 bg-red-tint dark:bg-[#B91C1C]/20 border border-red-pen/40 rounded-sm flex items-center justify-between gap-3 text-sm text-red-pen dark:text-red-200"
+          className="mb-6 p-4 bg-red-tint dark:bg-[#B91C1C]/20 border border-red-pen/40 rounded-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-red-pen dark:text-red-200"
         >
-          <div className="flex items-center gap-3 min-w-0">
-            <AlertCircle className="w-5 h-5 text-red-pen shrink-0" aria-hidden="true" />
-            <span className="font-medium break-words">{errorMsg}</span>
+          <div className="flex items-start gap-3 min-w-0">
+            <AlertCircle className="w-5 h-5 text-red-pen shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="space-y-1">
+              <span className="font-medium break-words block leading-relaxed">{errorMsg}</span>
+              <button
+                type="button"
+                onClick={() => setIsServerModalOpen(true)}
+                className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold underline underline-offset-2 hover:opacity-80 transition-opacity"
+              >
+                <Server className="w-3.5 h-3.5" />
+                Configure Backend Server URL
+              </button>
+            </div>
           </div>
           <button
             type="button"
             onClick={() => setErrorMsg(null)}
-            className="p-1 rounded-sm hover:bg-red-pen/10 dark:hover:bg-[#B91C1C]/30 text-red-pen dark:text-red-200 transition-colors shrink-0"
+            className="p-1 rounded-sm hover:bg-red-pen/10 dark:hover:bg-[#B91C1C]/30 text-red-pen dark:text-red-200 transition-colors shrink-0 self-end sm:self-center"
             aria-label="Dismiss error notification"
             title="Dismiss error"
           >
@@ -264,6 +305,12 @@ export const AnalysePage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Backend Server Settings Modal */}
+      <ServerSettingsModal
+        isOpen={isServerModalOpen}
+        onClose={() => setIsServerModalOpen(false)}
+      />
     </div>
   );
 };

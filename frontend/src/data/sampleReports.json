@@ -1,0 +1,498 @@
+{
+  "consent_preticked": {
+    "url": "Pre-ticked checkbox opting user into marketing and third party data sharing",
+    "timestamp": "2026-10-16T00:00:00Z",
+    "disclaimer": "ClearClick AI findings are automated warnings for human review, not legal conclusions.",
+    "summary_by_category": {
+      "consent": 1,
+      "hidden_charges": 0,
+      "cancellation": 0
+    },
+    "findings": [
+      {
+        "category": "consent",
+        "type": "preticked_consent",
+        "severity": "medium",
+        "confidence": 0.92,
+        "evidence": "Yes, send me promotional newsletters, partner offers, and share my profile with third-party advertising networks.",
+        "bbox": [
+          404.0,
+          261.0,
+          13.0,
+          13.0
+        ],
+        "why": "This marketing or data-sharing option is pre-selected by default, enrolling the user unless they take affirmative action to uncheck it.",
+        "safer_alternative": "Provide an un-ticked checkbox requiring explicit, affirmative opt-in by the user.",
+        "source": "rule"
+      }
+    ],
+    "rule_findings": [],
+    "ai_findings": [],
+    "rule_findings_count": 0,
+    "ai_findings_count": 0,
+    "ai_status": "completed",
+    "ai_status_message": "Ground-truth benchmark fixture report",
+    "screenshot_base64": null,
+    "page_title": "",
+    "is_flow": false,
+    "step_count": 1
+  },
+  "consent_asymmetric_buttons": {
+    "url": "Accept button is vibrant green and prominent while Reject is faint grey underlined text",
+    "timestamp": "2026-10-16T00:00:00Z",
+    "disclaimer": "ClearClick AI findings are automated warnings for human review, not legal conclusions.",
+    "summary_by_category": {
+      "consent": 1,
+      "hidden_charges": 0,
+      "cancellation": 0
+    },
+    "findings": [
+      {
+        "category": "consent",
+        "type": "unequal_button_emphasis",
+        "severity": "medium",
+        "confidence": 0.88,
+        "evidence": "Accept: 'Accept All Cookies' (font: 16.0px, contrast: 3.77:1) vs Reject: 'Reject optional cookies' (font: 12.0px, contrast: 2.54:1)",
+        "bbox": [
+          609.0,
+          723.0,
+          139.0,
+          22.0
+        ],
+        "why": "The Accept button uses high-contrast styling and visual prominence, whereas the Reject option is visually subdued, formatted as a faint link, or has inferior visual weight.",
+        "safer_alternative": "Present both 'Accept' and 'Reject' choices with equal visual weight, matching button shapes, and equivalent font styling.",
+        "source": "rule"
+      }
+    ],
+    "rule_findings": [],
+    "ai_findings": [],
+    "rule_findings_count": 0,
+    "ai_findings_count": 0,
+    "ai_status": "completed",
+    "ai_status_message": "Ground-truth benchmark fixture report",
+    "screenshot_base64": null,
+    "page_title": "",
+    "is_flow": false,
+    "step_count": 1
+  },
+  "consent_missing_reject": {
+    "url": "First layer only has Accept All and Manage Preferences; no direct Reject button",
+    "timestamp": "2026-10-16T00:00:00Z",
+    "disclaimer": "ClearClick AI findings are automated warnings for human review, not legal conclusions.",
+    "summary_by_category": {
+      "consent": 1,
+      "hidden_charges": 0,
+      "cancellation": 0
+    },
+    "findings": [
+      {
+        "category": "consent",
+        "type": "missing_reject_option",
+        "severity": "high",
+        "confidence": 0.9,
+        "evidence": "Accept option available ('Accept All') but no direct Reject button on first layer",
+        "bbox": [
+          236.0,
+          161.0,
+          99.0,
+          35.0
+        ],
+        "why": "The first layer of the consent dialogue allows immediate agreement in one click, but forces users to navigate secondary menus to decline non-essential cookies.",
+        "safer_alternative": "Display a direct, equally accessible 'Reject Optional Cookies' button alongside 'Accept All'.",
+        "source": "rule"
+      }
+    ],
+    "rule_findings": [],
+    "ai_findings": [],
+    "rule_findings_count": 0,
+    "ai_findings_count": 0,
+    "ai_status": "completed",
+    "ai_status_message": "Ground-truth benchmark fixture report",
+    "screenshot_base64": null,
+    "page_title": "",
+    "is_flow": false,
+    "step_count": 1
+  },
+  "consent_double_negative": {
+    "url": "Confusing double-negative phrasing intentionally misleading user into keeping box checked",
+    "timestamp": "2026-10-16T00:00:00Z",
+    "disclaimer": "ClearClick AI findings are automated warnings for human review, not legal conclusions.",
+    "summary_by_category": {
+      "consent": 2,
+      "hidden_charges": 0,
+      "cancellation": 0
+    },
+    "findings": [
+      {
+        "category": "consent",
+        "type": "double_negative_language",
+        "severity": "high",
+        "confidence": 0.95,
+        "evidence": "do not wish to not receive",
+        "bbox": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "why": "The phrasing contains confusing double negatives ('do not wish to not receive') that may cause users to unintentionally agree to unwanted communications.",
+        "safer_alternative": "Use clear, direct affirmative wording such as 'Send me partner promotions' with an unchecked box.",
+        "source": "rule"
+      },
+      {
+        "category": "consent",
+        "type": "double_negative_language",
+        "severity": "high",
+        "confidence": 0.95,
+        "evidence": "do not wish to not receive",
+        "bbox": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "why": "The phrasing contains confusing double negatives ('do not wish to not receive') that may cause users to unintentionally agree to unwanted communications.",
+        "safer_alternative": "Use clear, direct affirmative wording such as 'Send me partner promotions' with an unchecked box.",
+        "source": "rule"
+      }
+    ],
+    "rule_findings": [],
+    "ai_findings": [],
+    "rule_findings_count": 0,
+    "ai_findings_count": 0,
+    "ai_status": "completed",
+    "ai_status_message": "Ground-truth benchmark fixture report",
+    "screenshot_base64": null,
+    "page_title": "",
+    "is_flow": false,
+    "step_count": 1
+  },
+  "charges_microprint_fee": {
+    "url": "Mandatory fee displayed in 8px micro-print font with low contrast grey text",
+    "timestamp": "2026-10-16T00:00:00Z",
+    "disclaimer": "ClearClick AI findings are automated warnings for human review, not legal conclusions.",
+    "summary_by_category": {
+      "consent": 0,
+      "hidden_charges": 2,
+      "cancellation": 0
+    },
+    "findings": [
+      {
+        "category": "hidden_charges",
+        "type": "microprint_fee",
+        "severity": "high",
+        "confidence": 0.91,
+        "evidence": "Fee disclosure: '*Excludes mandatory $45 resort and maintenance fee per night billed at front desk.' rendered at 8.0px (baseline headline: 38.0px)",
+        "bbox": [
+          361.0,
+          209.0,
+          558.0,
+          9.0
+        ],
+        "why": "A mandatory surcharge or renewal cost is rendered in diminutive micro-print font, making it easy for users to miss the true cost before purchasing.",
+        "safer_alternative": "Display mandatory fees in standard, legible font size directly alongside the advertised headline rate.",
+        "source": "rule"
+      },
+      {
+        "category": "hidden_charges",
+        "type": "low_contrast_fee",
+        "severity": "high",
+        "confidence": 0.94,
+        "evidence": "Fee: '*Excludes mandatory $45 resort and maintenance fee per night billed at front desk.' contrast is 2.56:1 (below WCAG 4.5:1 minimum on resolved background)",
+        "bbox": [
+          361.0,
+          209.0,
+          558.0,
+          9.0
+        ],
+        "why": "Fee details are displayed using faint, low-contrast text against the background, impairing readability and obscuring the final price.",
+        "safer_alternative": "Render all pricing notices with at least 4.5:1 contrast against their background (WCAG AA compliant).",
+        "source": "rule"
+      }
+    ],
+    "rule_findings": [],
+    "ai_findings": [],
+    "rule_findings_count": 0,
+    "ai_findings_count": 0,
+    "ai_status": "completed",
+    "ai_status_message": "Ground-truth benchmark fixture report",
+    "screenshot_base64": null,
+    "page_title": "",
+    "is_flow": false,
+    "step_count": 1
+  },
+  "charges_low_contrast_fee": {
+    "url": "Fee printed in faint grey text on white background failing WCAG contrast standards",
+    "timestamp": "2026-10-16T00:00:00Z",
+    "disclaimer": "ClearClick AI findings are automated warnings for human review, not legal conclusions.",
+    "summary_by_category": {
+      "consent": 0,
+      "hidden_charges": 1,
+      "cancellation": 0
+    },
+    "findings": [
+      {
+        "category": "hidden_charges",
+        "type": "low_contrast_fee",
+        "severity": "high",
+        "confidence": 0.94,
+        "evidence": "Fee: '+ Mandatory processing fee: $48.50 and fuel surcharge: $22.00 applied at settlement' contrast is 1.42:1 (below WCAG 4.5:1 minimum on resolved background)",
+        "bbox": [
+          386.0,
+          155.0,
+          508.0,
+          15.0
+        ],
+        "why": "Fee details are displayed using faint, low-contrast text against the background, impairing readability and obscuring the final price.",
+        "safer_alternative": "Render all pricing notices with at least 4.5:1 contrast against their background (WCAG AA compliant).",
+        "source": "rule"
+      }
+    ],
+    "rule_findings": [],
+    "ai_findings": [],
+    "rule_findings_count": 0,
+    "ai_findings_count": 0,
+    "ai_status": "completed",
+    "ai_status_message": "Ground-truth benchmark fixture report",
+    "screenshot_base64": null,
+    "page_title": "",
+    "is_flow": false,
+    "step_count": 1
+  },
+  "charges_drip_pricing": {
+    "url": "Significant late-appearing fee inflations added at final checkout step",
+    "timestamp": "2026-10-16T00:00:00Z",
+    "disclaimer": "ClearClick AI findings are automated warnings for human review, not legal conclusions.",
+    "summary_by_category": {
+      "consent": 0,
+      "hidden_charges": 1,
+      "cancellation": 0
+    },
+    "findings": [
+      {
+        "category": "hidden_charges",
+        "type": "drip_pricing",
+        "severity": "high",
+        "confidence": 0.93,
+        "evidence": "Advertised price $45.00 inflated to final total $76.55 via late-added fees: Electronic Delivery Fee: $9.50, Venue Facilities Fee: $14.25, Payment Processing Surcharge: $7.80",
+        "bbox": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "why": "The initial price displayed to the user is significantly lower than the final total due to compulsory fees added at the payment summary.",
+        "safer_alternative": "Quote an all-inclusive total upfront from the first step of the booking or checkout flow.",
+        "source": "rule"
+      }
+    ],
+    "rule_findings": [],
+    "ai_findings": [],
+    "rule_findings_count": 0,
+    "ai_findings_count": 0,
+    "ai_status": "completed",
+    "ai_status_message": "Ground-truth benchmark fixture report",
+    "screenshot_base64": null,
+    "page_title": "",
+    "is_flow": false,
+    "step_count": 1
+  },
+  "cancel_buried_link": {
+    "url": "Cancellation link hidden inside small-print footer text",
+    "timestamp": "2026-10-16T00:00:00Z",
+    "disclaimer": "ClearClick AI findings are automated warnings for human review, not legal conclusions.",
+    "summary_by_category": {
+      "consent": 0,
+      "hidden_charges": 0,
+      "cancellation": 1
+    },
+    "findings": [
+      {
+        "category": "cancellation",
+        "type": "buried_cancel_link",
+        "severity": "high",
+        "confidence": 0.92,
+        "evidence": "Cancellation link: 'request cancellation of your account' rendered in 10.0px with color rgb(148, 163, 184) (contrast: 2.56:1)",
+        "bbox": [
+          736.0,
+          257.0,
+          160.0,
+          11.0
+        ],
+        "why": "The cancellation mechanism is hidden in small, low-contrast text embedded within a paragraph or footer, making it substantially harder to locate than account upgrade actions.",
+        "safer_alternative": "Provide a clear, standard-sized 'Cancel Subscription' button with neutral styling in account management.",
+        "source": "rule"
+      }
+    ],
+    "rule_findings": [],
+    "ai_findings": [],
+    "rule_findings_count": 0,
+    "ai_findings_count": 0,
+    "ai_status": "completed",
+    "ai_status_message": "Ground-truth benchmark fixture report",
+    "screenshot_base64": null,
+    "page_title": "",
+    "is_flow": false,
+    "step_count": 1
+  },
+  "cancel_confirm_shaming": {
+    "url": "Manipulative guilt-tripping wording on cancellation opt-out button",
+    "timestamp": "2026-10-16T00:00:00Z",
+    "disclaimer": "ClearClick AI findings are automated warnings for human review, not legal conclusions.",
+    "summary_by_category": {
+      "consent": 0,
+      "hidden_charges": 0,
+      "cancellation": 1
+    },
+    "findings": [
+      {
+        "category": "cancellation",
+        "type": "confirm_shaming",
+        "severity": "medium",
+        "confidence": 0.96,
+        "evidence": "No thanks, I hate saving money and don't care about losing my data",
+        "bbox": [
+          438.0,
+          477.0,
+          403.0,
+          17.0
+        ],
+        "why": "The cancellation decline option utilizes emotional manipulation and guilt-inducing phrasing ('confirm-shaming') to dissuade the user from cancelling.",
+        "safer_alternative": "Use neutral, objective action labels such as 'Proceed with Cancellation' or 'Keep My Plan'.",
+        "source": "rule"
+      }
+    ],
+    "rule_findings": [],
+    "ai_findings": [],
+    "rule_findings_count": 0,
+    "ai_findings_count": 0,
+    "ai_status": "completed",
+    "ai_status_message": "Ground-truth benchmark fixture report",
+    "screenshot_base64": null,
+    "page_title": "",
+    "is_flow": false,
+    "step_count": 1
+  },
+  "cancel_asymmetric_flow": {
+    "url": "Multi-step hurdle maze required to cancel compared to one-click signup",
+    "timestamp": "2026-10-16T00:00:00Z",
+    "disclaimer": "ClearClick AI findings are automated warnings for human review, not legal conclusions.",
+    "summary_by_category": {
+      "consent": 0,
+      "hidden_charges": 0,
+      "cancellation": 1
+    },
+    "findings": [
+      {
+        "category": "cancellation",
+        "type": "asymmetric_cancellation_steps",
+        "severity": "high",
+        "confidence": 0.93,
+        "evidence": "Multi-step cancellation process (Step 4 of 6) requiring 6 sequential screens",
+        "bbox": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "why": "Cancelling requires navigating a 6-step retention maze designed to introduce cognitive fatigue, while signing up typically takes 1 step.",
+        "safer_alternative": "Enable users to cancel with a straightforward process that matches signup simplicity (ideally 1 to 2 clear steps).",
+        "source": "rule"
+      }
+    ],
+    "rule_findings": [],
+    "ai_findings": [],
+    "rule_findings_count": 0,
+    "ai_findings_count": 0,
+    "ai_status": "completed",
+    "ai_status_message": "Ground-truth benchmark fixture report",
+    "screenshot_base64": null,
+    "page_title": "",
+    "is_flow": false,
+    "step_count": 1
+  },
+  "consent_equal_choice": {
+    "url": "Clean example: Accept and Reject buttons have identical size and prominence",
+    "timestamp": "2026-10-16T00:00:00Z",
+    "disclaimer": "ClearClick AI findings are automated warnings for human review, not legal conclusions.",
+    "summary_by_category": {
+      "consent": 0,
+      "hidden_charges": 0,
+      "cancellation": 0
+    },
+    "findings": [],
+    "rule_findings": [],
+    "ai_findings": [],
+    "rule_findings_count": 0,
+    "ai_findings_count": 0,
+    "ai_status": "completed",
+    "ai_status_message": "Ground-truth benchmark fixture report",
+    "screenshot_base64": null,
+    "page_title": "",
+    "is_flow": false,
+    "step_count": 1
+  },
+  "consent_unchecked_optin": {
+    "url": "Clean example: Marketing checkboxes unchecked by default",
+    "timestamp": "2026-10-16T00:00:00Z",
+    "disclaimer": "ClearClick AI findings are automated warnings for human review, not legal conclusions.",
+    "summary_by_category": {
+      "consent": 0,
+      "hidden_charges": 0,
+      "cancellation": 0
+    },
+    "findings": [],
+    "rule_findings": [],
+    "ai_findings": [],
+    "rule_findings_count": 0,
+    "ai_findings_count": 0,
+    "ai_status": "completed",
+    "ai_status_message": "Ground-truth benchmark fixture report",
+    "screenshot_base64": null,
+    "page_title": "",
+    "is_flow": false,
+    "step_count": 1
+  },
+  "charges_transparent_pricing": {
+    "url": "Clean example: All fees and total displayed upfront with clear contrast",
+    "timestamp": "2026-10-16T00:00:00Z",
+    "disclaimer": "ClearClick AI findings are automated warnings for human review, not legal conclusions.",
+    "summary_by_category": {
+      "consent": 0,
+      "hidden_charges": 0,
+      "cancellation": 0
+    },
+    "findings": [],
+    "rule_findings": [],
+    "ai_findings": [],
+    "rule_findings_count": 0,
+    "ai_findings_count": 0,
+    "ai_status": "completed",
+    "ai_status_message": "Ground-truth benchmark fixture report",
+    "screenshot_base64": null,
+    "page_title": "",
+    "is_flow": false,
+    "step_count": 1
+  },
+  "cancel_one_click": {
+    "url": "Clean example: Transparent, straightforward cancellation option",
+    "timestamp": "2026-10-16T00:00:00Z",
+    "disclaimer": "ClearClick AI findings are automated warnings for human review, not legal conclusions.",
+    "summary_by_category": {
+      "consent": 0,
+      "hidden_charges": 0,
+      "cancellation": 0
+    },
+    "findings": [],
+    "rule_findings": [],
+    "ai_findings": [],
+    "rule_findings_count": 0,
+    "ai_findings_count": 0,
+    "ai_status": "completed",
+    "ai_status_message": "Ground-truth benchmark fixture report",
+    "screenshot_base64": null,
+    "page_title": "",
+    "is_flow": false,
+    "step_count": 1
+  }
+}

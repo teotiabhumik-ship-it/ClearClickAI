@@ -109,11 +109,16 @@ export const InputForm: React.FC<InputFormProps> = ({
     if (isLoading) return;
 
     if (activeTab === 'url') {
-      if (!url.trim()) {
+      let rawUrl = url.trim();
+      if (!rawUrl) {
         urlInputRef.current?.focus();
         return;
       }
-      onAnalyze({ url: url.trim(), include_ai: includeAi });
+      // Auto-prepend https:// if user entered domain without protocol
+      if (!/^https?:\/\//i.test(rawUrl)) {
+        rawUrl = `https://${rawUrl}`;
+      }
+      onAnalyze({ url: rawUrl, include_ai: includeAi });
     } else if (activeTab === 'screenshots') {
       if (!uploadedContent) {
         fileInputRef.current?.click();

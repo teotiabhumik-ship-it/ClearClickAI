@@ -23,11 +23,11 @@ python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 ```
 Open your browser at **[http://localhost:8000](http://localhost:8000)**.
 
-### 2. Run the Detector Unit Tests (Ralph Loop Pass/Fail)
+### 2. Run the Detector Unit Tests
 ```bash
 python -m pytest tests/ -v
 ```
-All 15 automated detector tests pass deterministically.
+All 42 automated tests pass deterministically.
 
 ### 3. Run the Ground-Truth Benchmark Evaluation
 ```bash
@@ -35,12 +35,29 @@ python -m backend.app.evaluation.benchmark
 ```
 Computes True Positives, False Positives, False Negatives, Precision, Recall, and F1 score across all positive fixtures and negative clean controls.
 
-### 4. Optional: Run Frontend in Vite Hot-Reload Dev Mode
+### 4. Optional: Run Frontend in Vite Dev Mode
 ```bash
 cd frontend
 npm run dev
 ```
 Vite will start on `http://localhost:3000` with instant proxy forwarding to the backend on `:8000`.
+
+---
+
+## Deployment & Web Host Notes
+
+### Running on a Static Web Host (GitHub Pages / Vercel)
+If you deploy only the frontend to a static host (like GitHub Pages or Vercel static):
+- **Ground-Truth Sample Cases**: Work out of the box! All 14 ground-truth sample audits, proofreader annotations, and WCAG contrast measurements are bundled directly with the frontend.
+- **Live URL Scanning**: Inspecting arbitrary external websites requires browser automation (Playwright + FastAPI). Because static web hosts cannot execute Python or run headless browsers, live URL requests must point to a running backend.
+- **Connecting a Backend**: Click the **Server Settings** icon in the top header (or on the error alert) to point your web frontend to your hosted backend URL (e.g., `https://your-backend.onrender.com`).
+
+### 1-Click Cloud Deployment (Render / Docker)
+ClearClick AI includes a multi-stage `Dockerfile` and `render.yaml`:
+1. Connect your GitHub repository to [Render.com](https://render.com).
+2. Create a new **Web Service** from your repository (select **Docker** runtime).
+3. Set the environment variable `PORT=8000`.
+4. Render will automatically build the frontend, install Playwright Chromium, and serve the full application at your public `https://<service-name>.onrender.com` URL.
 
 ---
 
