@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
 import { AnalysisReport, CorpusItem } from '../types';
 import { InputForm } from '../components/InputForm';
 import { ScreenshotViewer } from '../components/ScreenshotViewer';
 import { FindingsPanel } from '../components/FindingsPanel';
-import { AlertCircle, HelpCircle } from 'lucide-react';
+import { AlertCircle, X } from 'lucide-react';
 
 export const AnalysePage: React.FC = () => {
   const [report, setReport] = useState<AnalysisReport | null>(null);
@@ -12,19 +11,41 @@ export const AnalysePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedFindingIndex, setSelectedFindingIndex] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showInputForm, setShowInputForm] = useState<boolean>(true);
+  const analyzeAbortRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef<boolean>(true);
+
+  // Clean up any pending analysis request on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      analyzeAbortRef.current?.abort();
+    };
+  }, []);
 
   // Load available corpus catalog on startup
   useEffect(() => {
-    fetch('/api/corpus')
-      .then((res) => res.json())
+    const controller = new AbortController();
+    fetch('/api/corpus', { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to load sample fixtures');
+        return res.json();
+      })
       .then((data: CorpusItem[]) => {
-        setCorpusList(data);
-        // Automatically run initial analysis on first dark pattern fixture
-        if (data.length > 0) {
-          handleAnalyze({ corpus_id: 'consent_asymmetric_buttons', include_ai: true });
+        if (isMountedRef.current) {
+          setCorpusList(data);
         }
       })
-      .catch((err) => console.error('Failed to load corpus catalog:', err));
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          console.error('Failed to load corpus catalog:', err);
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   const handleAnalyze = async (payload: {
@@ -33,102 +54,201 @@ export const AnalysePage: React.FC = () => {
     corpus_id?: string;
     include_ai?: boolean;
   }) => {
+    if (isLoading) return;
+
+    analyzeAbortRef.current?.abort();
+    const controller = new AbortController();
+    analyzeAbortRef.current = controller;
+
     setIsLoading(true);
     setErrorMsg(null);
     setSelectedFindingIndex(null);
+    setReport(null);
 
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || 'Analysis failed');
+        let detail = 'Analysis failed';
+        try {
+          const err = await res.json();
+          if (typeof err === 'string') {
+            detail = err;
+          } else if (typeof err.detail === 'string') {
+            detail = err.detail;
+          } else if (Array.isArray(err.detail)) {
+            detail = err.detail
+              .map((d: any) => {
+                if (d && typeof d === 'object') {
+                  const loc = Array.isArray(d.loc) ? d.loc.filter((l: any) => l !== 'body').join('.') : '';
+                  return loc ? `${loc}: ${d.msg || 'Invalid value'}` : (d.msg || JSON.stringify(d));
+                }
+                return String(d);
+              })
+              .join('; ');
+          } else if (err.detail && typeof err.detail === 'object') {
+            detail = err.detail.msg || err.detail.message || JSON.stringify(err.detail);
+          } else if (typeof err.error === 'string') {
+            detail = err.error;
+          } else if (typeof err.msg === 'string') {
+            detail = err.msg;
+          } else if (err.message) {
+            detail = err.message;
+          }
+        } catch {
+          detail = `Server error (${res.status}: ${res.statusText || 'Analysis failed'})`;
+        }
+        throw new Error(detail.trim() || 'Analysis failed');
       }
 
       const data: AnalysisReport = await res.json();
-      setReport(data);
+      if (isMountedRef.current) {
+        setReport(data);
+        setShowInputForm(false); // Collapse form so user sees report immediately
+      }
     } catch (err: any) {
-      setErrorMsg(err.message || 'An unexpected error occurred during inspection');
+      if (err?.name === 'AbortError') {
+        return;
+      }
+
+      const errMsg = err?.message || (typeof err === 'string' ? err : '');
+      const isConnectionError =
+        err?.name === 'TypeError' ||
+        errMsg === 'Failed to fetch' ||
+        (typeof errMsg === 'string' && (
+          errMsg.includes('NetworkError') ||
+          errMsg.includes('Load failed') ||
+          errMsg.includes('fetch failed')
+        ));
+
+      const msg = isConnectionError
+        ? 'Unable to connect to the backend server. Please verify the service is running and try again.'
+        : (errMsg || 'An unexpected error occurred during inspection');
+      if (isMountedRef.current) {
+        setErrorMsg(msg);
+      }
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
   return (
     <div className="flex flex-col w-full">
-      {/* Main Heading & Subtitle */}
-      <div className="mb-6">
-        <h1 className="font-bold text-2xl sm:text-3xl text-on-surface dark:text-[#E2E8F0] tracking-tight mb-2 outline-none">
-          Check a page for design that may mislead you
-        </h1>
-        <p className="text-on-surface-variant dark:text-[#94A3B8] text-sm sm:text-base leading-relaxed max-w-3xl">
-          Paste a link, drop a screenshot, or choose a demo fixture. ClearClick looks for hidden charges, cancellation hurdles, and one-sided consent choices.
-        </p>
-      </div>
-
       {/* Error Notification */}
       {errorMsg && (
-        <div className="mb-6 p-4 bg-error-container/60 dark:bg-[#B91C1C]/20 border border-error/30 dark:border-[#B91C1C]/40 rounded-xl flex items-center gap-3 text-sm text-on-error-container dark:text-red-200">
-          <AlertCircle className="w-5 h-5 text-error shrink-0" aria-hidden="true" />
-          <span className="font-medium">{errorMsg}</span>
+        <div
+          role="alert"
+          aria-live="polite"
+          className="mb-6 p-4 bg-red-tint dark:bg-[#B91C1C]/20 border border-red-pen/40 rounded-sm flex items-center justify-between gap-3 text-sm text-red-pen dark:text-red-200"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <AlertCircle className="w-5 h-5 text-red-pen shrink-0" aria-hidden="true" />
+            <span className="font-medium break-words">{errorMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMsg(null)}
+            className="p-1 rounded-sm hover:bg-red-pen/10 dark:hover:bg-[#B91C1C]/30 text-red-pen dark:text-red-200 transition-colors shrink-0"
+            aria-label="Dismiss error notification"
+            title="Dismiss error"
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
+          </button>
         </div>
       )}
 
-      {/* Interactive Input Card & Focus Cards */}
-      <InputForm
-        onAnalyze={handleAnalyze}
-        isLoading={isLoading}
-        corpusList={corpusList}
-      />
+      {/* When NO report is active: Standalone Page Header */}
+      {!report && (
+        <div className="mb-8">
+          <p className="font-mono text-xs text-ink-muted dark:text-[#94A3B8] uppercase tracking-wider mb-1">
+            Inspection Engine · Dark Pattern Audit
+          </p>
+          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-ink dark:text-[#E2E8F0] tracking-tight mb-2 outline-none">
+            Check a page for design that may mislead you
+          </h1>
+          <p className="text-ink-muted dark:text-[#94A3B8] text-base leading-relaxed max-w-3xl">
+            Paste a link, drop a screenshot, or choose a demo fixture. ClearClick looks for hidden charges, cancellation hurdles, and one-sided consent choices.
+          </p>
+        </div>
+      )}
 
-      {/* Results Workspace */}
+      {/* Input Form (visible by default when no report, collapsible when report active) */}
+      {(!report || showInputForm) && (
+        <div className={report ? 'mb-8 pb-8 border-b border-border-hairline dark:border-[#26324A]' : ''}>
+          <InputForm
+            onAnalyze={handleAnalyze}
+            isLoading={isLoading}
+            corpusList={corpusList}
+          />
+        </div>
+      )}
+
+      {/* Results Workspace: Proofreader UI Layout */}
       {report && (
-        <div className="mt-8 pt-6 border-t border-outline-variant/30 dark:border-[#26324A]">
-          {/* Report Header with Cross Links */}
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-            <div className="flex items-center gap-2 min-w-0">
-              <h2 className="text-lg sm:text-xl font-bold text-on-surface dark:text-[#E2E8F0]">Inspection Results</h2>
-              <span className="text-xs font-mono text-on-surface-variant dark:text-[#94A3B8] bg-surface-container dark:bg-[#111A2E] px-2.5 py-0.5 rounded font-medium truncate max-w-xs sm:max-w-md">
-                {report.url || 'Target Page'}
-              </span>
+        <div className="flex flex-col w-full">
+          {/* Header Strip */}
+          <section className="border-b border-border-hairline dark:border-[#26324A] pb-6 mb-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-3 mb-1">
+                  <p className="font-mono text-xs text-ink-muted dark:text-[#94A3B8] uppercase tracking-wider">
+                    Audit Record · {report.timestamp ? new Date(report.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Checked just now'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowInputForm((prev) => !prev)}
+                    className="text-xs font-mono underline hover:text-red-pen transition-colors text-ink dark:text-[#2DD4BF]"
+                  >
+                    {showInputForm ? 'Hide input form' : 'Check another page'}
+                  </button>
+                </div>
+                <h1 className="font-serif text-3xl font-semibold text-ink dark:text-[#E2E8F0]">
+                  {report.findings.length === 0
+                    ? 'No misleading patterns detected'
+                    : `${report.findings.length} thing${report.findings.length === 1 ? '' : 's'} worth a closer look`}
+                </h1>
+              </div>
+              <div className="text-left md:text-right">
+                <p className="text-sm text-ink-muted dark:text-[#94A3B8]">
+                  Automated warnings for you to judge, not legal conclusions.
+                </p>
+                <p className="font-mono text-xs text-ink-muted dark:text-[#94A3B8] mt-0.5">
+                  Status:{' '}
+                  <span className="text-ink dark:text-[#E2E8F0] font-medium">
+                    AI analysis: {report.ai_status === 'completed' ? 'on' : report.ai_status === 'failed' ? 'unavailable' : 'off'}
+                  </span>{' '}
+                  · Engine:{' '}
+                  <span className="text-ink dark:text-[#E2E8F0] font-medium">
+                    {report.ai_status === 'completed' ? 'Rules + Vision LLM' : 'Deterministic Rules'}
+                  </span>
+                </p>
+              </div>
             </div>
+          </section>
 
-            {/* Cross Links to Methodology */}
-            <div className="flex items-center gap-3 text-xs">
-              <Link
-                to="/methodology#how-it-checks"
-                className="inline-flex items-center gap-1 text-primary dark:text-[#2DD4BF] hover:underline font-medium"
-              >
-                <HelpCircle className="w-3.5 h-3.5" aria-hidden="true" />
-                <span>How it checks</span>
-              </Link>
-              <span className="text-outline-variant dark:text-[#26324A]" aria-hidden="true">•</span>
-              <Link
-                to="/methodology#accuracy"
-                className="text-primary dark:text-[#2DD4BF] hover:underline font-medium"
-              >
-                Accuracy benchmark
-              </Link>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left: Evidence Viewport Canvas (7 cols) */}
-            <div className="lg:col-span-7 flex flex-col">
+          {/* Main Content Area: Left 60% Proof Markup / Right 40% Margin Notes */}
+          <div className="grid grid-cols-1 lg:grid-cols-10 gap-8 items-start">
+            {/* LEFT: Screenshot Canvas with Proofreader's Markup (6 cols) */}
+            <section className="lg:col-span-6 flex flex-col">
               <ScreenshotViewer
                 screenshotBase64={report.screenshot_base64}
                 findings={report.findings}
                 selectedFindingIndex={selectedFindingIndex}
                 onSelectFinding={(idx) => setSelectedFindingIndex(idx)}
+                url={report.url}
+                isFlow={report.is_flow}
               />
-            </div>
+            </section>
 
-            {/* Right: Categorized Findings & Recommendations Panel (5 cols) */}
-            <div className="lg:col-span-5 flex flex-col">
+            {/* RIGHT: Proofreader Margin Notes (4 cols) */}
+            <section className="lg:col-span-4 flex flex-col">
               <FindingsPanel
                 findings={report.findings}
                 summaryByCategory={report.summary_by_category}
@@ -140,7 +260,7 @@ export const AnalysePage: React.FC = () => {
                 ruleFindingsCount={report.rule_findings_count}
                 aiFindingsCount={report.ai_findings_count}
               />
-            </div>
+            </section>
           </div>
         </div>
       )}

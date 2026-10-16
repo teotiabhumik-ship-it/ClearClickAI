@@ -62,6 +62,16 @@ export default {
         "caution": "#B45309",
         "serious": "#B91C1C",
 
+        // Proofreader Editorial Paper & Ink Palette
+        "paper": "#FAF7F2",
+        "ink": "#1A1A1A",
+        "ink-muted": "#595959",
+        "border-hairline": "#E2DDD5",
+        "highlight-yellow": "#FFE66D",
+        "highlight-tint": "rgba(255, 230, 109, 0.35)",
+        "red-pen": "#C0392B",
+        "red-tint": "#FDEDEC",
+
         // Required Dark Theme Tokens
         "dark-bg": "#0B1220",
         "dark-surface": "#111A2E",
@@ -88,6 +98,7 @@ export default {
         "space-xl": "32px"
       },
       fontFamily: {
+        "serif": ['"Source Serif 4"', "Georgia", "serif"],
         "sans": ["Inter", "system-ui", "-apple-system", "sans-serif"],
         "mono": ["JetBrains Mono", "monospace"],
         "headline-lg": ["Inter", "sans-serif"],

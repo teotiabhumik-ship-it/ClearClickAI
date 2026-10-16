@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { SlidersHorizontal, Eye, Info, CheckCircle, Lightbulb } from 'lucide-react';
 import { Finding, CategoryType } from '../types';
 
 interface FindingsPanelProps {
@@ -23,90 +22,90 @@ interface PlainEnglishInfo {
 
 const PLAIN_ENGLISH_INFO: Record<string, PlainEnglishInfo> = {
   preticked_consent: {
-    title: 'Pre-Checked Agreement Box',
-    simpleExplanation: 'The website automatically checked a box to sign you up for emails, marketing, or data sharing instead of letting you choose yourself.',
-    whatToDo: 'Uncheck the box if you do not want to receive promotional emails or share extra personal data.'
+    title: 'An optional extra or consent was turned on for you',
+    simpleExplanation: 'The page pre-selected a checkbox or option by default. If you proceed without unticking, you accept terms or pay for items you did not actively choose.',
+    whatToDo: 'Uncheck the box if you do not want to receive promotional emails, paid extras, or share additional personal data.',
   },
   unequal_button_emphasis: {
-    title: 'Unequal Button Choices',
-    simpleExplanation: 'The button to accept tracking or payments is bright, large, and obvious, while the reject or skip option is faint, tiny, or styled like plain text.',
-    whatToDo: 'Look closely for the dimmer secondary button or text link to decline optional cookies and features.'
+    title: 'The Reject option is hard to see',
+    simpleExplanation: 'The button to accept tracking or charges uses high-contrast, prominent styling, while the reject or decline option is rendered as faint, small text.',
+    whatToDo: 'Look closely for the dimmer secondary button or text link to decline optional cookies and features.',
   },
   missing_reject_button: {
-    title: 'Missing "Reject All" Option',
-    simpleExplanation: 'The banner gives you an immediate "Accept All" button, but forces you to click into complex settings or toggle individual switches to say no.',
-    whatToDo: 'Take a moment to open settings and disable non-essential cookies rather than clicking the quick accept button.'
+    title: 'Missing direct "Reject All" option',
+    simpleExplanation: 'The prompt gives you an immediate single-click "Accept All" button, but forces you through multiple sub-menus or settings tabs to say no.',
+    whatToDo: 'Take a moment to open settings and disable non-essential trackers rather than clicking the quick accept button.',
   },
   double_negative_language: {
-    title: 'Confusing Double-Negative Language',
-    simpleExplanation: 'The setting uses confusing phrasing like "Uncheck to not opt-out," making it hard to tell whether checking the box means yes or no.',
-    whatToDo: 'Re-read the label carefully: checking a box with "do not" or "opt-out" often does the opposite of what you expect.'
+    title: 'Confusing double-negative language',
+    simpleExplanation: 'The prompt uses ambiguous phrasing like "Uncheck to not opt-out," making it counter-intuitive whether checking means yes or no.',
+    whatToDo: 'Re-read the label carefully: checking a box with "do not" or "opt-out" often does the opposite of what you expect.',
   },
   microprint_fee: {
-    title: 'Hidden Fee in Tiny Print',
-    simpleExplanation: 'An extra mandatory fee or surcharge is mentioned only in very small text that is easy to overlook while reviewing the price.',
-    whatToDo: 'Check the final order breakdown before entering payment details to ensure no surprise charges were added.'
+    title: 'Hidden fee in tiny or low-contrast print',
+    simpleExplanation: 'An extra mandatory fee or surcharge is mentioned only in very small or faint text that is easy to overlook before paying.',
+    whatToDo: 'Review the itemized order breakdown before entering payment details to ensure no surprise charges were added.',
   },
   low_contrast_fee: {
-    title: 'Faint or Hard-to-Read Fee Disclosure',
-    simpleExplanation: 'Important pricing terms or fee notices are displayed in faint, low-contrast text that blends into the background.',
-    whatToDo: 'Look out for faint grey text near the total price to find recurring renewal terms or extra fees.'
+    title: 'Faint or hard-to-read fee disclosure',
+    simpleExplanation: 'Important pricing terms or recurring renewal fees are displayed in faint text that blends into the background.',
+    whatToDo: 'Look out for faint grey text near the total price to find recurring renewal terms or extra fees.',
   },
   drip_pricing: {
-    title: 'Unexpected Fee Added at Checkout',
-    simpleExplanation: 'The total price increased at the final payment screen with unavoidable fees that were never mentioned when you selected the item.',
-    whatToDo: 'Compare the final checkout total against the original advertised price to see if the deal is still worthwhile.'
+    title: 'Mandatory fee withheld until payment step',
+    simpleExplanation: 'An unavoidable fee or surcharge was absent from the initial catalog price, appearing only at the final payment screen.',
+    whatToDo: 'Compare the final checkout total against the original advertised price to confirm whether the service is genuinely competitive.',
   },
   buried_cancellation: {
-    title: 'Hidden Cancellation Link',
-    simpleExplanation: 'The link to cancel your subscription is hidden at the very bottom of the page or styled so it does not look clickable.',
-    whatToDo: 'Search the page (Ctrl+F or Cmd+F) for words like "cancel," "subscription," or "manage account."'
+    title: 'Hidden cancellation link or account controls',
+    simpleExplanation: 'The link to cancel your subscription is concealed in tiny footer print, obscure FAQs, or styled so it does not look clickable.',
+    whatToDo: 'Search the page (Ctrl+F or Cmd+F) for keywords like "cancel," "subscription," or "manage account."',
   },
   confirm_shaming: {
-    title: 'Guilt-Inducing Refusal Option',
-    simpleExplanation: 'The button to decline an offer uses manipulative wording (like "No thanks, I hate saving money") to make you feel bad about refusing.',
-    whatToDo: 'Ignore the emotional language. Decline offers that you do not need.'
+    title: 'Guilt-inducing refusal option',
+    simpleExplanation: 'The button to decline an offer uses manipulative wording (like "No thanks, I hate saving money") to pressure you into accepting.',
+    whatToDo: 'Ignore emotional copy. Decline add-ons and features that you do not need.',
   },
   asymmetric_cancellation_steps: {
-    title: 'Difficult Cancellation Process',
-    simpleExplanation: 'Signing up took one click, but cancelling requires a live phone call during limited hours, chat support queues, or unnecessary survey hoops.',
-    whatToDo: 'Check your subscription terms or email receipts for online self-service cancellation links before calling.'
+    title: 'Difficult multi-step cancellation process',
+    simpleExplanation: 'Subscribing was immediate in one click, but cancelling requires navigating through repetitive retention mazes, live calls, or support queues.',
+    whatToDo: 'Check your confirmation emails for direct self-service links or review your bank options if a company refuses simple cancellation.',
   },
   countdown_timer: {
-    title: 'Artificial Time Limit',
-    simpleExplanation: 'A ticking clock or "offer ends in 10 minutes" ticker pressures you into making a hasty financial choice before you can properly think.',
-    whatToDo: 'Take your time to compare prices. Many countdown timers automatically reset when the page reloads.'
+    title: 'Artificial urgency countdown timer',
+    simpleExplanation: 'A ticking clock pressures you into making a rushed purchasing decision before you can properly inspect the terms.',
+    whatToDo: 'Take your time to compare prices. Artificial countdown timers often reset upon reloading.',
   },
   low_stock_scarcity: {
-    title: 'Low Stock Warning',
-    simpleExplanation: 'Claims that "Only 2 items left in stock" create urgent fear of missing out so you purchase before checking alternatives.',
-    whatToDo: 'Verify if the item is truly scarce or available from other sellers at a better price.'
+    title: 'Low stock urgency warning',
+    simpleExplanation: 'Claims that only a few items remain create immediate pressure to purchase before reviewing alternatives.',
+    whatToDo: 'Verify if the item is truly scarce or available from alternative providers at a fairer rate.',
   },
   high_demand_scarcity: {
-    title: 'High Demand Competition Alert',
-    simpleExplanation: 'Alerts saying "18 people are looking at this right now" use competition anxiety to make you feel you might lose out if you do not buy immediately.',
-    whatToDo: 'Recognize this as a sales tactic. Check the actual item details and final checkout terms calmly.'
+    title: 'High-demand competition alert',
+    simpleExplanation: 'Alerts stating that dozens of people are viewing this offer create competition anxiety to drive impulse purchases.',
+    whatToDo: 'Evaluate the purchase calmly based on product specs and price rather than viewing counters.',
   },
   activity_message: {
-    title: 'Social Proof Sales Tally',
-    simpleExplanation: 'Messages boasting "50 items sold in the last 24 hours" use peer pressure and bandwagon effects to validate the purchase.',
-    whatToDo: 'Judge the product on its actual specifications, price, and real reviews rather than recent sales counters.'
+    title: 'Social proof sales ticker',
+    simpleExplanation: 'Notifications boasting recent sales numbers leverage peer pressure to validate the transaction.',
+    whatToDo: 'Rely on verified reviews and verified requirements rather than promotional notification toasts.',
   },
   nagging_review: {
-    title: 'Interruptive Rating Prompt',
-    simpleExplanation: 'Popups asking you to rate the app or service interrupt what you are doing, often without a permanent "Never ask again" option.',
-    whatToDo: 'Dismiss the prompt or look for "No thanks" / "Don\'t ask again". Rate apps only when and if you choose to do so in the settings.'
+    title: 'Interruptive rating or review prompt',
+    simpleExplanation: 'Repeated popups demand reviews or feedback without offering a permanent "Don\'t ask again" option.',
+    whatToDo: 'Dismiss the prompt or review permissions in browser settings.',
   },
   gamification_referral: {
-    title: 'Viral Referral / Ad Gate',
-    simpleExplanation: 'Promising bonus tokens, discounts, or unlocked features only if you recruit your friends or watch advertisements turns you into an unpaid promoter.',
-    whatToDo: 'Carefully consider if you want to share your contacts or personal information just to unlock a feature.'
+    title: 'Referral gate or forced social sharing',
+    simpleExplanation: 'Promising discounts or unlocking features only if you share contacts or recruit peers turns you into an unpaid promoter.',
+    whatToDo: 'Protect your contact list and avoid sharing private information to claim minor discounts.',
   },
   disguised_ads: {
-    title: 'Disguised Advertisement',
-    simpleExplanation: 'Sponsored promotional links are styled to look identical to real editorial articles or navigation links, with the "Ad" label hidden in tiny, faint text.',
-    whatToDo: 'Check the destination URL before clicking to verify whether it leads to the actual site content or a third-party paid sponsor.'
-  }
+    title: 'Disguised advertisement styled as page content',
+    simpleExplanation: 'Sponsored promotional links are styled to look indistinguishable from organic editorial navigation.',
+    whatToDo: 'Inspect the destination URL and tiny sponsor disclaimers before clicking.',
+  },
 };
 
 function getPlainEnglish(type: string): PlainEnglishInfo {
@@ -118,376 +117,174 @@ function getPlainEnglish(type: string): PlainEnglishInfo {
     .replace(/\b\w/g, (c) => c.toUpperCase());
   return {
     title: cleanTitle,
-    simpleExplanation: 'The design or text of this element may steer you toward a choice that benefits the website rather than you.',
-    whatToDo: 'Inspect this element carefully before clicking or confirming.'
+    simpleExplanation: 'This interface element deviates from balanced, transparent consumer design principles.',
+    whatToDo: 'Review the terms and settings carefully before continuing.',
   };
+}
+
+function getSeverityBadge(severity: string) {
+  switch (severity) {
+    case 'high':
+      return {
+        label: 'Serious concern',
+        className: 'border border-red-pen text-red-pen bg-red-tint dark:bg-[#B91C1C]/20',
+      };
+    case 'medium':
+      return {
+        label: 'Caution',
+        className: 'border border-border-hairline dark:border-[#26324A] bg-paper dark:bg-[#0B1220] text-ink-muted dark:text-[#94A3B8]',
+      };
+    default:
+      return {
+        label: 'Notice',
+        className: 'border border-border-hairline dark:border-[#26324A] bg-paper dark:bg-[#0B1220] text-ink-muted dark:text-[#94A3B8]',
+      };
+  }
+}
+
+function getSourceLabel(source: string, type: string) {
+  if (type === 'drip_pricing') return 'Source: Price-flow Tracker';
+  if (type.includes('contrast') || type.includes('button')) return 'Source: WCAG APCA Rule Check';
+  switch (source) {
+    case 'ai':
+      return 'Source: Vision LLM';
+    case 'hybrid':
+      return 'Source: Rule + LLM Verified';
+    default:
+      return 'Source: Deterministic Rule';
+  }
 }
 
 export const FindingsPanel: React.FC<FindingsPanelProps> = ({
   findings,
-  summaryByCategory,
   selectedFindingIndex,
   onSelectFinding,
-  disclaimer,
-  aiStatus = 'not_run',
-  aiStatusMessage,
-  ruleFindingsCount,
-  aiFindingsCount,
 }) => {
-  const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('simple');
-  const [filterCategory, setFilterCategory] = useState<CategoryType | 'all'>('all');
-  const [filterSource, setFilterSource] = useState<'all' | 'rule' | 'ai'>('all');
+  const noteRefs = useRef<(HTMLElement | null)[]>([]);
 
-  const ruleCount = ruleFindingsCount ?? findings.filter((f) => f.source === 'rule').length;
-  const aiCount = aiFindingsCount ?? findings.filter((f) => f.source === 'ai').length;
-
-  const filteredFindings = findings
-    .map((f, originalIndex) => ({ ...f, originalIndex }))
-    .filter((f) => filterCategory === 'all' || f.category === filterCategory)
-    .filter((f) => filterSource === 'all' || f.source === filterSource);
-
-  const getSeverityBadge = (sev: string) => {
-    switch (sev) {
-      case 'high':
-        return (
-          <span className="bg-[#B91C1C]/15 dark:bg-[#B91C1C]/25 text-[#B91C1C] border border-[#B91C1C]/30 px-2 py-0.5 rounded text-xs font-semibold uppercase">
-            {viewMode === 'simple' ? 'Serious' : 'High Severity'}
-          </span>
-        );
-      case 'medium':
-        return (
-          <span className="bg-[#B45309]/15 dark:bg-[#B45309]/25 text-[#B45309] border border-[#B45309]/30 px-2 py-0.5 rounded text-xs font-semibold uppercase">
-            {viewMode === 'simple' ? 'Caution' : 'Medium'}
-          </span>
-        );
-      case 'low':
-        return (
-          <span className="bg-[#1D4ED8]/15 dark:bg-[#1D4ED8]/25 text-[#1D4ED8] border border-[#1D4ED8]/30 px-2 py-0.5 rounded text-xs font-semibold uppercase">
-            {viewMode === 'simple' ? 'Notice' : 'Low'}
-          </span>
-        );
-      default:
-        return null;
+  useEffect(() => {
+    if (selectedFindingIndex !== null && noteRefs.current[selectedFindingIndex]) {
+      noteRefs.current[selectedFindingIndex]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
     }
-  };
-
-  const getSourceBadge = (source: string) => {
-    switch (source) {
-      case 'rule':
-        return (
-          <Link
-            to="/methodology#how-it-checks"
-            title="Read how rule checks operate"
-            className="bg-surface-container dark:bg-[#111A2E] text-on-surface-variant dark:text-[#94A3B8] border border-outline-variant/40 dark:border-[#26324A] px-2 py-0.5 rounded text-xs font-mono font-medium hover:border-outline hover:text-on-surface transition-colors"
-          >
-            RULE ENGINE
-          </Link>
-        );
-      case 'ai':
-        return (
-          <Link
-            to="/methodology#how-it-checks"
-            title="Read how AI verification operates"
-            className="bg-primary-fixed/40 dark:bg-[#2DD4BF]/20 text-primary dark:text-[#2DD4BF] border border-primary/40 dark:border-[#2DD4BF]/30 px-2 py-0.5 rounded text-xs font-mono font-semibold hover:border-primary transition-colors"
-          >
-            AI INSPECTION
-          </Link>
-        );
-      default:
-        return (
-          <Link
-            to="/methodology#how-it-checks"
-            className="bg-surface-container-high dark:bg-[#111A2E] text-on-surface dark:text-[#E2E8F0] px-2 py-0.5 rounded text-xs font-mono font-medium hover:underline"
-          >
-            HYBRID
-          </Link>
-        );
-    }
-  };
+  }, [selectedFindingIndex]);
 
   return (
-    <div className="bg-surface-container-lowest dark:bg-[#111A2E] border border-outline-variant/30 dark:border-[#26324A] rounded-xl flex flex-col h-full shadow-[0px_1px_3px_rgba(15,23,42,0.04)] overflow-hidden min-h-[540px]">
-      {/* Category Breakdown Header */}
-      <div className="p-4 bg-surface-container-low dark:bg-[#0B1220] border-b border-outline-variant/30 dark:border-[#26324A]">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-on-surface dark:text-[#E2E8F0] uppercase tracking-wider flex items-center gap-1.5">
-            <SlidersHorizontal className="w-4 h-4 text-primary dark:text-[#2DD4BF]" aria-hidden="true" />
-            <span>Category Breakdown</span>
-          </h3>
-          <span className="text-xs font-mono text-on-surface-variant dark:text-[#94A3B8] font-medium">
-            {findings.length} Finding{findings.length !== 1 ? 's' : ''} Emitted
-          </span>
-        </div>
+    <section className="space-y-6 flex flex-col">
+      {/* Zero Findings Clean State */}
+      {findings.length === 0 ? (
+        <article className="border border-border-hairline dark:border-[#26324A] bg-white dark:bg-[#111A2E] rounded-sm p-6 text-center">
+          <div className="proof-marker mx-auto mb-3 border-ink-muted text-ink-muted">✓</div>
+          <h2 className="font-serif text-lg font-semibold text-ink dark:text-[#E2E8F0] mb-2">
+            No deceptive patterns detected
+          </h2>
+          <p className="text-sm text-ink-muted dark:text-[#94A3B8] leading-relaxed max-w-sm mx-auto">
+            ClearClick did not identify hidden fees, cancellation barriers, or one-sided consent choices in the checked regions of this page.
+          </p>
+        </article>
+      ) : (
+        /* Margin Notes List */
+        findings.map((f, idx) => {
+          const markerNum = idx + 1;
+          const isSelected = selectedFindingIndex === idx;
+          const info = getPlainEnglish(f.type);
+          const severityInfo = getSeverityBadge(f.severity);
+          const sourceLabel = getSourceLabel(f.source, f.type);
+          const methodHash =
+            f.category === 'hidden_charges'
+              ? 'hidden-charges'
+              : f.category === 'cancellation'
+              ? 'cancellation'
+              : 'consent';
 
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={() => setFilterCategory(filterCategory === 'consent' ? 'all' : 'consent')}
-            className={`p-2.5 rounded-lg border text-left transition-all ${
-              filterCategory === 'consent'
-                ? 'bg-primary-fixed/30 dark:bg-[#2DD4BF]/20 border-primary-container dark:border-[#2DD4BF] shadow-2xs'
-                : 'bg-surface-container-lowest dark:bg-[#111A2E] border-outline-variant/30 dark:border-[#26324A] hover:border-outline'
-            }`}
-          >
-            <div className="text-xs text-on-surface-variant dark:text-[#94A3B8] font-medium">Consent</div>
-            <div className="text-lg font-bold text-on-surface dark:text-[#E2E8F0] mt-0.5">{summaryByCategory.consent || 0}</div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setFilterCategory(filterCategory === 'hidden_charges' ? 'all' : 'hidden_charges')}
-            className={`p-2.5 rounded-lg border text-left transition-all ${
-              filterCategory === 'hidden_charges'
-                ? 'bg-primary-fixed/30 dark:bg-[#2DD4BF]/20 border-primary-container dark:border-[#2DD4BF] shadow-2xs'
-                : 'bg-surface-container-lowest dark:bg-[#111A2E] border-outline-variant/30 dark:border-[#26324A] hover:border-outline'
-            }`}
-          >
-            <div className="text-xs text-on-surface-variant dark:text-[#94A3B8] font-medium">Hidden Charges</div>
-            <div className="text-lg font-bold text-on-surface dark:text-[#E2E8F0] mt-0.5">{summaryByCategory.hidden_charges || 0}</div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setFilterCategory(filterCategory === 'cancellation' ? 'all' : 'cancellation')}
-            className={`p-2.5 rounded-lg border text-left transition-all ${
-              filterCategory === 'cancellation'
-                ? 'bg-primary-fixed/30 dark:bg-[#2DD4BF]/20 border-primary-container dark:border-[#2DD4BF] shadow-2xs'
-                : 'bg-surface-container-lowest dark:bg-[#111A2E] border-outline-variant/30 dark:border-[#26324A] hover:border-outline'
-            }`}
-          >
-            <div className="text-xs text-on-surface-variant dark:text-[#94A3B8] font-medium">Cancellation</div>
-            <div className="text-lg font-bold text-on-surface dark:text-[#E2E8F0] mt-0.5">{summaryByCategory.cancellation || 0}</div>
-          </button>
-        </div>
-
-        {/* AI Status Banner */}
-        {aiStatus === 'not_run' && (
-          <div className="mt-3 p-2 bg-surface-container-lowest dark:bg-[#111A2E] border border-outline-variant/40 dark:border-[#26324A] rounded-lg flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="w-2 h-2 rounded-full bg-outline dark:bg-[#94A3B8] shrink-0" />
-              <span className="font-semibold text-on-surface dark:text-[#E2E8F0]">AI analysis not run</span>
-              <span className="text-on-surface-variant dark:text-[#94A3B8] truncate">— {aiStatusMessage || 'Showing deterministic rule findings.'}</span>
-            </div>
-            <Link to="/methodology#limits" className="text-primary dark:text-[#2DD4BF] hover:underline font-semibold ml-2 shrink-0">
-              Limits
-            </Link>
-          </div>
-        )}
-        {aiStatus === 'failed' && (
-          <div className="mt-3 p-2 bg-error-container/40 dark:bg-[#B91C1C]/20 border border-error/30 dark:border-[#B91C1C]/40 rounded-lg flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="w-2 h-2 rounded-full bg-error shrink-0" />
-              <span className="font-semibold text-on-error-container dark:text-red-200">AI analysis issue</span>
-              <span className="text-on-error-container/80 dark:text-red-300 truncate">— {aiStatusMessage || 'Fell back to rule detectors.'}</span>
-            </div>
-            <Link to="/methodology#limits" className="text-error dark:text-red-300 hover:underline font-semibold ml-2 shrink-0">
-              Limits
-            </Link>
-          </div>
-        )}
-        {aiStatus === 'completed' && (
-          <div className="mt-3 p-2 bg-primary-fixed/30 dark:bg-[#2DD4BF]/20 border border-primary/30 dark:border-[#2DD4BF]/30 rounded-lg flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-primary dark:bg-[#2DD4BF] shrink-0" />
-              <span className="font-semibold text-primary dark:text-[#2DD4BF]">AI analysis verified</span>
-              <span className="text-on-surface-variant dark:text-[#94A3B8]">— {aiCount} finding{aiCount !== 1 ? 's' : ''} verified against page content</span>
-            </div>
-          </div>
-        )}
-
-        {/* Source Filter Tabs: All / Rule-Only / AI */}
-        <div className="mt-3 flex items-center gap-2 pt-2 border-t border-outline-variant/30 dark:border-[#26324A]">
-          <span className="text-xs uppercase font-bold text-on-surface-variant dark:text-[#94A3B8] tracking-wider">Source:</span>
-          <button
-            type="button"
-            onClick={() => setFilterSource('all')}
-            className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${
-              filterSource === 'all'
-                ? 'bg-surface-container-highest dark:bg-[#26324A] text-on-surface dark:text-[#E2E8F0]'
-                : 'text-on-surface-variant dark:text-[#94A3B8] hover:text-on-surface'
-            }`}
-          >
-            All ({findings.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterSource('rule')}
-            className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${
-              filterSource === 'rule'
-                ? 'bg-surface-container-highest dark:bg-[#26324A] text-on-surface dark:text-[#E2E8F0]'
-                : 'text-on-surface-variant dark:text-[#94A3B8] hover:text-on-surface'
-            }`}
-          >
-            Rules Only ({ruleCount})
-          </button>
-          {aiCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setFilterSource('ai')}
-              className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${
-                filterSource === 'ai'
-                  ? 'bg-surface-container-highest dark:bg-[#26324A] text-on-surface dark:text-[#E2E8F0]'
-                  : 'text-on-surface-variant dark:text-[#94A3B8] hover:text-on-surface'
+          return (
+            <article
+              key={idx}
+              id={`note-${markerNum}`}
+              ref={(el) => (noteRefs.current[idx] = el)}
+              onClick={() => onSelectFinding(idx)}
+              className={`border rounded-sm p-5 relative transition-all cursor-pointer ${
+                isSelected
+                  ? 'border-red-pen ring-2 ring-red-pen bg-white dark:bg-[#111A2E] shadow-sm'
+                  : 'border-border-hairline dark:border-[#26324A] bg-white dark:bg-[#111A2E] hover:border-ink-muted'
               }`}
             >
-              AI Verified ({aiCount})
-            </button>
-          )}
-
-          {/* Mode Switcher: Plain English vs Detailed Audit */}
-          <div className="ml-auto flex items-center bg-surface-container dark:bg-[#0B1220] p-0.5 rounded-lg border border-outline-variant/40 dark:border-[#26324A]">
-            <button
-              type="button"
-              onClick={() => setViewMode('simple')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all ${
-                viewMode === 'simple'
-                  ? 'bg-primary-container text-on-primary-container dark:bg-[#005c55] dark:text-white shadow-2xs'
-                  : 'text-on-surface-variant dark:text-[#94A3B8] hover:text-on-surface'
-              }`}
-            >
-              <Eye className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>Plain English</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('detailed')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all ${
-                viewMode === 'detailed'
-                  ? 'bg-primary-container text-on-primary-container dark:bg-[#005c55] dark:text-white shadow-2xs'
-                  : 'text-on-surface-variant dark:text-[#94A3B8] hover:text-on-surface'
-              }`}
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>Detailed Audit</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Fixed Neutral Disclaimer */}
-        <div className="mt-3 p-2 bg-surface-container-lowest dark:bg-[#111A2E] border border-outline-variant/30 dark:border-[#26324A] rounded flex items-start gap-2 text-xs text-on-surface-variant dark:text-[#94A3B8]">
-          <Info className="w-4 h-4 text-primary dark:text-[#2DD4BF] shrink-0 mt-0.5" aria-hidden="true" />
-          <span>{disclaimer}</span>
-        </div>
-      </div>
-
-      {/* Findings List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-surface-container-lowest dark:bg-[#111A2E]">
-        {filteredFindings.length === 0 ? (
-          <div className="h-64 flex flex-col items-center justify-center text-center p-6 text-on-surface-variant dark:text-[#94A3B8]">
-            <CheckCircle className="w-12 h-12 text-primary dark:text-[#2DD4BF] mb-2" aria-hidden="true" />
-            <h4 className="text-base font-semibold text-on-surface dark:text-[#E2E8F0]">No Deceptive Patterns Detected</h4>
-            <p className="text-sm text-on-surface-variant dark:text-[#94A3B8] mt-1 max-w-sm">
-              The page complies with transparent design standards across the evaluated focus areas.
-            </p>
-          </div>
-        ) : (
-          filteredFindings.map((finding) => {
-            const isSelected = selectedFindingIndex === finding.originalIndex;
-            const plainInfo = getPlainEnglish(finding.type);
-
-            return (
-              <div
-                key={finding.originalIndex}
-                onClick={() => onSelectFinding(finding.originalIndex)}
-                className={`p-4 rounded-xl border transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-primary-fixed/15 dark:bg-[#2DD4BF]/10 border-primary-container dark:border-[#2DD4BF] shadow-md ring-1 ring-primary-container'
-                    : 'bg-surface-container-lowest dark:bg-[#111A2E] border-outline-variant/30 dark:border-[#26324A] hover:border-outline hover:shadow-2xs'
-                }`}
-              >
-                {viewMode === 'simple' ? (
-                  <>
-                    {/* Plain English Header */}
-                    <div className="flex items-start justify-between gap-2 mb-2.5">
-                      <div>
-                        <h4 className="text-base font-bold text-on-surface dark:text-[#E2E8F0] flex items-center gap-2">
-                          <span>{plainInfo.title}</span>
-                        </h4>
-                        <span className="text-xs text-on-surface-variant dark:text-[#94A3B8] font-mono capitalize">
-                          {finding.category.replace('_', ' ')} Pattern
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {getSeverityBadge(finding.severity)}
-                      </div>
-                    </div>
-
-                    {/* What this website is doing */}
-                    <div className="p-3 bg-surface-container-low dark:bg-[#0B1220] rounded-lg text-sm mb-3">
-                      <span className="text-on-surface-variant dark:text-[#94A3B8] block text-xs font-semibold tracking-wider mb-1">
-                        What this website is doing:
-                      </span>
-                      <p className="text-on-surface dark:text-[#E2E8F0] leading-relaxed">{plainInfo.simpleExplanation}</p>
-                    </div>
-
-                    {/* Where we found it on screen */}
-                    <div className="p-2.5 bg-surface-container-low/70 dark:bg-[#0B1220]/70 border border-outline-variant/30 dark:border-[#26324A] rounded-lg text-sm mb-3">
-                      <span className="text-on-surface-variant dark:text-[#94A3B8] block text-xs uppercase font-semibold tracking-wider mb-1">
-                        Where we found it on page:
-                      </span>
-                      <span className="text-primary dark:text-[#2DD4BF] font-mono text-xs font-medium break-words">{finding.evidence}</span>
-                    </div>
-
-                    {/* What you should do */}
-                    <div className="p-3 bg-primary-fixed/20 dark:bg-[#2DD4BF]/15 border border-primary/30 dark:border-[#2DD4BF]/30 rounded-lg text-sm">
-                      <div className="flex items-center gap-1.5 text-primary dark:text-[#2DD4BF] font-semibold text-xs mb-1">
-                        <Lightbulb className="w-4 h-4" aria-hidden="true" />
-                        <span>What you should do:</span>
-                      </div>
-                      <p className="text-on-surface-variant dark:text-[#94A3B8] leading-relaxed text-sm">
-                        {plainInfo.whatToDo}
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* Detailed Audit View */}
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm font-semibold text-on-surface dark:text-[#E2E8F0] tracking-wide">
-                          {finding.type}
-                        </span>
-                        {getSourceBadge(finding.source)}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {getSeverityBadge(finding.severity)}
-                        <span className="text-xs text-on-surface-variant dark:text-[#94A3B8] font-mono font-medium">
-                          {Math.round(finding.confidence * 100)}% conf
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Explanation */}
-                    <div className="text-sm text-on-surface dark:text-[#E2E8F0] leading-relaxed mb-3">
-                      <strong className="text-on-surface-variant dark:text-[#94A3B8] font-medium">Why it may mislead: </strong>
-                      {finding.why}
-                    </div>
-
-                    {/* Evidence */}
-                    <div className="p-2.5 bg-surface-container-low dark:bg-[#0B1220] border border-outline-variant/30 dark:border-[#26324A] rounded-lg text-sm font-mono text-on-surface dark:text-[#E2E8F0] mb-3 break-words">
-                      <span className="text-on-surface-variant dark:text-[#94A3B8] block text-xs uppercase font-sans mb-1 font-semibold tracking-wider">
-                        Measured Proof / Verbatim Evidence:
-                      </span>
-                      <span className="text-primary dark:text-[#2DD4BF] font-medium">{finding.evidence}</span>
-                    </div>
-
-                    {/* Safer Alternative */}
-                    <div className="p-3 bg-primary-fixed/15 dark:bg-[#2DD4BF]/15 border border-primary/20 dark:border-[#2DD4BF]/20 rounded-lg text-sm">
-                      <div className="flex items-center gap-1.5 text-primary dark:text-[#2DD4BF] font-semibold text-xs mb-1">
-                        <Lightbulb className="w-4 h-4" aria-hidden="true" />
-                        <span>Safer Design Recommendation</span>
-                      </div>
-                      <div className="text-on-surface-variant dark:text-[#94A3B8] leading-relaxed text-sm">
-                        {finding.safer_alternative}
-                      </div>
-                    </div>
-                  </>
-                )}
+              {/* Note Header: Proof Marker + Serif Title + Severity Badge */}
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className={`proof-marker shrink-0 ${isSelected ? 'marker-active' : ''}`}
+                  >
+                    {markerNum}
+                  </span>
+                  <h2 className="font-serif text-lg font-semibold text-ink dark:text-[#E2E8F0] leading-snug">
+                    {info.title}
+                  </h2>
+                </div>
+                <span
+                  className={`text-xs font-mono px-2 py-0.5 rounded-sm shrink-0 ${severityInfo.className}`}
+                >
+                  {severityInfo.label}
+                </span>
               </div>
-            );
-          })
-        )}
+
+              {/* Plain English Summary */}
+              <p className="text-ink dark:text-[#E2E8F0] text-sm mb-3 leading-relaxed">
+                {info.simpleExplanation}
+              </p>
+
+              {/* Measured Proof Strip */}
+              <div className="bg-paper dark:bg-[#0B1220] border border-border-hairline dark:border-[#26324A] rounded-sm p-3 mb-3">
+                <div className="font-mono text-xs text-ink-muted dark:text-[#94A3B8] mb-1.5 uppercase font-medium tracking-wide">
+                  Measured Proof
+                </div>
+                <div className="text-xs font-mono space-y-1.5 break-words">
+                  {f.evidence && (
+                    <p>
+                      <span className="text-ink dark:text-white font-medium">Observed element:</span>{' '}
+                      <span className="text-ink-muted dark:text-[#94A3B8]">{f.evidence}</span>
+                    </p>
+                  )}
+                  {f.why && (
+                    <p>
+                      <span className="text-ink dark:text-white font-medium">Observation:</span>{' '}
+                      <span className="text-ink-muted dark:text-[#94A3B8]">{f.why}</span>
+                    </p>
+                  )}
+                  {f.safer_alternative && (
+                    <p className="pt-1 border-t border-border-hairline dark:border-[#26324A]">
+                      <span className="text-ink dark:text-white font-medium">Fair design alternative:</span>{' '}
+                      <span className="text-ink-muted dark:text-[#94A3B8]">{f.safer_alternative}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Note Footer: Source Attribution & Link to Fairer Version */}
+              <div className="flex items-center justify-between pt-2 border-t border-border-hairline dark:border-[#26324A] text-xs">
+                <span className="font-mono text-ink-muted dark:text-[#94A3B8]">{sourceLabel}</span>
+                <Link
+                  to={`/methodology#${methodHash}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-ink dark:text-[#2DD4BF] underline decoration-1 hover:text-red-pen transition-colors font-medium"
+                >
+                  Fairer version →
+                </Link>
+              </div>
+            </article>
+          );
+        })
+      )}
+
+      {/* Footer Informational Note Explaining Proofreader Approach */}
+      <div className="border border-dashed border-border-hairline dark:border-[#26324A] p-4 rounded-sm text-xs text-ink-muted dark:text-[#94A3B8]">
+        <p className="font-medium text-ink dark:text-[#E2E8F0] mb-1">How ClearClick marks up pages</p>
+        <p className="leading-relaxed">
+          Unlike automated rating engines, we do not assign an overall percentage score. We mark verifiable deviations against consumer transparency rules so you can form your own judgment.
+        </p>
       </div>
-    </div>
+    </section>
   );
 };

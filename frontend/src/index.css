@@ -4,6 +4,9 @@
 @import "@fontsource/inter/700.css";
 @import "@fontsource/jetbrains-mono/400.css";
 @import "@fontsource/jetbrains-mono/500.css";
+@import "@fontsource/source-serif-4/400.css";
+@import "@fontsource/source-serif-4/600.css";
+@import "@fontsource/source-serif-4/400-italic.css";
 
 @tailwind base;
 @tailwind components;
@@ -20,8 +23,8 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-size: 1rem;
     line-height: 1.5;
-    background-color: #f7f9fb;
-    color: #191c1e;
+    background-color: #FAF7F2;
+    color: #1A1A1A;
   }
 
   .dark body {
@@ -51,3 +54,48 @@
 code, pre, .font-mono {
   font-family: 'JetBrains Mono', monospace;
 }
+
+/* Proofreader UI Elements */
+.proof-marker {
+  width: 24px;
+  height: 24px;
+  line-height: 22px;
+  border: 1.5px solid #C0392B;
+  color: #C0392B;
+  background: #FFFFFF;
+  border-radius: 9999px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.marker-active {
+  background-color: #C0392B !important;
+  color: #FFFFFF !important;
+}
+
+.highlight-overlay {
+  background-color: rgba(255, 230, 109, 0.35);
+  border: 1px dashed rgba(180, 140, 0, 0.65);
+}
+
+.dark .proof-marker {
+  background: #111A2E;
+  border-color: #EF4444;
+  color: #EF4444;
+}
+
+.dark .marker-active {
+  background-color: #EF4444 !important;
+  color: #FFFFFF !important;
+}
+
+.dark .highlight-overlay {
+  background-color: rgba(255, 230, 109, 0.22);
+  border: 1px dashed rgba(245, 158, 11, 0.7);
+}
+
