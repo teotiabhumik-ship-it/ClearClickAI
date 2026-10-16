@@ -4,11 +4,7 @@
   "outputDirectory": "frontend/dist",
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/((?!assets/|favicon|.*\\..*).*)$",
+      "source": "/((?!api/|assets/|favicon|.*\\..*).*)$",
       "destination": "/index.html"
     }
   ]
