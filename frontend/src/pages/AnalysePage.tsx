@@ -170,7 +170,7 @@ export const AnalysePage: React.FC = () => {
           <p className="font-mono text-xs text-ink-muted dark:text-[#94A3B8] uppercase tracking-wider mb-1">
             Inspection Engine · Dark Pattern Audit
           </p>
-          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-ink dark:text-[#E2E8F0] tracking-tight mb-2 outline-none">
+          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-ink dark:text-[#E2E8F0] tracking-tight mb-2 outline-none focus:outline-none focus-visible:outline-none">
             Check a page for design that may mislead you
           </h1>
           <p className="text-ink-muted dark:text-[#94A3B8] text-base leading-relaxed max-w-3xl">
@@ -209,7 +209,7 @@ export const AnalysePage: React.FC = () => {
                     {showInputForm ? 'Hide input form' : 'Check another page'}
                   </button>
                 </div>
-                <h1 className="font-serif text-3xl font-semibold text-ink dark:text-[#E2E8F0]">
+                <h1 className="font-serif text-3xl font-semibold text-ink dark:text-[#E2E8F0] outline-none focus:outline-none focus-visible:outline-none">
                   {report.findings.length === 0
                     ? 'No misleading patterns detected'
                     : `${report.findings.length} thing${report.findings.length === 1 ? '' : 's'} worth a closer look`}

@@ -16,7 +16,7 @@ export const MethodologyPage: React.FC = () => {
             <Shield className="w-3.5 h-3.5 text-primary dark:text-[#2DD4BF]" aria-hidden="true" />
             <span>Detection Standards & Evaluation</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-on-surface dark:text-[#E2E8F0] tracking-tight outline-none">
+          <h1 className="text-2xl sm:text-3xl font-bold text-on-surface dark:text-[#E2E8F0] tracking-tight outline-none focus:outline-none focus-visible:outline-none">
             Methodology
           </h1>
           <p className="text-on-surface-variant dark:text-[#94A3B8] text-base leading-relaxed">
