@@ -1,16 +1,4 @@
 import React, { useState } from 'react';
-import {
-  AlertTriangle,
-  ShieldCheck,
-  CheckCircle,
-  Lightbulb,
-  ExternalLink,
-  SlidersHorizontal,
-  ChevronRight,
-  Info,
-  Cpu,
-  Sparkles
-} from 'lucide-react';
 import { Finding, CategoryType } from '../types';
 
 interface FindingsPanelProps {
@@ -139,11 +127,23 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
   const getSeverityBadge = (sev: string) => {
     switch (sev) {
       case 'high':
-        return <span className="bg-rose-500/10 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded text-[11px] font-medium uppercase">{viewMode === 'simple' ? 'High Impact' : 'High Severity'}</span>;
+        return (
+          <span className="bg-error-container text-on-error-container border border-error/30 px-2 py-0.5 rounded text-[11px] font-semibold uppercase">
+            {viewMode === 'simple' ? 'Serious' : 'High Severity'}
+          </span>
+        );
       case 'medium':
-        return <span className="bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded text-[11px] font-medium uppercase">{viewMode === 'simple' ? 'Moderate' : 'Medium'}</span>;
+        return (
+          <span className="bg-secondary-fixed text-on-secondary-fixed border border-secondary/30 px-2 py-0.5 rounded text-[11px] font-semibold uppercase">
+            {viewMode === 'simple' ? 'Caution' : 'Medium'}
+          </span>
+        );
       case 'low':
-        return <span className="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded text-[11px] font-medium uppercase">{viewMode === 'simple' ? 'Minor Notice' : 'Low'}</span>;
+        return (
+          <span className="bg-tertiary-fixed text-on-tertiary-fixed border border-tertiary/30 px-2 py-0.5 rounded text-[11px] font-semibold uppercase">
+            {viewMode === 'simple' ? 'Notice' : 'Low'}
+          </span>
+        );
       default:
         return null;
     }
@@ -152,124 +152,130 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
   const getSourceBadge = (source: string) => {
     switch (source) {
       case 'rule':
-        return <span className="bg-slate-800 text-cyan-300 border border-cyan-800/50 px-1.5 py-0.5 rounded text-[10px] font-mono">RULE DETECTOR</span>;
+        return <span className="bg-surface-container text-on-surface-variant border border-outline-variant/40 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium">RULE ENGINE</span>;
       case 'ai':
-        return <span className="bg-purple-950/60 text-purple-300 border border-purple-700/50 px-1.5 py-0.5 rounded text-[10px] font-mono">AI INSPECTION</span>;
+        return <span className="bg-primary-fixed/40 text-primary border border-primary/40 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold">AI INSPECTION</span>;
       default:
-        return <span className="bg-indigo-950/60 text-indigo-300 border border-indigo-700/50 px-1.5 py-0.5 rounded text-[10px] font-mono">HYBRID</span>;
+        return <span className="bg-surface-container-high text-on-surface px-1.5 py-0.5 rounded text-[10px] font-mono font-medium">HYBRID</span>;
     }
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl flex flex-col h-full shadow-xl overflow-hidden">
+    <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl flex flex-col h-full shadow-[0px_1px_3px_rgba(15,23,42,0.04)] overflow-hidden min-h-[540px]">
       {/* Category Breakdown Header */}
-      <div className="p-4 bg-slate-950 border-b border-slate-800">
+      <div className="p-4 bg-surface-container-low border-b border-outline-variant/30">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-            <SlidersHorizontal className="w-3.5 h-3.5 text-blue-400" />
+          <h3 className="text-xs font-semibold text-on-surface uppercase tracking-wider flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-primary text-[18px]">tune</span>
             <span>Category Breakdown</span>
           </h3>
-          <span className="text-xs font-mono text-slate-400">
+          <span className="text-xs font-mono text-on-surface-variant font-medium">
             {findings.length} Finding{findings.length !== 1 ? 's' : ''} Emitted
           </span>
         </div>
 
         <div className="grid grid-cols-3 gap-2">
           <button
+            type="button"
             onClick={() => setFilterCategory(filterCategory === 'consent' ? 'all' : 'consent')}
             className={`p-2.5 rounded-lg border text-left transition-all ${
               filterCategory === 'consent'
-                ? 'bg-blue-950/60 border-blue-500 shadow-sm'
-                : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                ? 'bg-primary-fixed/30 border-primary-container shadow-2xs'
+                : 'bg-surface-container-lowest border-outline-variant/30 hover:border-outline'
             }`}
           >
-            <div className="text-[11px] text-slate-400 font-medium">Manipulative Consent</div>
-            <div className="text-lg font-bold text-white mt-0.5">{summaryByCategory.consent || 0}</div>
+            <div className="text-[11px] text-on-surface-variant font-medium">Consent</div>
+            <div className="text-lg font-bold text-on-surface mt-0.5">{summaryByCategory.consent || 0}</div>
           </button>
 
           <button
+            type="button"
             onClick={() => setFilterCategory(filterCategory === 'hidden_charges' ? 'all' : 'hidden_charges')}
             className={`p-2.5 rounded-lg border text-left transition-all ${
               filterCategory === 'hidden_charges'
-                ? 'bg-blue-950/60 border-blue-500 shadow-sm'
-                : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                ? 'bg-primary-fixed/30 border-primary-container shadow-2xs'
+                : 'bg-surface-container-lowest border-outline-variant/30 hover:border-outline'
             }`}
           >
-            <div className="text-[11px] text-slate-400 font-medium">Hidden Charges</div>
-            <div className="text-lg font-bold text-white mt-0.5">{summaryByCategory.hidden_charges || 0}</div>
+            <div className="text-[11px] text-on-surface-variant font-medium">Hidden Charges</div>
+            <div className="text-lg font-bold text-on-surface mt-0.5">{summaryByCategory.hidden_charges || 0}</div>
           </button>
 
           <button
+            type="button"
             onClick={() => setFilterCategory(filterCategory === 'cancellation' ? 'all' : 'cancellation')}
             className={`p-2.5 rounded-lg border text-left transition-all ${
               filterCategory === 'cancellation'
-                ? 'bg-blue-950/60 border-blue-500 shadow-sm'
-                : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                ? 'bg-primary-fixed/30 border-primary-container shadow-2xs'
+                : 'bg-surface-container-lowest border-outline-variant/30 hover:border-outline'
             }`}
           >
-            <div className="text-[11px] text-slate-400 font-medium">Cancellation Friction</div>
-            <div className="text-lg font-bold text-white mt-0.5">{summaryByCategory.cancellation || 0}</div>
+            <div className="text-[11px] text-on-surface-variant font-medium">Cancellation</div>
+            <div className="text-lg font-bold text-on-surface mt-0.5">{summaryByCategory.cancellation || 0}</div>
           </button>
         </div>
 
         {/* AI Status Banner */}
         {aiStatus === 'not_run' && (
-          <div className="mt-3 p-2 bg-slate-900/90 border border-amber-500/30 rounded-lg flex items-center justify-between text-[11px]">
+          <div className="mt-3 p-2 bg-surface-container-lowest border border-outline-variant/40 rounded-lg flex items-center justify-between text-[11px]">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
-              <span className="font-semibold text-amber-300">AI analysis not run</span>
-              <span className="text-slate-400">— No API key set. Showing rule detections only.</span>
+              <span className="w-2 h-2 rounded-full bg-outline shrink-0" />
+              <span className="font-semibold text-on-surface">AI analysis not run</span>
+              <span className="text-on-surface-variant">— {aiStatusMessage || 'Showing deterministic rule findings.'}</span>
             </div>
           </div>
         )}
         {aiStatus === 'failed' && (
-          <div className="mt-3 p-2 bg-rose-950/40 border border-rose-500/30 rounded-lg flex items-center justify-between text-[11px]">
+          <div className="mt-3 p-2 bg-error-container/40 border border-error/30 rounded-lg flex items-center justify-between text-[11px]">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-rose-400 shrink-0" />
-              <span className="font-semibold text-rose-300">AI analysis failed</span>
-              <span className="text-slate-400">— {aiStatusMessage || 'API call failed'}. Rule-only findings.</span>
+              <span className="w-2 h-2 rounded-full bg-error shrink-0" />
+              <span className="font-semibold text-on-error-container">AI analysis issue</span>
+              <span className="text-on-error-container/80">— {aiStatusMessage || 'Fell back to rule detectors.'}</span>
             </div>
           </div>
         )}
         {aiStatus === 'completed' && (
-          <div className="mt-3 p-2 bg-purple-950/40 border border-purple-500/30 rounded-lg flex items-center justify-between text-[11px]">
+          <div className="mt-3 p-2 bg-primary-fixed/30 border border-primary/30 rounded-lg flex items-center justify-between text-[11px]">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-              <span className="font-semibold text-purple-200">AI analysis completed</span>
-              <span className="text-purple-300">— {aiCount} AI finding{aiCount !== 1 ? 's' : ''} verified against page</span>
+              <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
+              <span className="font-semibold text-primary">AI analysis verified</span>
+              <span className="text-on-surface-variant">— {aiCount} finding{aiCount !== 1 ? 's' : ''} verified against page content</span>
             </div>
           </div>
         )}
 
         {/* Source Filter Tabs: All / Rule-Only / AI */}
-        <div className="mt-3 flex items-center gap-2 pt-2 border-t border-slate-800/80">
-          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Source:</span>
+        <div className="mt-3 flex items-center gap-2 pt-2 border-t border-outline-variant/30">
+          <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Source:</span>
           <button
+            type="button"
             onClick={() => setFilterSource('all')}
-            className={`px-2 py-0.5 rounded text-[11px] font-mono transition-all ${
+            className={`px-2.5 py-0.5 rounded text-[11px] font-mono transition-all ${
               filterSource === 'all'
-                ? 'bg-blue-600 text-white font-semibold'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                ? 'bg-primary-container text-on-primary-container font-semibold shadow-2xs'
+                : 'bg-surface-container-lowest text-on-surface-variant hover:text-on-surface border border-outline-variant/30'
             }`}
           >
             All ({findings.length})
           </button>
           <button
+            type="button"
             onClick={() => setFilterSource('rule')}
-            className={`px-2 py-0.5 rounded text-[11px] font-mono transition-all ${
+            className={`px-2.5 py-0.5 rounded text-[11px] font-mono transition-all ${
               filterSource === 'rule'
-                ? 'bg-cyan-700 text-white font-semibold'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                ? 'bg-primary-container text-on-primary-container font-semibold shadow-2xs'
+                : 'bg-surface-container-lowest text-on-surface-variant hover:text-on-surface border border-outline-variant/30'
             }`}
           >
             Rules Only ({ruleCount})
           </button>
           <button
+            type="button"
             onClick={() => setFilterSource('ai')}
-            className={`px-2 py-0.5 rounded text-[11px] font-mono transition-all ${
+            className={`px-2.5 py-0.5 rounded text-[11px] font-mono transition-all ${
               filterSource === 'ai'
-                ? 'bg-purple-700 text-white font-semibold'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                ? 'bg-primary-container text-on-primary-container font-semibold shadow-2xs'
+                : 'bg-surface-container-lowest text-on-surface-variant hover:text-on-surface border border-outline-variant/30'
             }`}
           >
             AI ({aiCount})
@@ -277,53 +283,57 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
         </div>
 
         {/* View Mode Toggle: Plain English vs Detailed Audit */}
-        <div className="mt-3 flex items-center justify-between p-2.5 bg-slate-900/90 border border-slate-800 rounded-lg">
+        <div className="mt-3 flex items-center justify-between p-2.5 bg-surface-container-lowest border border-outline-variant/30 rounded-lg">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-200">View Mode:</span>
-            <span className="text-[11px] text-slate-400 hidden sm:inline">
-              {viewMode === 'simple' ? 'Simple explanations for everyday users' : 'Full technical metrics & developer proof'}
+            <span className="text-xs font-semibold text-on-surface">Auditor View:</span>
+            <span className="text-[11px] text-on-surface-variant hidden sm:inline">
+              {viewMode === 'simple' ? 'Simple explanations for everyday users' : 'Full technical metrics & code proof'}
             </span>
           </div>
-          <div className="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800">
+          <div className="flex items-center bg-surface-container p-0.5 rounded-lg border border-outline-variant/30">
             <button
+              type="button"
               onClick={() => setViewMode('simple')}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all ${
                 viewMode === 'simple'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-primary-container text-on-primary-container shadow-2xs'
+                  : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span className="material-symbols-outlined text-[16px]">visibility</span>
               <span>Plain English</span>
             </button>
             <button
+              type="button"
               onClick={() => setViewMode('detailed')}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all ${
                 viewMode === 'detailed'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-primary-container text-on-primary-container shadow-2xs'
+                  : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
-              <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-300" />
+              <span className="material-symbols-outlined text-[16px]">tune</span>
               <span>Detailed Audit</span>
             </button>
           </div>
         </div>
 
         {/* Fixed Neutral Disclaimer */}
-        <div className="mt-3 p-2 bg-slate-900/90 border border-slate-800/80 rounded flex items-start gap-2 text-[11px] text-slate-400">
-          <Info className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
+        <div className="mt-3 p-2 bg-surface-container-lowest border border-outline-variant/30 rounded flex items-start gap-2 text-[11px] text-on-surface-variant">
+          <span className="material-symbols-outlined text-primary text-[16px] shrink-0 mt-0.5">info</span>
           <span>{disclaimer}</span>
         </div>
       </div>
 
       {/* Findings List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-surface-container-lowest">
         {filteredFindings.length === 0 ? (
-          <div className="h-64 flex flex-col items-center justify-center text-center p-6 text-slate-500">
-            <CheckCircle className="w-12 h-12 text-emerald-500/80 mb-2" />
-            <h4 className="text-sm font-semibold text-slate-200">No Potential Deceptive Patterns Detected</h4>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm">
+          <div className="h-64 flex flex-col items-center justify-center text-center p-6 text-on-surface-variant">
+            <span className="material-symbols-outlined text-[48px] text-primary mb-2" style={{ fontVariationSettings: "'FILL' 1" }}>
+              verified
+            </span>
+            <h4 className="text-sm font-semibold text-on-surface">No Deceptive Patterns Detected</h4>
+            <p className="text-xs text-on-surface-variant mt-1 max-w-sm">
               The page complies with transparent design standards across the evaluated focus areas.
             </p>
           </div>
@@ -338,8 +348,8 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
                 onClick={() => onSelectFinding(finding.originalIndex)}
                 className={`p-4 rounded-xl border transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-slate-800/90 border-blue-500 shadow-lg shadow-blue-500/10 ring-1 ring-blue-500/50'
-                    : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
+                    ? 'bg-primary-fixed/15 border-primary-container shadow-md ring-1 ring-primary-container'
+                    : 'bg-surface-container-lowest border-outline-variant/30 hover:border-outline hover:shadow-2xs'
                 }`}
               >
                 {viewMode === 'simple' ? (
@@ -347,10 +357,10 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
                     {/* Plain English Header */}
                     <div className="flex items-start justify-between gap-2 mb-2.5">
                       <div>
-                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-on-surface flex items-center gap-2">
                           <span>{plainInfo.title}</span>
                         </h4>
-                        <span className="text-[10px] text-slate-400 font-mono capitalize">
+                        <span className="text-[10px] text-on-surface-variant font-mono capitalize">
                           {finding.category.replace('_', ' ')} Pattern
                         </span>
                       </div>
@@ -360,71 +370,71 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
                     </div>
 
                     {/* What this website is doing */}
-                    <div className="text-xs text-slate-200 leading-relaxed mb-3 bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
-                      <span className="text-amber-400 font-semibold block text-[11px] uppercase tracking-wider mb-1">
+                    <div className="text-xs text-on-surface leading-relaxed mb-3 bg-surface-container-low p-2.5 rounded-lg border border-outline-variant/30">
+                      <span className="text-on-surface-variant font-semibold block text-[11px] uppercase tracking-wider mb-1">
                         What this website is doing:
                       </span>
-                      <p className="text-slate-300 leading-relaxed">{plainInfo.simpleExplanation}</p>
+                      <p className="text-on-surface leading-relaxed">{plainInfo.simpleExplanation}</p>
                     </div>
 
                     {/* Where we found it on screen */}
-                    <div className="p-2.5 bg-slate-900/60 border border-slate-800 rounded-lg text-xs mb-3">
-                      <span className="text-slate-400 block text-[10px] uppercase font-semibold tracking-wider mb-1">
+                    <div className="p-2.5 bg-surface-container-low/70 border border-outline-variant/30 rounded-lg text-xs mb-3">
+                      <span className="text-on-surface-variant block text-[10px] uppercase font-semibold tracking-wider mb-1">
                         Where we found it on page:
                       </span>
-                      <span className="text-blue-300 font-mono text-[11px] break-words">{finding.evidence}</span>
+                      <span className="text-primary font-mono text-[11px] font-medium break-words">{finding.evidence}</span>
                     </div>
 
                     {/* What you should do */}
-                    <div className="p-2.5 bg-emerald-950/30 border border-emerald-800/40 rounded-lg text-xs">
-                      <div className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px] mb-1">
-                        <CheckCircle className="w-3.5 h-3.5" />
+                    <div className="p-2.5 bg-primary-fixed/20 border border-primary/30 rounded-lg text-xs">
+                      <div className="flex items-center gap-1.5 text-primary font-semibold text-[11px] mb-1">
+                        <span className="material-symbols-outlined text-[16px]">tips_and_updates</span>
                         <span>What you should do:</span>
                       </div>
-                      <p className="text-emerald-200/95 leading-relaxed text-[11px]">
+                      <p className="text-on-surface-variant leading-relaxed text-[11px]">
                         {plainInfo.whatToDo}
                       </p>
                     </div>
                   </>
                 ) : (
                   <>
-                    {/* Header row */}
+                    {/* Detailed Audit View */}
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-semibold text-white tracking-wide">
+                        <span className="font-mono text-xs font-semibold text-on-surface tracking-wide">
                           {finding.type}
                         </span>
                         {getSourceBadge(finding.source)}
                       </div>
                       <div className="flex items-center gap-2">
                         {getSeverityBadge(finding.severity)}
-                        <span className="text-[10px] text-slate-500 font-mono">
+                        <span className="text-[10px] text-on-surface-variant font-mono font-medium">
                           {Math.round(finding.confidence * 100)}% conf
                         </span>
                       </div>
                     </div>
 
                     {/* Explanation */}
-                    <div className="text-xs text-slate-300 leading-relaxed mb-3">
-                      <strong className="text-slate-400 font-medium">Why it may mislead: </strong>
+                    <div className="text-xs text-on-surface leading-relaxed mb-3">
+                      <strong className="text-on-surface-variant font-medium">Why it may mislead: </strong>
                       {finding.why}
                     </div>
 
                     {/* Evidence */}
-                    <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-300 mb-3 break-words">
-                      <span className="text-slate-500 block text-[10px] uppercase font-sans mb-1 font-semibold tracking-wider">
-                        Measured Proof / Quote:
+                    <div className="p-2.5 bg-surface-container-low border border-outline-variant/30 rounded-lg text-xs font-mono text-on-surface mb-3 break-words">
+                      <span className="text-on-surface-variant block text-[10px] uppercase font-sans mb-1 font-semibold tracking-wider">
+                        Measured Proof / Verbatim Evidence:
                       </span>
-                      <span className="text-amber-300 font-medium">{finding.evidence}</span>
+                      <span className="text-primary font-medium">{finding.evidence}</span>
                     </div>
 
                     {/* Safer Alternative */}
-                    <div className="p-2.5 bg-emerald-950/30 border border-emerald-800/40 rounded-lg text-xs">
-                      <div className="flex items-center gap-1.5 text-emerald-400 font-medium text-[11px] mb-1">
-                        <Lightbulb className="w-3.5 h-3.5" />
+                    <div className="p-2.5 bg-primary-fixed/15 border border-primary/20 rounded-lg text-xs">
+                      <div className="flex items-center gap-1.5 text-primary font-semibold text-[11px] mb-1">
+                        <span className="material-symbols-outlined text-[16px]">lightbulb</span>
                         <span>Safer Design Recommendation</span>
                       </div>
-                      <div className="text-emerald-200/90 leading-relaxed text-[11px]">
+                      <div className="text-on-surface-variant leading-relaxed text-[11px]">
                         {finding.safer_alternative}
                       </div>
                     </div>

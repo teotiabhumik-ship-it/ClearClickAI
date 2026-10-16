@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Eye, ZoomIn, ZoomOut, Maximize2, ShieldAlert } from 'lucide-react';
 import { Finding } from '../types';
 
 interface ScreenshotViewerProps {
@@ -44,53 +43,56 @@ export const ScreenshotViewer: React.FC<ScreenshotViewerProps> = ({
     .filter(f => f.bbox && f.bbox.length === 4 && f.bbox[2] > 0 && f.bbox[3] > 0);
 
   const getSeverityColor = (sev: string, isSelected: boolean) => {
-    if (isSelected) return '#ef4444'; // Red-500
+    if (isSelected) return '#0f766e'; // Primary Teal when selected
     switch (sev) {
-      case 'high': return '#f43f5e';
-      case 'medium': return '#f59e0b';
-      case 'low': return '#3b82f6';
-      default: return '#eab308';
+      case 'high': return '#b91c1c'; // Serious Red
+      case 'medium': return '#b45309'; // Caution Amber
+      case 'low': return '#1d4ed8'; // Notice Blue
+      default: return '#0f766e';
     }
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl flex flex-col h-full min-h-[500px]">
+    <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl overflow-hidden shadow-[0px_1px_3px_rgba(15,23,42,0.04)] flex flex-col h-full min-h-[540px]">
       {/* Header bar */}
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-950 border-b border-slate-800">
+      <div className="flex items-center justify-between px-4 py-3 bg-surface-container-low border-b border-outline-variant/30">
         <div className="flex items-center gap-2">
-          <Eye className="w-4 h-4 text-blue-400" />
-          <span className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+          <span className="material-symbols-outlined text-primary text-[20px]">visibility</span>
+          <span className="text-xs font-semibold text-on-surface uppercase tracking-wider">
             Evidence Viewport (Captured Page)
           </span>
-          <span className="bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5 rounded-full font-mono">
-            {visualFindings.length} Bounding Box{visualFindings.length !== 1 ? 'es' : ''}
+          <span className="bg-surface-container text-on-surface-variant text-[11px] px-2.5 py-0.5 rounded-full font-mono font-medium">
+            {visualFindings.length} Highlight{visualFindings.length !== 1 ? 's' : ''}
           </span>
         </div>
 
         <div className="flex items-center gap-1.5">
           <button
+            type="button"
             onClick={() => setZoom(prev => Math.max(0.6, prev - 0.15))}
-            className="p-1 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded transition-colors"
+            className="p-1 text-on-surface-variant hover:text-on-surface bg-surface-container-lowest hover:bg-surface-container border border-outline-variant/30 rounded transition-colors shadow-2xs"
             title="Zoom out"
           >
-            <ZoomOut className="w-3.5 h-3.5" />
+            <span className="material-symbols-outlined text-[16px] block">zoom_out</span>
           </button>
-          <span className="text-xs text-slate-400 font-mono w-10 text-center">
+          <span className="text-xs text-on-surface-variant font-mono w-12 text-center font-medium">
             {Math.round(zoom * 100)}%
           </span>
           <button
-            onClick={() => setZoom(prev => Math.min(1.8, prev + 0.15))}
-            className="p-1 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded transition-colors"
+            type="button"
+            onClick={() => setZoom(prev => Math.min(2.0, prev + 0.15))}
+            className="p-1 text-on-surface-variant hover:text-on-surface bg-surface-container-lowest hover:bg-surface-container border border-outline-variant/30 rounded transition-colors shadow-2xs"
             title="Zoom in"
           >
-            <ZoomIn className="w-3.5 h-3.5" />
+            <span className="material-symbols-outlined text-[16px] block">zoom_in</span>
           </button>
           <button
+            type="button"
             onClick={() => setZoom(1)}
-            className="p-1 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded transition-colors ml-1"
+            className="p-1 text-on-surface-variant hover:text-on-surface bg-surface-container-lowest hover:bg-surface-container border border-outline-variant/30 rounded transition-colors ml-1 shadow-2xs"
             title="Reset Zoom"
           >
-            <Maximize2 className="w-3.5 h-3.5" />
+            <span className="material-symbols-outlined text-[16px] block">fit_screen</span>
           </button>
         </div>
       </div>
@@ -98,25 +100,25 @@ export const ScreenshotViewer: React.FC<ScreenshotViewerProps> = ({
       {/* Viewport Canvas */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-auto bg-slate-950 p-4 relative flex items-start justify-center"
+        className="flex-1 overflow-auto bg-surface-container/40 p-4 relative flex items-start justify-center"
       >
         {screenshotBase64 ? (
           <div
-            className="relative transition-transform duration-150 origin-top shadow-2xl rounded border border-slate-800"
+            className="relative transition-transform duration-150 origin-top shadow-md rounded border border-outline-variant/40 bg-white"
             style={{ transform: `scale(${zoom})` }}
           >
             <img
               ref={imgRef}
               src={`data:image/png;base64,${screenshotBase64}`}
               alt="Page Screenshot"
-              className="max-w-none block select-none"
+              className="max-w-none block select-none rounded"
               style={{ width: '100%', maxWidth: '1000px' }}
               onLoad={handleImageLoad}
             />
 
-            {/* SVG Interactive Overlay for Bounding Boxes */}
+            {/* SVG Interactive Overlay with pixel-perfect viewBox scaling */}
             <svg
-              className="absolute inset-0 w-full h-full pointer-events-auto"
+              className="absolute inset-0 w-full h-full pointer-events-auto rounded"
               viewBox={`0 0 ${naturalDims.width} ${naturalDims.height}`}
               preserveAspectRatio="none"
               style={{ overflow: 'visible' }}
@@ -142,16 +144,16 @@ export const ScreenshotViewer: React.FC<ScreenshotViewerProps> = ({
                       y={y}
                       width={w}
                       height={h}
-                      fill={isSelected || isHovered ? `${strokeColor}33` : `${strokeColor}15`}
+                      fill={isSelected || isHovered ? `${strokeColor}33` : `${strokeColor}18`}
                       stroke={strokeColor}
-                      strokeWidth={isSelected ? 3 : 2}
+                      strokeWidth={isSelected ? 3.5 : 2}
                       strokeDasharray={isSelected ? 'none' : '4 2'}
                       vectorEffect="non-scaling-stroke"
                       rx={3}
                       className="transition-all"
                     />
 
-                    {/* Tag badge above bbox */}
+                    {/* Tag badge above/below bbox */}
                     <g transform={`translate(${x}, ${badgeY})`}>
                       <rect
                         x={0}
@@ -178,32 +180,34 @@ export const ScreenshotViewer: React.FC<ScreenshotViewerProps> = ({
             </svg>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-64 text-center p-6 text-slate-500">
-            <ShieldAlert className="w-12 h-12 mb-3 text-slate-600 stroke-[1.5]" />
-            <p className="text-sm font-medium text-slate-400">No screenshot preview available</p>
-            <p className="text-xs text-slate-600 mt-1">Run an analysis on any corpus fixture or live URL to inspect rendered elements.</p>
+          <div className="flex flex-col items-center justify-center h-72 text-center p-6 text-on-surface-variant">
+            <span className="material-symbols-outlined text-[48px] text-outline mb-3">image_not_supported</span>
+            <p className="text-sm font-semibold text-on-surface">No screenshot preview available</p>
+            <p className="text-xs text-on-surface-variant mt-1 max-w-sm">
+              Analyse a live URL or corpus fixture to inspect the rendered page elements and bounding box highlights.
+            </p>
           </div>
         )}
       </div>
 
       {/* Legend bar */}
-      <div className="px-4 py-2.5 bg-slate-950 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+      <div className="px-4 py-2.5 bg-surface-container-low border-t border-outline-variant/30 flex items-center justify-between text-xs text-on-surface-variant">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-            <span>High Severity</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#b91c1c]" />
+            <span className="font-medium text-[11px]">Serious</span>
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-            <span>Medium Severity</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#b45309]" />
+            <span className="font-medium text-[11px]">Caution</span>
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-            <span>Low Severity</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#1d4ed8]" />
+            <span className="font-medium text-[11px]">Notice</span>
           </span>
         </div>
-        <span className="text-[11px] text-slate-500 italic">
-          Click any highlighted box to focus finding
+        <span className="text-[11px] text-on-surface-variant italic hidden sm:inline">
+          Click highlighted box to focus finding
         </span>
       </div>
     </div>

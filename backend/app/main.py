@@ -60,6 +60,7 @@ class AnalyzeRequest(BaseModel):
     url: Optional[str] = None
     html_content: Optional[str] = None
     corpus_id: Optional[str] = None
+    include_ai: bool = True
 
 
 @app.get("/api/health")
@@ -146,22 +147,26 @@ async def analyze_page(req: AnalyzeRequest, request: Request):
     rule_findings.extend(charges_detector.detect(page_data))
     rule_findings.extend(cancel_detector.detect(page_data))
 
-    # 3. Execute AI Text & Vision Detectors
-    text_findings, text_status, text_msg = await ai_text_detector.detect(page_data)
-    vision_findings, vision_status, vision_msg = await ai_vision_detector.detect(page_data)
+    # 3. Execute AI Text & Vision Detectors if enabled
+    if req.include_ai:
+        text_findings, text_status, text_msg = await ai_text_detector.detect(page_data)
+        vision_findings, vision_status, vision_msg = await ai_vision_detector.detect(page_data)
+        ai_findings: List[Finding] = text_findings + vision_findings
 
-    ai_findings: List[Finding] = text_findings + vision_findings
-
-    # Resolve overall AI execution status
-    if text_status == "completed" or vision_status == "completed":
-        ai_status = "completed"
-        ai_status_message = text_msg if text_status == "completed" else vision_msg
-    elif text_status == "failed" or vision_status == "failed":
-        ai_status = "failed"
-        ai_status_message = text_msg if text_status == "failed" else vision_msg
+        # Resolve overall AI execution status
+        if text_status == "completed" or vision_status == "completed":
+            ai_status = "completed"
+            ai_status_message = text_msg if text_status == "completed" else vision_msg
+        elif text_status == "failed" or vision_status == "failed":
+            ai_status = "failed"
+            ai_status_message = text_msg if text_status == "failed" else vision_msg
+        else:
+            ai_status = "not_run"
+            ai_status_message = "AI analysis not run (no API key configured)"
     else:
+        ai_findings = []
         ai_status = "not_run"
-        ai_status_message = "AI analysis not run (no API key configured)"
+        ai_status_message = "AI analysis disabled by user toggle"
 
     # 4. Consolidate and Deduplicate Findings
     consolidated_findings = consolidate_findings(rule_findings, ai_findings)
