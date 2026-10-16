@@ -1,0 +1,49 @@
+{
+  "generated_at": "2026-10-16T05:25:29.226679+00:00",
+  "provider": null,
+  "model": null,
+  "datasets": {
+    "dev": 25,
+    "heldout": 16,
+    "heldout_source": "mixed",
+    "clean": 18
+  },
+  "categories": {
+    "hidden_charges": {
+      "rules": {
+        "precision": 0.8,
+        "recall": 1.0,
+        "tp": 4,
+        "fp": 1,
+        "fn": 0
+      },
+      "rules_ai": null
+    },
+    "cancellation": {
+      "rules": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "tp": 2,
+        "fp": 0,
+        "fn": 0
+      },
+      "rules_ai": null
+    },
+    "consent": {
+      "rules": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "tp": 3,
+        "fp": 0,
+        "fn": 0
+      },
+      "rules_ai": null
+    }
+  },
+  "failures": [
+    {
+      "title": "heldout_charges_tiny_print_renewal",
+      "description": "Expected: ['microprint_fee'], Detected: ['microprint_fee', 'low_contrast_fee'] (FP: 1, FN: 0)"
+    }
+  ]
+}

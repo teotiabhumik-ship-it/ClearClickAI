@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { SlidersHorizontal, Eye, Info, CheckCircle, Lightbulb } from 'lucide-react';
 import { Finding, CategoryType } from '../types';
 
 interface FindingsPanelProps {
@@ -20,83 +22,68 @@ interface PlainEnglishInfo {
 }
 
 const PLAIN_ENGLISH_INFO: Record<string, PlainEnglishInfo> = {
-  unequal_button_emphasis: {
-    title: 'Unequal Choice Buttons',
-    simpleExplanation: 'The website makes "Accept All" bright and colorful, while hiding "Reject" as a faint, tiny text link so you click agree without realizing your choices.',
-    whatToDo: 'Look closely for a faint gray text link (like "Reject", "Decline", or "Manage Options") before clicking the bright primary button.'
-  },
   preticked_consent: {
-    title: 'Pre-Checked Permission Box',
-    simpleExplanation: 'A checkbox granting permission for tracking, emails, or optional features was already turned ON for you before you touched it.',
-    whatToDo: 'Uncheck the pre-ticked box before clicking Next or Submit if you do not want to share data or receive marketing.'
+    title: 'Pre-Checked Agreement Box',
+    simpleExplanation: 'The website automatically checked a box to sign you up for emails, marketing, or data sharing instead of letting you choose yourself.',
+    whatToDo: 'Uncheck the box if you do not want to receive promotional emails or share extra personal data.'
   },
-  missing_reject_option: {
-    title: 'Missing "Reject" Button',
-    simpleExplanation: 'The popup gives you an instant one-click "Accept" button, but no equal one-click "Reject" button, forcing you through deep settings to decline.',
-    whatToDo: 'Click "Cookie Settings" or "Preferences" to turn off tracking cookies manually.'
+  unequal_button_emphasis: {
+    title: 'Unequal Button Choices',
+    simpleExplanation: 'The button to accept tracking or payments is bright, large, and obvious, while the reject or skip option is faint, tiny, or styled like plain text.',
+    whatToDo: 'Look closely for the dimmer secondary button or text link to decline optional cookies and features.'
+  },
+  missing_reject_button: {
+    title: 'Missing "Reject All" Option',
+    simpleExplanation: 'The banner gives you an immediate "Accept All" button, but forces you to click into complex settings or toggle individual switches to say no.',
+    whatToDo: 'Take a moment to open settings and disable non-essential cookies rather than clicking the quick accept button.'
   },
   double_negative_language: {
-    title: 'Confusing Double-Negative Wording',
-    simpleExplanation: 'The text uses confusing reverse language (like "Uncheck if you do not wish to not receive...") designed to trick you into choosing what the site wants.',
-    whatToDo: 'Re-read the checkbox sentence carefully to verify whether leaving it checked or unchecked gives you the outcome you want.'
-  },
-  drip_pricing: {
-    title: 'Surprise Fee Added at Checkout',
-    simpleExplanation: 'The site advertised a low initial price, but sneakily added unexpected mandatory fees, resort charges, or service surcharges right at the last step.',
-    whatToDo: 'Check the final price breakdown line-by-line before typing payment details. Compare the total against the first advertised price.'
+    title: 'Confusing Double-Negative Language',
+    simpleExplanation: 'The setting uses confusing phrasing like "Uncheck to not opt-out," making it hard to tell whether checking the box means yes or no.',
+    whatToDo: 'Re-read the label carefully: checking a box with "do not" or "opt-out" often does the opposite of what you expect.'
   },
   microprint_fee: {
-    title: 'Fee Hidden in Tiny Print',
-    simpleExplanation: 'Important subscription renewal terms or mandatory extra fees are displayed in tiny, hard-to-read font at the bottom of the page.',
-    whatToDo: 'Zoom in or scan the small text right under the price to check if there are recurring charges or automatic renewals.'
+    title: 'Hidden Fee in Tiny Print',
+    simpleExplanation: 'An extra mandatory fee or surcharge is mentioned only in very small text that is easy to overlook while reviewing the price.',
+    whatToDo: 'Check the final order breakdown before entering payment details to ensure no surprise charges were added.'
   },
   low_contrast_fee: {
-    title: 'Faint / Low-Contrast Fee Text',
-    simpleExplanation: 'Important fee disclosures are written in faint gray text that blends into the background, making them easy to miss.',
-    whatToDo: 'Inspect the muted text near the price or total. Highlight it with your mouse to read any hidden fee conditions.'
+    title: 'Faint or Hard-to-Read Fee Disclosure',
+    simpleExplanation: 'Important pricing terms or fee notices are displayed in faint, low-contrast text that blends into the background.',
+    whatToDo: 'Look out for faint grey text near the total price to find recurring renewal terms or extra fees.'
   },
-  bundled_hidden_fee: {
-    title: 'Sneaky Pre-Selected Fee',
-    simpleExplanation: 'An optional paid add-on (such as insurance, expedited handling, or a tip) was automatically slipped into your cart without your request.',
-    whatToDo: 'Look through your cart items and remove any pre-added extras before completing payment.'
+  drip_pricing: {
+    title: 'Unexpected Fee Added at Checkout',
+    simpleExplanation: 'The total price increased at the final payment screen with unavoidable fees that were never mentioned when you selected the item.',
+    whatToDo: 'Compare the final checkout total against the original advertised price to see if the deal is still worthwhile.'
   },
-  buried_cancel_link: {
+  buried_cancellation: {
     title: 'Hidden Cancellation Link',
-    simpleExplanation: 'The button or link to cancel your subscription or close your account is hidden deep inside menus or disguised as faint text.',
-    whatToDo: 'Look inside Account > Billing or Settings. Use your browser search (Ctrl+F) for the word "cancel" or "manage subscription".'
+    simpleExplanation: 'The link to cancel your subscription is hidden at the very bottom of the page or styled so it does not look clickable.',
+    whatToDo: 'Search the page (Ctrl+F or Cmd+F) for words like "cancel," "subscription," or "manage account."'
   },
   confirm_shaming: {
-    title: 'Guilt-Trip Button Phrasing',
-    simpleExplanation: 'The button to decline an offer tries to make you feel guilty or foolish (e.g., "No thanks, I hate saving money" or "I prefer paying full price").',
-    whatToDo: 'Ignore the emotional guilt-trip. Click the decline option with confidence if you do not want the offer.'
+    title: 'Guilt-Inducing Refusal Option',
+    simpleExplanation: 'The button to decline an offer uses manipulative wording (like "No thanks, I hate saving money") to make you feel bad about refusing.',
+    whatToDo: 'Ignore the emotional language. Decline offers that you do not need.'
   },
   asymmetric_cancellation_steps: {
-    title: 'Multi-Step Cancellation Maze',
-    simpleExplanation: 'Signing up was quick in 1 click, but cancelling forces you through multiple screens, warnings, offers, or phone call demands.',
-    whatToDo: 'Keep clicking through the cancellation steps until you reach the final screen and receive a confirmation email.'
-  },
-  obscured_charge_visual: {
-    title: 'Visually Obscured Price Terms',
-    simpleExplanation: 'Crucial payment terms or recurring billing details are washed out or placed outside the normal reading area.',
-    whatToDo: 'Read all text surrounding the checkout button before confirming your purchase.'
-  },
-  visual_cancellation_obstacle: {
-    title: 'Deceptive Cancellation Screen',
-    simpleExplanation: 'The cancellation screen makes "Keep My Subscription" look big and inviting while making the actual cancellation button look gray or disabled.',
-    whatToDo: 'Look for the muted secondary button that actually proceeds with cancellation.'
+    title: 'Difficult Cancellation Process',
+    simpleExplanation: 'Signing up took one click, but cancelling requires a live phone call during limited hours, chat support queues, or unnecessary survey hoops.',
+    whatToDo: 'Check your subscription terms or email receipts for online self-service cancellation links before calling.'
   },
   countdown_timer: {
-    title: 'Ticking Countdown Timer',
-    simpleExplanation: 'A ticking countdown timer creates artificial urgency to pressure you into rushing your purchase before thinking it through.',
-    whatToDo: 'Ignore the countdown clock. Take your time to compare prices and check if the offer is genuinely worth purchasing.'
+    title: 'Artificial Time Limit',
+    simpleExplanation: 'A ticking clock or "offer ends in 10 minutes" ticker pressures you into making a hasty financial choice before you can properly think.',
+    whatToDo: 'Take your time to compare prices. Many countdown timers automatically reset when the page reloads.'
   },
   low_stock_scarcity: {
-    title: 'Artificial Low-Stock Warning',
-    simpleExplanation: 'Warnings claiming "Only 2 left in stock!" or "Almost sold out" create artificial scarcity and fear of missing out.',
-    whatToDo: 'Do not let low-stock alerts rush your decision. Verify whether you actually need the item right now.'
+    title: 'Low Stock Warning',
+    simpleExplanation: 'Claims that "Only 2 items left in stock" create urgent fear of missing out so you purchase before checking alternatives.',
+    whatToDo: 'Verify if the item is truly scarce or available from other sellers at a better price.'
   },
   high_demand_scarcity: {
-    title: 'High-Demand Pressure Alert',
+    title: 'High Demand Competition Alert',
     simpleExplanation: 'Alerts saying "18 people are looking at this right now" use competition anxiety to make you feel you might lose out if you do not buy immediately.',
     whatToDo: 'Recognize this as a sales tactic. Check the actual item details and final checkout terms calmly.'
   },
@@ -163,19 +150,19 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
     switch (sev) {
       case 'high':
         return (
-          <span className="bg-error-container text-on-error-container border border-error/30 px-2 py-0.5 rounded text-[11px] font-semibold uppercase">
+          <span className="bg-[#B91C1C]/15 dark:bg-[#B91C1C]/25 text-[#B91C1C] border border-[#B91C1C]/30 px-2 py-0.5 rounded text-xs font-semibold uppercase">
             {viewMode === 'simple' ? 'Serious' : 'High Severity'}
           </span>
         );
       case 'medium':
         return (
-          <span className="bg-secondary-fixed text-on-secondary-fixed border border-secondary/30 px-2 py-0.5 rounded text-[11px] font-semibold uppercase">
+          <span className="bg-[#B45309]/15 dark:bg-[#B45309]/25 text-[#B45309] border border-[#B45309]/30 px-2 py-0.5 rounded text-xs font-semibold uppercase">
             {viewMode === 'simple' ? 'Caution' : 'Medium'}
           </span>
         );
       case 'low':
         return (
-          <span className="bg-tertiary-fixed text-on-tertiary-fixed border border-tertiary/30 px-2 py-0.5 rounded text-[11px] font-semibold uppercase">
+          <span className="bg-[#1D4ED8]/15 dark:bg-[#1D4ED8]/25 text-[#1D4ED8] border border-[#1D4ED8]/30 px-2 py-0.5 rounded text-xs font-semibold uppercase">
             {viewMode === 'simple' ? 'Notice' : 'Low'}
           </span>
         );
@@ -187,24 +174,47 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
   const getSourceBadge = (source: string) => {
     switch (source) {
       case 'rule':
-        return <span className="bg-surface-container text-on-surface-variant border border-outline-variant/40 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium">RULE ENGINE</span>;
+        return (
+          <Link
+            to="/methodology#how-it-checks"
+            title="Read how rule checks operate"
+            className="bg-surface-container dark:bg-[#111A2E] text-on-surface-variant dark:text-[#94A3B8] border border-outline-variant/40 dark:border-[#26324A] px-2 py-0.5 rounded text-xs font-mono font-medium hover:border-outline hover:text-on-surface transition-colors"
+          >
+            RULE ENGINE
+          </Link>
+        );
       case 'ai':
-        return <span className="bg-primary-fixed/40 text-primary border border-primary/40 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold">AI INSPECTION</span>;
+        return (
+          <Link
+            to="/methodology#how-it-checks"
+            title="Read how AI verification operates"
+            className="bg-primary-fixed/40 dark:bg-[#2DD4BF]/20 text-primary dark:text-[#2DD4BF] border border-primary/40 dark:border-[#2DD4BF]/30 px-2 py-0.5 rounded text-xs font-mono font-semibold hover:border-primary transition-colors"
+          >
+            AI INSPECTION
+          </Link>
+        );
       default:
-        return <span className="bg-surface-container-high text-on-surface px-1.5 py-0.5 rounded text-[10px] font-mono font-medium">HYBRID</span>;
+        return (
+          <Link
+            to="/methodology#how-it-checks"
+            className="bg-surface-container-high dark:bg-[#111A2E] text-on-surface dark:text-[#E2E8F0] px-2 py-0.5 rounded text-xs font-mono font-medium hover:underline"
+          >
+            HYBRID
+          </Link>
+        );
     }
   };
 
   return (
-    <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl flex flex-col h-full shadow-[0px_1px_3px_rgba(15,23,42,0.04)] overflow-hidden min-h-[540px]">
+    <div className="bg-surface-container-lowest dark:bg-[#111A2E] border border-outline-variant/30 dark:border-[#26324A] rounded-xl flex flex-col h-full shadow-[0px_1px_3px_rgba(15,23,42,0.04)] overflow-hidden min-h-[540px]">
       {/* Category Breakdown Header */}
-      <div className="p-4 bg-surface-container-low border-b border-outline-variant/30">
+      <div className="p-4 bg-surface-container-low dark:bg-[#0B1220] border-b border-outline-variant/30 dark:border-[#26324A]">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-semibold text-on-surface uppercase tracking-wider flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-primary text-[18px]">tune</span>
+          <h3 className="text-sm font-semibold text-on-surface dark:text-[#E2E8F0] uppercase tracking-wider flex items-center gap-1.5">
+            <SlidersHorizontal className="w-4 h-4 text-primary dark:text-[#2DD4BF]" aria-hidden="true" />
             <span>Category Breakdown</span>
           </h3>
-          <span className="text-xs font-mono text-on-surface-variant font-medium">
+          <span className="text-xs font-mono text-on-surface-variant dark:text-[#94A3B8] font-medium">
             {findings.length} Finding{findings.length !== 1 ? 's' : ''} Emitted
           </span>
         </div>
@@ -215,12 +225,12 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
             onClick={() => setFilterCategory(filterCategory === 'consent' ? 'all' : 'consent')}
             className={`p-2.5 rounded-lg border text-left transition-all ${
               filterCategory === 'consent'
-                ? 'bg-primary-fixed/30 border-primary-container shadow-2xs'
-                : 'bg-surface-container-lowest border-outline-variant/30 hover:border-outline'
+                ? 'bg-primary-fixed/30 dark:bg-[#2DD4BF]/20 border-primary-container dark:border-[#2DD4BF] shadow-2xs'
+                : 'bg-surface-container-lowest dark:bg-[#111A2E] border-outline-variant/30 dark:border-[#26324A] hover:border-outline'
             }`}
           >
-            <div className="text-[11px] text-on-surface-variant font-medium">Consent</div>
-            <div className="text-lg font-bold text-on-surface mt-0.5">{summaryByCategory.consent || 0}</div>
+            <div className="text-xs text-on-surface-variant dark:text-[#94A3B8] font-medium">Consent</div>
+            <div className="text-lg font-bold text-on-surface dark:text-[#E2E8F0] mt-0.5">{summaryByCategory.consent || 0}</div>
           </button>
 
           <button
@@ -228,12 +238,12 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
             onClick={() => setFilterCategory(filterCategory === 'hidden_charges' ? 'all' : 'hidden_charges')}
             className={`p-2.5 rounded-lg border text-left transition-all ${
               filterCategory === 'hidden_charges'
-                ? 'bg-primary-fixed/30 border-primary-container shadow-2xs'
-                : 'bg-surface-container-lowest border-outline-variant/30 hover:border-outline'
+                ? 'bg-primary-fixed/30 dark:bg-[#2DD4BF]/20 border-primary-container dark:border-[#2DD4BF] shadow-2xs'
+                : 'bg-surface-container-lowest dark:bg-[#111A2E] border-outline-variant/30 dark:border-[#26324A] hover:border-outline'
             }`}
           >
-            <div className="text-[11px] text-on-surface-variant font-medium">Hidden Charges</div>
-            <div className="text-lg font-bold text-on-surface mt-0.5">{summaryByCategory.hidden_charges || 0}</div>
+            <div className="text-xs text-on-surface-variant dark:text-[#94A3B8] font-medium">Hidden Charges</div>
+            <div className="text-lg font-bold text-on-surface dark:text-[#E2E8F0] mt-0.5">{summaryByCategory.hidden_charges || 0}</div>
           </button>
 
           <button
@@ -241,54 +251,60 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
             onClick={() => setFilterCategory(filterCategory === 'cancellation' ? 'all' : 'cancellation')}
             className={`p-2.5 rounded-lg border text-left transition-all ${
               filterCategory === 'cancellation'
-                ? 'bg-primary-fixed/30 border-primary-container shadow-2xs'
-                : 'bg-surface-container-lowest border-outline-variant/30 hover:border-outline'
+                ? 'bg-primary-fixed/30 dark:bg-[#2DD4BF]/20 border-primary-container dark:border-[#2DD4BF] shadow-2xs'
+                : 'bg-surface-container-lowest dark:bg-[#111A2E] border-outline-variant/30 dark:border-[#26324A] hover:border-outline'
             }`}
           >
-            <div className="text-[11px] text-on-surface-variant font-medium">Cancellation</div>
-            <div className="text-lg font-bold text-on-surface mt-0.5">{summaryByCategory.cancellation || 0}</div>
+            <div className="text-xs text-on-surface-variant dark:text-[#94A3B8] font-medium">Cancellation</div>
+            <div className="text-lg font-bold text-on-surface dark:text-[#E2E8F0] mt-0.5">{summaryByCategory.cancellation || 0}</div>
           </button>
         </div>
 
         {/* AI Status Banner */}
         {aiStatus === 'not_run' && (
-          <div className="mt-3 p-2 bg-surface-container-lowest border border-outline-variant/40 rounded-lg flex items-center justify-between text-[11px]">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-outline shrink-0" />
-              <span className="font-semibold text-on-surface">AI analysis not run</span>
-              <span className="text-on-surface-variant">— {aiStatusMessage || 'Showing deterministic rule findings.'}</span>
+          <div className="mt-3 p-2 bg-surface-container-lowest dark:bg-[#111A2E] border border-outline-variant/40 dark:border-[#26324A] rounded-lg flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-outline dark:bg-[#94A3B8] shrink-0" />
+              <span className="font-semibold text-on-surface dark:text-[#E2E8F0]">AI analysis not run</span>
+              <span className="text-on-surface-variant dark:text-[#94A3B8] truncate">— {aiStatusMessage || 'Showing deterministic rule findings.'}</span>
             </div>
+            <Link to="/methodology#limits" className="text-primary dark:text-[#2DD4BF] hover:underline font-semibold ml-2 shrink-0">
+              Limits
+            </Link>
           </div>
         )}
         {aiStatus === 'failed' && (
-          <div className="mt-3 p-2 bg-error-container/40 border border-error/30 rounded-lg flex items-center justify-between text-[11px]">
-            <div className="flex items-center gap-2">
+          <div className="mt-3 p-2 bg-error-container/40 dark:bg-[#B91C1C]/20 border border-error/30 dark:border-[#B91C1C]/40 rounded-lg flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 min-w-0">
               <span className="w-2 h-2 rounded-full bg-error shrink-0" />
-              <span className="font-semibold text-on-error-container">AI analysis issue</span>
-              <span className="text-on-error-container/80">— {aiStatusMessage || 'Fell back to rule detectors.'}</span>
+              <span className="font-semibold text-on-error-container dark:text-red-200">AI analysis issue</span>
+              <span className="text-on-error-container/80 dark:text-red-300 truncate">— {aiStatusMessage || 'Fell back to rule detectors.'}</span>
             </div>
+            <Link to="/methodology#limits" className="text-error dark:text-red-300 hover:underline font-semibold ml-2 shrink-0">
+              Limits
+            </Link>
           </div>
         )}
         {aiStatus === 'completed' && (
-          <div className="mt-3 p-2 bg-primary-fixed/30 border border-primary/30 rounded-lg flex items-center justify-between text-[11px]">
+          <div className="mt-3 p-2 bg-primary-fixed/30 dark:bg-[#2DD4BF]/20 border border-primary/30 dark:border-[#2DD4BF]/30 rounded-lg flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
-              <span className="font-semibold text-primary">AI analysis verified</span>
-              <span className="text-on-surface-variant">— {aiCount} finding{aiCount !== 1 ? 's' : ''} verified against page content</span>
+              <span className="w-2 h-2 rounded-full bg-primary dark:bg-[#2DD4BF] shrink-0" />
+              <span className="font-semibold text-primary dark:text-[#2DD4BF]">AI analysis verified</span>
+              <span className="text-on-surface-variant dark:text-[#94A3B8]">— {aiCount} finding{aiCount !== 1 ? 's' : ''} verified against page content</span>
             </div>
           </div>
         )}
 
         {/* Source Filter Tabs: All / Rule-Only / AI */}
-        <div className="mt-3 flex items-center gap-2 pt-2 border-t border-outline-variant/30">
-          <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Source:</span>
+        <div className="mt-3 flex items-center gap-2 pt-2 border-t border-outline-variant/30 dark:border-[#26324A]">
+          <span className="text-xs uppercase font-bold text-on-surface-variant dark:text-[#94A3B8] tracking-wider">Source:</span>
           <button
             type="button"
             onClick={() => setFilterSource('all')}
-            className={`px-2.5 py-0.5 rounded text-[11px] font-mono transition-all ${
+            className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${
               filterSource === 'all'
-                ? 'bg-primary-container text-on-primary-container font-semibold shadow-2xs'
-                : 'bg-surface-container-lowest text-on-surface-variant hover:text-on-surface border border-outline-variant/30'
+                ? 'bg-surface-container-highest dark:bg-[#26324A] text-on-surface dark:text-[#E2E8F0]'
+                : 'text-on-surface-variant dark:text-[#94A3B8] hover:text-on-surface'
             }`}
           >
             All ({findings.length})
@@ -296,46 +312,40 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
           <button
             type="button"
             onClick={() => setFilterSource('rule')}
-            className={`px-2.5 py-0.5 rounded text-[11px] font-mono transition-all ${
+            className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${
               filterSource === 'rule'
-                ? 'bg-primary-container text-on-primary-container font-semibold shadow-2xs'
-                : 'bg-surface-container-lowest text-on-surface-variant hover:text-on-surface border border-outline-variant/30'
+                ? 'bg-surface-container-highest dark:bg-[#26324A] text-on-surface dark:text-[#E2E8F0]'
+                : 'text-on-surface-variant dark:text-[#94A3B8] hover:text-on-surface'
             }`}
           >
             Rules Only ({ruleCount})
           </button>
-          <button
-            type="button"
-            onClick={() => setFilterSource('ai')}
-            className={`px-2.5 py-0.5 rounded text-[11px] font-mono transition-all ${
-              filterSource === 'ai'
-                ? 'bg-primary-container text-on-primary-container font-semibold shadow-2xs'
-                : 'bg-surface-container-lowest text-on-surface-variant hover:text-on-surface border border-outline-variant/30'
-            }`}
-          >
-            AI ({aiCount})
-          </button>
-        </div>
+          {aiCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setFilterSource('ai')}
+              className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${
+                filterSource === 'ai'
+                  ? 'bg-surface-container-highest dark:bg-[#26324A] text-on-surface dark:text-[#E2E8F0]'
+                  : 'text-on-surface-variant dark:text-[#94A3B8] hover:text-on-surface'
+              }`}
+            >
+              AI Verified ({aiCount})
+            </button>
+          )}
 
-        {/* View Mode Toggle: Plain English vs Detailed Audit */}
-        <div className="mt-3 flex items-center justify-between p-2.5 bg-surface-container-lowest border border-outline-variant/30 rounded-lg">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-on-surface">Auditor View:</span>
-            <span className="text-[11px] text-on-surface-variant hidden sm:inline">
-              {viewMode === 'simple' ? 'Simple explanations for everyday users' : 'Full technical metrics & code proof'}
-            </span>
-          </div>
-          <div className="flex items-center bg-surface-container p-0.5 rounded-lg border border-outline-variant/30">
+          {/* Mode Switcher: Plain English vs Detailed Audit */}
+          <div className="ml-auto flex items-center bg-surface-container dark:bg-[#0B1220] p-0.5 rounded-lg border border-outline-variant/40 dark:border-[#26324A]">
             <button
               type="button"
               onClick={() => setViewMode('simple')}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all ${
                 viewMode === 'simple'
-                  ? 'bg-primary-container text-on-primary-container shadow-2xs'
-                  : 'text-on-surface-variant hover:text-on-surface'
+                  ? 'bg-primary-container text-on-primary-container dark:bg-[#005c55] dark:text-white shadow-2xs'
+                  : 'text-on-surface-variant dark:text-[#94A3B8] hover:text-on-surface'
               }`}
             >
-              <span className="material-symbols-outlined text-[16px]">visibility</span>
+              <Eye className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Plain English</span>
             </button>
             <button
@@ -343,32 +353,30 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
               onClick={() => setViewMode('detailed')}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all ${
                 viewMode === 'detailed'
-                  ? 'bg-primary-container text-on-primary-container shadow-2xs'
-                  : 'text-on-surface-variant hover:text-on-surface'
+                  ? 'bg-primary-container text-on-primary-container dark:bg-[#005c55] dark:text-white shadow-2xs'
+                  : 'text-on-surface-variant dark:text-[#94A3B8] hover:text-on-surface'
               }`}
             >
-              <span className="material-symbols-outlined text-[16px]">tune</span>
+              <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Detailed Audit</span>
             </button>
           </div>
         </div>
 
         {/* Fixed Neutral Disclaimer */}
-        <div className="mt-3 p-2 bg-surface-container-lowest border border-outline-variant/30 rounded flex items-start gap-2 text-[11px] text-on-surface-variant">
-          <span className="material-symbols-outlined text-primary text-[16px] shrink-0 mt-0.5">info</span>
+        <div className="mt-3 p-2 bg-surface-container-lowest dark:bg-[#111A2E] border border-outline-variant/30 dark:border-[#26324A] rounded flex items-start gap-2 text-xs text-on-surface-variant dark:text-[#94A3B8]">
+          <Info className="w-4 h-4 text-primary dark:text-[#2DD4BF] shrink-0 mt-0.5" aria-hidden="true" />
           <span>{disclaimer}</span>
         </div>
       </div>
 
       {/* Findings List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-surface-container-lowest">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-surface-container-lowest dark:bg-[#111A2E]">
         {filteredFindings.length === 0 ? (
-          <div className="h-64 flex flex-col items-center justify-center text-center p-6 text-on-surface-variant">
-            <span className="material-symbols-outlined text-[48px] text-primary mb-2" style={{ fontVariationSettings: "'FILL' 1" }}>
-              verified
-            </span>
-            <h4 className="text-sm font-semibold text-on-surface">No Deceptive Patterns Detected</h4>
-            <p className="text-xs text-on-surface-variant mt-1 max-w-sm">
+          <div className="h-64 flex flex-col items-center justify-center text-center p-6 text-on-surface-variant dark:text-[#94A3B8]">
+            <CheckCircle className="w-12 h-12 text-primary dark:text-[#2DD4BF] mb-2" aria-hidden="true" />
+            <h4 className="text-base font-semibold text-on-surface dark:text-[#E2E8F0]">No Deceptive Patterns Detected</h4>
+            <p className="text-sm text-on-surface-variant dark:text-[#94A3B8] mt-1 max-w-sm">
               The page complies with transparent design standards across the evaluated focus areas.
             </p>
           </div>
@@ -383,8 +391,8 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
                 onClick={() => onSelectFinding(finding.originalIndex)}
                 className={`p-4 rounded-xl border transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-primary-fixed/15 border-primary-container shadow-md ring-1 ring-primary-container'
-                    : 'bg-surface-container-lowest border-outline-variant/30 hover:border-outline hover:shadow-2xs'
+                    ? 'bg-primary-fixed/15 dark:bg-[#2DD4BF]/10 border-primary-container dark:border-[#2DD4BF] shadow-md ring-1 ring-primary-container'
+                    : 'bg-surface-container-lowest dark:bg-[#111A2E] border-outline-variant/30 dark:border-[#26324A] hover:border-outline hover:shadow-2xs'
                 }`}
               >
                 {viewMode === 'simple' ? (
@@ -392,41 +400,41 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
                     {/* Plain English Header */}
                     <div className="flex items-start justify-between gap-2 mb-2.5">
                       <div>
-                        <h4 className="text-sm font-bold text-on-surface flex items-center gap-2">
+                        <h4 className="text-base font-bold text-on-surface dark:text-[#E2E8F0] flex items-center gap-2">
                           <span>{plainInfo.title}</span>
                         </h4>
-                        <span className="text-[10px] text-on-surface-variant font-mono capitalize">
+                        <span className="text-xs text-on-surface-variant dark:text-[#94A3B8] font-mono capitalize">
                           {finding.category.replace('_', ' ')} Pattern
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2">
                         {getSeverityBadge(finding.severity)}
                       </div>
                     </div>
 
                     {/* What this website is doing */}
-                    <div className="text-xs text-on-surface leading-relaxed mb-3 bg-surface-container-low p-2.5 rounded-lg border border-outline-variant/30">
-                      <span className="text-on-surface-variant font-semibold block text-[11px] uppercase tracking-wider mb-1">
+                    <div className="p-3 bg-surface-container-low dark:bg-[#0B1220] rounded-lg text-sm mb-3">
+                      <span className="text-on-surface-variant dark:text-[#94A3B8] block text-xs font-semibold tracking-wider mb-1">
                         What this website is doing:
                       </span>
-                      <p className="text-on-surface leading-relaxed">{plainInfo.simpleExplanation}</p>
+                      <p className="text-on-surface dark:text-[#E2E8F0] leading-relaxed">{plainInfo.simpleExplanation}</p>
                     </div>
 
                     {/* Where we found it on screen */}
-                    <div className="p-2.5 bg-surface-container-low/70 border border-outline-variant/30 rounded-lg text-xs mb-3">
-                      <span className="text-on-surface-variant block text-[10px] uppercase font-semibold tracking-wider mb-1">
+                    <div className="p-2.5 bg-surface-container-low/70 dark:bg-[#0B1220]/70 border border-outline-variant/30 dark:border-[#26324A] rounded-lg text-sm mb-3">
+                      <span className="text-on-surface-variant dark:text-[#94A3B8] block text-xs uppercase font-semibold tracking-wider mb-1">
                         Where we found it on page:
                       </span>
-                      <span className="text-primary font-mono text-[11px] font-medium break-words">{finding.evidence}</span>
+                      <span className="text-primary dark:text-[#2DD4BF] font-mono text-xs font-medium break-words">{finding.evidence}</span>
                     </div>
 
                     {/* What you should do */}
-                    <div className="p-2.5 bg-primary-fixed/20 border border-primary/30 rounded-lg text-xs">
-                      <div className="flex items-center gap-1.5 text-primary font-semibold text-[11px] mb-1">
-                        <span className="material-symbols-outlined text-[16px]">tips_and_updates</span>
+                    <div className="p-3 bg-primary-fixed/20 dark:bg-[#2DD4BF]/15 border border-primary/30 dark:border-[#2DD4BF]/30 rounded-lg text-sm">
+                      <div className="flex items-center gap-1.5 text-primary dark:text-[#2DD4BF] font-semibold text-xs mb-1">
+                        <Lightbulb className="w-4 h-4" aria-hidden="true" />
                         <span>What you should do:</span>
                       </div>
-                      <p className="text-on-surface-variant leading-relaxed text-[11px]">
+                      <p className="text-on-surface-variant dark:text-[#94A3B8] leading-relaxed text-sm">
                         {plainInfo.whatToDo}
                       </p>
                     </div>
@@ -436,40 +444,40 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
                     {/* Detailed Audit View */}
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-semibold text-on-surface tracking-wide">
+                        <span className="font-mono text-sm font-semibold text-on-surface dark:text-[#E2E8F0] tracking-wide">
                           {finding.type}
                         </span>
                         {getSourceBadge(finding.source)}
                       </div>
                       <div className="flex items-center gap-2">
                         {getSeverityBadge(finding.severity)}
-                        <span className="text-[10px] text-on-surface-variant font-mono font-medium">
+                        <span className="text-xs text-on-surface-variant dark:text-[#94A3B8] font-mono font-medium">
                           {Math.round(finding.confidence * 100)}% conf
                         </span>
                       </div>
                     </div>
 
                     {/* Explanation */}
-                    <div className="text-xs text-on-surface leading-relaxed mb-3">
-                      <strong className="text-on-surface-variant font-medium">Why it may mislead: </strong>
+                    <div className="text-sm text-on-surface dark:text-[#E2E8F0] leading-relaxed mb-3">
+                      <strong className="text-on-surface-variant dark:text-[#94A3B8] font-medium">Why it may mislead: </strong>
                       {finding.why}
                     </div>
 
                     {/* Evidence */}
-                    <div className="p-2.5 bg-surface-container-low border border-outline-variant/30 rounded-lg text-xs font-mono text-on-surface mb-3 break-words">
-                      <span className="text-on-surface-variant block text-[10px] uppercase font-sans mb-1 font-semibold tracking-wider">
+                    <div className="p-2.5 bg-surface-container-low dark:bg-[#0B1220] border border-outline-variant/30 dark:border-[#26324A] rounded-lg text-sm font-mono text-on-surface dark:text-[#E2E8F0] mb-3 break-words">
+                      <span className="text-on-surface-variant dark:text-[#94A3B8] block text-xs uppercase font-sans mb-1 font-semibold tracking-wider">
                         Measured Proof / Verbatim Evidence:
                       </span>
-                      <span className="text-primary font-medium">{finding.evidence}</span>
+                      <span className="text-primary dark:text-[#2DD4BF] font-medium">{finding.evidence}</span>
                     </div>
 
                     {/* Safer Alternative */}
-                    <div className="p-2.5 bg-primary-fixed/15 border border-primary/20 rounded-lg text-xs">
-                      <div className="flex items-center gap-1.5 text-primary font-semibold text-[11px] mb-1">
-                        <span className="material-symbols-outlined text-[16px]">lightbulb</span>
+                    <div className="p-3 bg-primary-fixed/15 dark:bg-[#2DD4BF]/15 border border-primary/20 dark:border-[#2DD4BF]/20 rounded-lg text-sm">
+                      <div className="flex items-center gap-1.5 text-primary dark:text-[#2DD4BF] font-semibold text-xs mb-1">
+                        <Lightbulb className="w-4 h-4" aria-hidden="true" />
                         <span>Safer Design Recommendation</span>
                       </div>
-                      <div className="text-on-surface-variant leading-relaxed text-[11px]">
+                      <div className="text-on-surface-variant dark:text-[#94A3B8] leading-relaxed text-sm">
                         {finding.safer_alternative}
                       </div>
                     </div>

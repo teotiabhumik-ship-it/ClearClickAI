@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Eye, ZoomOut, ZoomIn, Maximize2, ImageOff } from 'lucide-react';
 import { Finding } from '../types';
 
 interface ScreenshotViewerProps {
@@ -15,53 +16,55 @@ export const ScreenshotViewer: React.FC<ScreenshotViewerProps> = ({
   onSelectFinding,
 }) => {
   const [zoom, setZoom] = useState<number>(1);
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
-  const [naturalDims, setNaturalDims] = useState<{ width: number; height: number }>({ width: 1280, height: 800 });
 
-  // Update natural dimensions when image changes or completes loading
+  // Filter findings that have valid visual bounding boxes
+  const visualFindings = findings
+    .map((f, originalIndex) => {
+      const bbox = f.bbox || [0, 0, 0, 0];
+      return {
+        ...f,
+        originalIndex,
+        box: { x: bbox[0], y: bbox[1], width: bbox[2], height: bbox[3] }
+      };
+    })
+    .filter(f => f.box.width > 0 && f.box.height > 0);
+
   useEffect(() => {
-    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth) {
-      setNaturalDims({
-        width: imgRef.current.naturalWidth,
-        height: imgRef.current.naturalHeight,
-      });
+    // If a finding is selected, scroll it into view inside the canvas
+    if (selectedFindingIndex !== null && containerRef.current) {
+      const selectedEl = visualFindings.find(f => f.originalIndex === selectedFindingIndex);
+      if (selectedEl && selectedEl.box) {
+        const box = selectedEl.box;
+        const targetScrollY = (box.y * zoom) - 80;
+        containerRef.current.scrollTo({
+          top: Math.max(0, targetScrollY),
+          behavior: 'smooth'
+        });
+      }
     }
-  }, [screenshotBase64]);
+  }, [selectedFindingIndex, zoom]);
 
-  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const nw = e.currentTarget.naturalWidth;
-    const nh = e.currentTarget.naturalHeight;
-    if (nw && nh) {
-      setNaturalDims({ width: nw, height: nh });
-    }
-  };
-
-  // Filter findings that have non-zero bounding box
-  const visualFindings = findings.map((f, i) => ({ ...f, originalIndex: i }))
-    .filter(f => f.bbox && f.bbox.length === 4 && f.bbox[2] > 0 && f.bbox[3] > 0);
-
-  const getSeverityColor = (sev: string, isSelected: boolean) => {
-    if (isSelected) return '#0f766e'; // Primary Teal when selected
-    switch (sev) {
+  const getFindingColor = (severity: string, isSelected: boolean) => {
+    if (isSelected) return '#005c55'; // Selected brand primary
+    switch (severity) {
       case 'high': return '#b91c1c'; // Serious Red
       case 'medium': return '#b45309'; // Caution Amber
       case 'low': return '#1d4ed8'; // Notice Blue
-      default: return '#0f766e';
+      default: return '#005c55';
     }
   };
 
   return (
-    <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl overflow-hidden shadow-[0px_1px_3px_rgba(15,23,42,0.04)] flex flex-col h-full min-h-[540px]">
+    <div className="bg-surface-container-lowest dark:bg-[#111A2E] border border-outline-variant/30 dark:border-[#26324A] rounded-xl overflow-hidden shadow-[0px_1px_3px_rgba(15,23,42,0.04)] flex flex-col h-full min-h-[540px]">
       {/* Header bar */}
-      <div className="flex items-center justify-between px-4 py-3 bg-surface-container-low border-b border-outline-variant/30">
+      <div className="flex items-center justify-between px-4 py-3 bg-surface-container-low dark:bg-[#0B1220] border-b border-outline-variant/30 dark:border-[#26324A]">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-[20px]">visibility</span>
-          <span className="text-xs font-semibold text-on-surface uppercase tracking-wider">
+          <Eye className="w-5 h-5 text-primary dark:text-[#2DD4BF]" aria-hidden="true" />
+          <span className="text-sm font-semibold text-on-surface dark:text-[#E2E8F0] uppercase tracking-wider">
             Evidence Viewport (Captured Page)
           </span>
-          <span className="bg-surface-container text-on-surface-variant text-[11px] px-2.5 py-0.5 rounded-full font-mono font-medium">
+          <span className="bg-surface-container dark:bg-[#111A2E] text-on-surface-variant dark:text-[#94A3B8] text-xs px-2.5 py-0.5 rounded-full font-mono font-medium">
             {visualFindings.length} Highlight{visualFindings.length !== 1 ? 's' : ''}
           </span>
         </div>
@@ -70,29 +73,32 @@ export const ScreenshotViewer: React.FC<ScreenshotViewerProps> = ({
           <button
             type="button"
             onClick={() => setZoom(prev => Math.max(0.6, prev - 0.15))}
-            className="p-1 text-on-surface-variant hover:text-on-surface bg-surface-container-lowest hover:bg-surface-container border border-outline-variant/30 rounded transition-colors shadow-2xs"
+            className="p-1 text-on-surface-variant dark:text-[#94A3B8] hover:text-on-surface dark:hover:text-[#E2E8F0] bg-surface-container-lowest dark:bg-[#111A2E] hover:bg-surface-container border border-outline-variant/30 dark:border-[#26324A] rounded transition-colors shadow-2xs"
             title="Zoom out"
+            aria-label="Zoom out"
           >
-            <span className="material-symbols-outlined text-[16px] block">zoom_out</span>
+            <ZoomOut className="w-4 h-4 block" aria-hidden="true" />
           </button>
-          <span className="text-xs text-on-surface-variant font-mono w-12 text-center font-medium">
+          <span className="text-xs text-on-surface-variant dark:text-[#94A3B8] font-mono w-12 text-center font-medium">
             {Math.round(zoom * 100)}%
           </span>
           <button
             type="button"
             onClick={() => setZoom(prev => Math.min(2.0, prev + 0.15))}
-            className="p-1 text-on-surface-variant hover:text-on-surface bg-surface-container-lowest hover:bg-surface-container border border-outline-variant/30 rounded transition-colors shadow-2xs"
+            className="p-1 text-on-surface-variant dark:text-[#94A3B8] hover:text-on-surface dark:hover:text-[#E2E8F0] bg-surface-container-lowest dark:bg-[#111A2E] hover:bg-surface-container border border-outline-variant/30 dark:border-[#26324A] rounded transition-colors shadow-2xs"
             title="Zoom in"
+            aria-label="Zoom in"
           >
-            <span className="material-symbols-outlined text-[16px] block">zoom_in</span>
+            <ZoomIn className="w-4 h-4 block" aria-hidden="true" />
           </button>
           <button
             type="button"
             onClick={() => setZoom(1)}
-            className="p-1 text-on-surface-variant hover:text-on-surface bg-surface-container-lowest hover:bg-surface-container border border-outline-variant/30 rounded transition-colors ml-1 shadow-2xs"
+            className="p-1 text-on-surface-variant dark:text-[#94A3B8] hover:text-on-surface dark:hover:text-[#E2E8F0] bg-surface-container-lowest dark:bg-[#111A2E] hover:bg-surface-container border border-outline-variant/30 dark:border-[#26324A] rounded transition-colors ml-1 shadow-2xs"
             title="Reset Zoom"
+            aria-label="Reset zoom"
           >
-            <span className="material-symbols-outlined text-[16px] block">fit_screen</span>
+            <Maximize2 className="w-4 h-4 block" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -100,76 +106,80 @@ export const ScreenshotViewer: React.FC<ScreenshotViewerProps> = ({
       {/* Viewport Canvas */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-auto bg-surface-container/40 p-4 relative flex items-start justify-center"
+        className="flex-1 overflow-auto bg-surface-container/40 dark:bg-[#0B1220]/60 p-4 relative flex items-start justify-center"
       >
         {screenshotBase64 ? (
           <div
-            className="relative transition-transform duration-150 origin-top shadow-md rounded border border-outline-variant/40 bg-white"
+            className="relative transition-transform duration-100 origin-top shadow-md rounded-lg overflow-hidden bg-white"
             style={{ transform: `scale(${zoom})` }}
           >
             <img
-              ref={imgRef}
               src={`data:image/png;base64,${screenshotBase64}`}
-              alt="Page Screenshot"
-              className="max-w-none block select-none rounded"
-              style={{ width: '100%', maxWidth: '1000px' }}
-              onLoad={handleImageLoad}
+              alt="Page Preview"
+              className="block max-w-none pointer-events-none select-none"
             />
 
-            {/* SVG Interactive Overlay with pixel-perfect viewBox scaling */}
+            {/* Visual Highlight Bounding Boxes Overlay */}
             <svg
-              className="absolute inset-0 w-full h-full pointer-events-auto rounded"
-              viewBox={`0 0 ${naturalDims.width} ${naturalDims.height}`}
-              preserveAspectRatio="none"
+              className="absolute inset-0 w-full h-full pointer-events-none"
               style={{ overflow: 'visible' }}
             >
               {visualFindings.map((f) => {
+                const box = f.box;
                 const isSelected = selectedFindingIndex === f.originalIndex;
-                const isHovered = hoveredIdx === f.originalIndex;
-                const strokeColor = getSeverityColor(f.severity, isSelected);
-                const [x, y, w, h] = f.bbox;
-                const badgeY = y > 24 ? y - 6 : y + h + 22;
+                const color = getFindingColor(f.severity, isSelected);
 
                 return (
                   <g
                     key={f.originalIndex}
+                    className="cursor-pointer pointer-events-auto transition-all"
                     onClick={() => onSelectFinding(f.originalIndex)}
-                    onMouseEnter={() => setHoveredIdx(f.originalIndex)}
-                    onMouseLeave={() => setHoveredIdx(null)}
-                    className="cursor-pointer transition-all"
                   >
-                    {/* Bounding box rectangle */}
+                    {/* Pulsing selection halo */}
+                    {isSelected && (
+                      <rect
+                        x={box.x - 3}
+                        y={box.y - 3}
+                        width={box.width + 6}
+                        height={box.height + 6}
+                        fill="none"
+                        stroke={color}
+                        strokeWidth="2"
+                        strokeDasharray="4 2"
+                        opacity="0.8"
+                        rx="4"
+                      />
+                    )}
+
+                    {/* Main highlight bounding outline */}
                     <rect
-                      x={x}
-                      y={y}
-                      width={w}
-                      height={h}
-                      fill={isSelected || isHovered ? `${strokeColor}33` : `${strokeColor}18`}
-                      stroke={strokeColor}
-                      strokeWidth={isSelected ? 3.5 : 2}
-                      strokeDasharray={isSelected ? 'none' : '4 2'}
-                      vectorEffect="non-scaling-stroke"
-                      rx={3}
-                      className="transition-all"
+                      x={box.x}
+                      y={box.y}
+                      width={box.width}
+                      height={box.height}
+                      fill={isSelected ? `${color}25` : `${color}15`}
+                      stroke={color}
+                      strokeWidth={isSelected ? '3' : '2'}
+                      rx="3"
                     />
 
-                    {/* Tag badge above/below bbox */}
-                    <g transform={`translate(${x}, ${badgeY})`}>
+                    {/* Badge identifier label on corner */}
+                    <g transform={`translate(${box.x}, ${Math.max(0, box.y - 20)})`}>
                       <rect
-                        x={0}
-                        y={-18}
-                        width={Math.max(70, f.type.length * 8 + 18)}
-                        height={22}
-                        fill={strokeColor}
-                        rx={4}
+                        x="0"
+                        y="0"
+                        width={Math.min(180, f.type.length * 7 + 16)}
+                        height="18"
+                        fill={color}
+                        rx="3"
                       />
                       <text
-                        x={8}
-                        y={-3}
+                        x="6"
+                        y="13"
                         fill="#ffffff"
-                        fontSize="13"
-                        fontWeight="bold"
-                        fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+                        fontSize="10"
+                        fontFamily="monospace"
+                        fontWeight="600"
                       >
                         {f.type}
                       </text>
@@ -180,10 +190,10 @@ export const ScreenshotViewer: React.FC<ScreenshotViewerProps> = ({
             </svg>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-72 text-center p-6 text-on-surface-variant">
-            <span className="material-symbols-outlined text-[48px] text-outline mb-3">image_not_supported</span>
-            <p className="text-sm font-semibold text-on-surface">No screenshot preview available</p>
-            <p className="text-xs text-on-surface-variant mt-1 max-w-sm">
+          <div className="flex flex-col items-center justify-center h-72 text-center p-6 text-on-surface-variant dark:text-[#94A3B8]">
+            <ImageOff className="w-12 h-12 text-outline dark:text-[#94A3B8] mb-3" aria-hidden="true" />
+            <p className="text-sm font-semibold text-on-surface dark:text-[#E2E8F0]">No screenshot preview available</p>
+            <p className="text-sm text-on-surface-variant dark:text-[#94A3B8] mt-1 max-w-sm">
               Analyse a live URL or corpus fixture to inspect the rendered page elements and bounding box highlights.
             </p>
           </div>
@@ -191,23 +201,24 @@ export const ScreenshotViewer: React.FC<ScreenshotViewerProps> = ({
       </div>
 
       {/* Legend bar */}
-      <div className="px-4 py-2.5 bg-surface-container-low border-t border-outline-variant/30 flex items-center justify-between text-xs text-on-surface-variant">
+      <div className="px-4 py-2.5 bg-surface-container-low dark:bg-[#0B1220] border-t border-outline-variant/30 dark:border-[#26324A] flex items-center justify-between text-sm text-on-surface-variant dark:text-[#94A3B8]">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#b91c1c]" />
-            <span className="font-medium text-[11px]">Serious</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#B91C1C]" />
+            <span className="font-medium text-xs">Serious</span>
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#b45309]" />
-            <span className="font-medium text-[11px]">Caution</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#B45309]" />
+            <span className="font-medium text-xs">Caution</span>
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#1d4ed8]" />
-            <span className="font-medium text-[11px]">Notice</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#1D4ED8]" />
+            <span className="font-medium text-xs">Notice</span>
           </span>
         </div>
-        <span className="text-[11px] text-on-surface-variant italic hidden sm:inline">
-          Click highlighted box to focus finding
+
+        <span className="text-xs font-mono text-outline dark:text-[#94A3B8]">
+          Click boxes to jump to findings
         </span>
       </div>
     </div>

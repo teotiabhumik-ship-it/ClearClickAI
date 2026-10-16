@@ -153,6 +153,62 @@ async def run_benchmark(split: str = "held_out", include_ai: bool = False) -> Di
         print(f"  - {cat:15}: Precision={m['precision']:.1%}, Recall={m['recall']:.1%}, F1={m['f1']:.3f} (TP={stats['categories'][cat]['tp']}, FP={stats['categories'][cat]['fp']}, FN={stats['categories'][cat]['fn']})")
     print("=================================================================\n")
 
+    # Export frontend evaluation.json without modifying any scoring calculations
+    try:
+        from datetime import datetime, timezone
+        output_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "frontend", "src", "data"))
+        os.makedirs(output_dir, exist_ok=True)
+        eval_file = os.path.join(output_dir, "evaluation.json")
+
+        dev_labels_file = os.path.join(corpus_dir, "dev_labels.json")
+        dev_count = 0
+        dev_clean = 0
+        if os.path.exists(dev_labels_file):
+            with open(dev_labels_file, "r", encoding="utf-8") as df:
+                dev_data = json.load(df)
+                dev_count = len(dev_data)
+                dev_clean = sum(1 for c in dev_data if len(c.get("patterns", [])) == 0)
+
+        held_clean = sum(1 for c in cases if len(c.get("patterns", [])) == 0)
+
+        failures_list = []
+        for d in stats["details"]:
+            if d["status"] == "FAIL":
+                failures_list.append({
+                    "title": d["id"],
+                    "description": f"Expected: {d['expected'] or 'Clean control'}, Detected: {d['detected'] or 'None'} (FP: {d['fp']}, FN: {d['fn']})"
+                })
+
+        export_data = {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "provider": "google" if include_ai else None,
+            "model": "gemini-2.5-flash" if include_ai else None,
+            "datasets": {
+                "dev": dev_count,
+                "heldout": len(cases),
+                "heldout_source": "mixed",
+                "clean": dev_clean + held_clean
+            },
+            "categories": {
+                cat: {
+                    "rules": {
+                        "precision": stats["categories"][cat]["precision"],
+                        "recall": stats["categories"][cat]["recall"],
+                        "tp": stats["categories"][cat]["tp"],
+                        "fp": stats["categories"][cat]["fp"],
+                        "fn": stats["categories"][cat]["fn"]
+                    },
+                    "rules_ai": None
+                }
+                for cat in ["hidden_charges", "cancellation", "consent"]
+            },
+            "failures": failures_list
+        }
+        with open(eval_file, "w", encoding="utf-8") as ef:
+            json.dump(export_data, ef, indent=2)
+    except Exception as e:
+        print(f"[WARN] Failed to write frontend evaluation.json: {e}")
+
     return stats
 
 

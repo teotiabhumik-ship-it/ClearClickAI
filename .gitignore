@@ -12,3 +12,5 @@ __pycache__/
 env/
 screenshots/
 tmp/
+stitch_reference/
+new_ui/

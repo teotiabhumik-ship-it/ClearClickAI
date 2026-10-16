@@ -1,9 +1,23 @@
 import React, { useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  Link2,
+  Sparkles,
+  UploadCloud,
+  CreditCard,
+  Ban,
+  ShieldAlert,
+  CheckCircle,
+  ChevronRight,
+  Loader2,
+  Search,
+  Lock,
+  CheckSquare
+} from 'lucide-react';
 import { CorpusItem } from '../types';
 
 interface InputFormProps {
   onAnalyze: (payload: { url?: string; html_content?: string; corpus_id?: string; include_ai?: boolean }) => void;
-  onOpenBenchmark: () => void;
   isLoading: boolean;
   corpusList: CorpusItem[];
   onCategoryFilter?: (category: 'hidden_charges' | 'cancellation' | 'consent') => void;
@@ -11,10 +25,8 @@ interface InputFormProps {
 
 export const InputForm: React.FC<InputFormProps> = ({
   onAnalyze,
-  onOpenBenchmark,
   isLoading,
   corpusList,
-  onCategoryFilter,
 }) => {
   const [activeTab, setActiveTab] = useState<'url' | 'screenshots' | 'samples'>('url');
   const [url, setUrl] = useState('');
@@ -91,30 +103,31 @@ export const InputForm: React.FC<InputFormProps> = ({
     onAnalyze({ corpus_id: id, include_ai: includeAi });
   };
 
-  // Icon mapping for corpus sample cards
-  const getCorpusIcon = (cat: string) => {
+  const renderCorpusIcon = (cat: string) => {
     switch (cat) {
-      case 'hidden_charges': return 'payments';
-      case 'cancellation': return 'block';
-      case 'consent': return 'cookie';
-      default: return 'travel_explore';
+      case 'hidden_charges': return <CreditCard className="w-5 h-5 text-primary dark:text-[#2DD4BF]" aria-hidden="true" />;
+      case 'cancellation': return <Ban className="w-5 h-5 text-secondary dark:text-[#E2E8F0]" aria-hidden="true" />;
+      case 'consent': return <ShieldAlert className="w-5 h-5 text-primary dark:text-[#2DD4BF]" aria-hidden="true" />;
+      default: return <Search className="w-5 h-5 text-primary dark:text-[#2DD4BF]" aria-hidden="true" />;
     }
   };
 
   return (
-    <div className="w-full">
-      {/* Interactive Input Card */}
-      <div className="bg-surface-container-lowest rounded-xl p-space-md shadow-[0px_1px_3px_rgba(15,23,42,0.04)] border border-outline-variant/30 mb-space-lg">
-        {/* Tabs Header */}
-        <div className="flex bg-surface-container p-1 rounded-lg mb-space-md">
+    <div className="w-full flex flex-col">
+      {/* Container Card */}
+      <div className="bg-surface-container-lowest dark:bg-[#111A2E] rounded-xl p-space-md sm:p-space-lg shadow-[0px_1px_3px_rgba(15,23,42,0.04)] border border-outline-variant/30 dark:border-[#26324A] mb-space-lg">
+        {/* Input Switch Tabs */}
+        <div className="flex bg-surface-container-low dark:bg-[#0B1220] p-1 rounded-lg mb-space-md" role="tablist">
           <button
             type="button"
             id="tab-url"
+            role="tab"
+            aria-selected={activeTab === 'url'}
             onClick={() => setActiveTab('url')}
-            className={`flex-1 py-2 text-center text-label-md rounded-md transition-all font-medium ${
+            className={`flex-1 py-2 text-center text-sm rounded-md transition-all font-medium ${
               activeTab === 'url'
-                ? 'bg-surface-container-lowest text-on-surface shadow-sm font-semibold'
-                : 'text-on-surface-variant hover:text-on-surface'
+                ? 'bg-surface-container-lowest dark:bg-[#111A2E] text-on-surface dark:text-[#E2E8F0] shadow-sm font-semibold'
+                : 'text-on-surface-variant dark:text-[#94A3B8] hover:text-on-surface dark:hover:text-[#E2E8F0]'
             }`}
           >
             URL
@@ -122,11 +135,13 @@ export const InputForm: React.FC<InputFormProps> = ({
           <button
             type="button"
             id="tab-screenshots"
+            role="tab"
+            aria-selected={activeTab === 'screenshots'}
             onClick={() => setActiveTab('screenshots')}
-            className={`flex-1 py-2 text-center text-label-md rounded-md transition-all font-medium ${
+            className={`flex-1 py-2 text-center text-sm rounded-md transition-all font-medium ${
               activeTab === 'screenshots'
-                ? 'bg-surface-container-lowest text-on-surface shadow-sm font-semibold'
-                : 'text-on-surface-variant hover:text-on-surface'
+                ? 'bg-surface-container-lowest dark:bg-[#111A2E] text-on-surface dark:text-[#E2E8F0] shadow-sm font-semibold'
+                : 'text-on-surface-variant dark:text-[#94A3B8] hover:text-on-surface dark:hover:text-[#E2E8F0]'
             }`}
           >
             Screenshots
@@ -134,11 +149,13 @@ export const InputForm: React.FC<InputFormProps> = ({
           <button
             type="button"
             id="tab-samples"
+            role="tab"
+            aria-selected={activeTab === 'samples'}
             onClick={() => setActiveTab('samples')}
-            className={`flex-1 py-2 text-center text-label-md rounded-md transition-all font-medium ${
+            className={`flex-1 py-2 text-center text-sm rounded-md transition-all font-medium ${
               activeTab === 'samples'
-                ? 'bg-surface-container-lowest text-on-surface shadow-sm font-semibold'
-                : 'text-on-surface-variant hover:text-on-surface'
+                ? 'bg-surface-container-lowest dark:bg-[#111A2E] text-on-surface dark:text-[#E2E8F0] shadow-sm font-semibold'
+                : 'text-on-surface-variant dark:text-[#94A3B8] hover:text-on-surface dark:hover:text-[#E2E8F0]'
             }`}
           >
             Sample pages
@@ -149,15 +166,16 @@ export const InputForm: React.FC<InputFormProps> = ({
         <form onSubmit={handleSubmit}>
           {/* Tab Content: URL */}
           {activeTab === 'url' && (
-            <div className="space-y-space-md" id="content-url">
+            <div className="space-y-space-md" id="content-url" role="tabpanel">
               <div>
-                <label className="block font-label-md text-on-surface-variant mb-space-xs font-medium">
+                <label htmlFor="url-input" className="block text-sm text-on-surface-variant dark:text-[#94A3B8] mb-space-xs font-medium">
                   Target Web Address
                 </label>
-                <div className="flex items-center bg-surface-container-low rounded-lg px-space-md h-12 focus-within:ring-2 focus-within:ring-primary-container border border-outline-variant/30 transition-all">
-                  <span className="material-symbols-outlined text-outline mr-space-sm text-[20px]">link</span>
+                <div className="flex items-center bg-surface-container-low dark:bg-[#0B1220] rounded-lg px-space-md h-12 focus-within:ring-2 focus-within:ring-primary border border-outline-variant/30 dark:border-[#26324A] transition-all">
+                  <Link2 className="w-5 h-5 text-outline dark:text-[#94A3B8] mr-space-sm shrink-0" aria-hidden="true" />
                   <input
-                    className="w-full bg-transparent font-body-md text-on-surface focus:outline-none placeholder:text-outline"
+                    id="url-input"
+                    className="w-full bg-transparent text-sm text-on-surface dark:text-[#E2E8F0] focus:outline-none placeholder:text-outline"
                     placeholder="https://example.com/checkout"
                     type="url"
                     value={url}
@@ -169,12 +187,10 @@ export const InputForm: React.FC<InputFormProps> = ({
               {/* AI analysis toggle */}
               <div className="flex items-center justify-between py-space-xs">
                 <div className="flex items-center gap-space-sm">
-                  <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                    smart_toy
-                  </span>
+                  <Sparkles className="w-5 h-5 text-primary dark:text-[#2DD4BF]" aria-hidden="true" />
                   <div>
-                    <span className="font-body-md font-medium text-on-surface block">AI analysis</span>
-                    <span className="font-label-md text-on-surface-variant block text-xs">Deep pattern inspection & anti-hallucination quote check</span>
+                    <span className="text-sm font-medium text-on-surface dark:text-[#E2E8F0] block">AI analysis</span>
+                    <span className="text-sm text-on-surface-variant dark:text-[#94A3B8] block">Deep pattern inspection & anti-hallucination quote check</span>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -183,26 +199,27 @@ export const InputForm: React.FC<InputFormProps> = ({
                     checked={includeAi}
                     onChange={(e) => setIncludeAi(e.target.checked)}
                     className="sr-only peer"
+                    aria-label="Toggle AI analysis"
                   />
-                  <div className="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container"></div>
+                  <div className="w-11 h-6 bg-surface-container-highest dark:bg-[#26324A] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container dark:peer-checked:bg-[#005c55]"></div>
                 </label>
               </div>
             </div>
           )}
 
-          {/* Tab Content: Screenshots / File Upload */}
+          {/* Tab Content: Screenshots */}
           {activeTab === 'screenshots' && (
-            <div className="space-y-space-md" id="content-screenshots">
+            <div className="space-y-space-md" id="content-screenshots" role="tabpanel">
               <div
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-space-lg text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
+                className={`border-2 border-dashed rounded-xl p-space-lg text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[180px] ${
                   dragActive
-                    ? 'border-primary bg-primary-fixed/20'
-                    : 'border-outline-variant bg-surface-container-low/50 hover:bg-surface-container-low'
+                    ? 'border-primary bg-primary-fixed/20 dark:bg-[#2DD4BF]/10'
+                    : 'border-outline-variant/60 dark:border-[#26324A] bg-surface-container-low dark:bg-[#0B1220] hover:bg-surface-container dark:hover:bg-[#111A2E]'
                 }`}
               >
                 <input
@@ -211,19 +228,20 @@ export const InputForm: React.FC<InputFormProps> = ({
                   accept="image/*,.html,.htm"
                   onChange={handleFileChange}
                   className="hidden"
+                  aria-label="Upload document"
                 />
-                <div className="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center mb-space-sm text-primary">
-                  <span className="material-symbols-outlined text-[24px]">cloud_upload</span>
+                <div className="w-12 h-12 rounded-full bg-primary-fixed dark:bg-[#2DD4BF]/20 flex items-center justify-center mb-space-sm text-primary dark:text-[#2DD4BF]">
+                  <UploadCloud className="w-6 h-6" aria-hidden="true" />
                 </div>
-                <p className="font-body-md font-medium text-on-surface mb-space-xs">
+                <p className="text-sm font-medium text-on-surface dark:text-[#E2E8F0] mb-space-xs">
                   {uploadedFileName ? `Selected: ${uploadedFileName}` : 'Drag and drop your screenshot or HTML here'}
                 </p>
-                <p className="font-body-sm text-on-surface-variant mb-space-md text-xs">
+                <p className="text-sm text-on-surface-variant dark:text-[#94A3B8] mb-space-md">
                   Supports PNG, JPG, WEBP, or HTML files up to 15MB
                 </p>
                 <button
                   type="button"
-                  className="px-space-md py-2 rounded-lg bg-surface-container-lowest text-on-surface font-label-md shadow-sm border border-outline-variant/40 hover:bg-surface-container transition-all text-xs font-semibold"
+                  className="px-space-md py-2 rounded-lg bg-surface-container-lowest dark:bg-[#111A2E] text-on-surface dark:text-[#E2E8F0] shadow-sm border border-outline-variant/40 dark:border-[#26324A] hover:bg-surface-container transition-all text-sm font-semibold"
                 >
                   {uploadedFileName ? 'Choose another file' : 'Choose files'}
                 </button>
@@ -232,12 +250,10 @@ export const InputForm: React.FC<InputFormProps> = ({
               {/* AI analysis toggle for screenshots */}
               <div className="flex items-center justify-between py-space-xs">
                 <div className="flex items-center gap-space-sm">
-                  <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                    smart_toy
-                  </span>
+                  <Sparkles className="w-5 h-5 text-primary dark:text-[#2DD4BF]" aria-hidden="true" />
                   <div>
-                    <span className="font-body-md font-medium text-on-surface block">AI vision inspection</span>
-                    <span className="font-label-md text-on-surface-variant block text-xs">Analyze visual emphasis & layout asymmetry</span>
+                    <span className="text-sm font-medium text-on-surface dark:text-[#E2E8F0] block">AI vision inspection</span>
+                    <span className="text-sm text-on-surface-variant dark:text-[#94A3B8] block">Analyze visual emphasis & layout asymmetry</span>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -246,8 +262,9 @@ export const InputForm: React.FC<InputFormProps> = ({
                     checked={includeAi}
                     onChange={(e) => setIncludeAi(e.target.checked)}
                     className="sr-only peer"
+                    aria-label="Toggle AI vision inspection"
                   />
-                  <div className="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container"></div>
+                  <div className="w-11 h-6 bg-surface-container-highest dark:bg-[#26324A] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container dark:peer-checked:bg-[#005c55]"></div>
                 </label>
               </div>
             </div>
@@ -255,7 +272,7 @@ export const InputForm: React.FC<InputFormProps> = ({
 
           {/* Tab Content: Sample Pages */}
           {activeTab === 'samples' && (
-            <div className="space-y-space-sm max-h-72 overflow-y-auto pr-1" id="content-samples">
+            <div className="space-y-space-sm max-h-72 overflow-y-auto pr-1" id="content-samples" role="tabpanel">
               {corpusList.length > 0 ? (
                 corpusList.map((item) => {
                   const isSelected = selectedCorpusId === item.id;
@@ -265,33 +282,33 @@ export const InputForm: React.FC<InputFormProps> = ({
                       onClick={() => handleSelectSample(item.id)}
                       className={`p-space-md rounded-lg cursor-pointer transition-all flex items-center justify-between group border ${
                         isSelected
-                          ? 'bg-primary-fixed/20 border-primary-container shadow-sm'
-                          : 'bg-surface-container-low hover:bg-surface-container border-transparent'
+                          ? 'bg-primary-fixed/20 dark:bg-[#2DD4BF]/10 border-primary-container dark:border-[#2DD4BF] shadow-sm'
+                          : 'bg-surface-container-low dark:bg-[#0B1220] hover:bg-surface-container dark:hover:bg-[#111A2E] border-transparent'
                       }`}
                     >
                       <div className="flex items-center gap-space-md">
-                        <span className="material-symbols-outlined text-primary text-[20px]">
-                          {getCorpusIcon(item.category)}
-                        </span>
+                        {renderCorpusIcon(item.category)}
                         <div>
-                          <h4 className="font-body-md font-medium text-on-surface group-hover:text-primary transition-colors text-sm">
+                          <h4 className="text-sm font-medium text-on-surface dark:text-[#E2E8F0] group-hover:text-primary dark:group-hover:text-[#2DD4BF] transition-colors">
                             {item.notes || item.id}
                           </h4>
-                          <p className="font-body-sm text-on-surface-variant text-xs">
+                          <p className="text-sm text-on-surface-variant dark:text-[#94A3B8]">
                             {item.patterns.length > 0
                               ? `Deceptive: ${item.patterns.join(', ')}`
                               : 'Clean fair design control (negative example)'}
                           </p>
                         </div>
                       </div>
-                      <span className="material-symbols-outlined text-outline text-[18px]">
-                        {isSelected ? 'check_circle' : 'chevron_right'}
-                      </span>
+                      {isSelected ? (
+                        <CheckCircle className="w-5 h-5 text-primary dark:text-[#2DD4BF]" aria-hidden="true" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-outline dark:text-[#94A3B8]" aria-hidden="true" />
+                      )}
                     </div>
                   );
                 })
               ) : (
-                <div className="text-center py-6 text-on-surface-variant text-sm">
+                <div className="text-center py-6 text-on-surface-variant dark:text-[#94A3B8] text-sm">
                   Loading ground-truth sample pages...
                 </div>
               )}
@@ -303,7 +320,7 @@ export const InputForm: React.FC<InputFormProps> = ({
             <button
               type="submit"
               disabled={isLoading || (activeTab === 'screenshots' && !uploadedContent) || (activeTab === 'url' && !url.trim())}
-              className={`w-full h-12 bg-primary-container text-on-primary-container rounded-lg font-headline-sm flex items-center justify-center gap-space-sm shadow-sm transition-all text-base font-semibold ${
+              className={`w-full h-12 bg-primary-container dark:bg-[#005c55] text-on-primary-container dark:text-white rounded-lg flex items-center justify-center gap-space-sm shadow-sm transition-all text-base font-semibold ${
                 isLoading || (activeTab === 'screenshots' && !uploadedContent) || (activeTab === 'url' && !url.trim())
                   ? 'opacity-60 cursor-not-allowed'
                   : 'hover:opacity-95 cursor-pointer active:scale-[0.99]'
@@ -311,12 +328,12 @@ export const InputForm: React.FC<InputFormProps> = ({
             >
               {isLoading ? (
                 <>
-                  <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
+                  <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                   <span>Analysing patterns...</span>
                 </>
               ) : (
                 <>
-                  <span className="material-symbols-outlined text-[20px]">radar</span>
+                  <Search className="w-5 h-5" aria-hidden="true" />
                   <span>Analyse page</span>
                 </>
               )}
@@ -326,8 +343,8 @@ export const InputForm: React.FC<InputFormProps> = ({
 
         {/* Privacy Note */}
         <div className="mt-space-md flex items-center justify-center gap-space-xs text-center">
-          <span className="material-symbols-outlined text-outline text-[14px]">lock</span>
-          <p className="font-label-md text-on-surface-variant text-xs">
+          <Lock className="w-4 h-4 text-outline dark:text-[#94A3B8]" aria-hidden="true" />
+          <p className="text-sm text-on-surface-variant dark:text-[#94A3B8]">
             Pages are analysed in your browser session and not permanently stored.
           </p>
         </div>
@@ -335,49 +352,49 @@ export const InputForm: React.FC<InputFormProps> = ({
 
       {/* Focus Cards Section: Common Deceptive Patterns */}
       <div className="mb-space-md">
-        <h3 className="font-headline-sm text-on-surface mb-space-sm font-semibold text-lg">
+        <h3 className="text-lg font-semibold text-on-surface dark:text-[#E2E8F0] mb-space-sm">
           Common deceptive patterns
         </h3>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-space-sm">
-        <div
-          onClick={() => onCategoryFilter?.('hidden_charges')}
-          className="bg-surface-container-lowest rounded-xl p-space-md shadow-[0px_1px_3px_rgba(15,23,42,0.04)] border border-outline-variant/30 flex items-center gap-space-md cursor-pointer hover:border-outline-variant transition-all"
+        <Link
+          to="/methodology#hidden-charges"
+          className="bg-surface-container-lowest dark:bg-[#111A2E] rounded-xl p-space-md shadow-[0px_1px_3px_rgba(15,23,42,0.04)] border border-outline-variant/30 dark:border-[#26324A] flex items-center gap-space-md cursor-pointer hover:border-outline-variant dark:hover:border-outline transition-all group"
         >
-          <div className="w-10 h-10 rounded-full bg-error-container text-on-error-container flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-[20px]">payments</span>
+          <div className="w-10 h-10 rounded-full bg-error-container dark:bg-[#B91C1C]/20 text-on-error-container dark:text-[#B91C1C] flex items-center justify-center shrink-0">
+            <CreditCard className="w-5 h-5 text-on-error-container dark:text-[#B91C1C]" aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1">
-            <h4 className="font-body-md font-semibold text-on-surface text-sm">Hidden charges</h4>
-            <p className="font-body-sm text-on-surface-variant text-xs truncate">Mandatory fees added at checkout</p>
+            <h4 className="font-semibold text-on-surface dark:text-[#E2E8F0] group-hover:text-primary dark:group-hover:text-[#2DD4BF] text-sm transition-colors">Hidden charges</h4>
+            <p className="text-sm text-on-surface-variant dark:text-[#94A3B8] truncate">Mandatory fees added at checkout</p>
           </div>
-        </div>
+        </Link>
 
-        <div
-          onClick={() => onCategoryFilter?.('cancellation')}
-          className="bg-surface-container-lowest rounded-xl p-space-md shadow-[0px_1px_3px_rgba(15,23,42,0.04)] border border-outline-variant/30 flex items-center gap-space-md cursor-pointer hover:border-outline-variant transition-all"
+        <Link
+          to="/methodology#cancellation"
+          className="bg-surface-container-lowest dark:bg-[#111A2E] rounded-xl p-space-md shadow-[0px_1px_3px_rgba(15,23,42,0.04)] border border-outline-variant/30 dark:border-[#26324A] flex items-center gap-space-md cursor-pointer hover:border-outline-variant dark:hover:border-outline transition-all group"
         >
-          <div className="w-10 h-10 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-[20px]">block</span>
+          <div className="w-10 h-10 rounded-full bg-secondary-fixed dark:bg-[#565e74]/30 text-on-secondary-fixed dark:text-[#E2E8F0] flex items-center justify-center shrink-0">
+            <Ban className="w-5 h-5 text-on-secondary-fixed dark:text-[#E2E8F0]" aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1">
-            <h4 className="font-body-md font-semibold text-on-surface text-sm">Cancellation</h4>
-            <p className="font-body-sm text-on-surface-variant text-xs truncate">Concealed links or forced phone calls</p>
+            <h4 className="font-semibold text-on-surface dark:text-[#E2E8F0] group-hover:text-primary dark:group-hover:text-[#2DD4BF] text-sm transition-colors">Cancellation</h4>
+            <p className="text-sm text-on-surface-variant dark:text-[#94A3B8] truncate">Concealed links or forced phone calls</p>
           </div>
-        </div>
+        </Link>
 
-        <div
-          onClick={() => onCategoryFilter?.('consent')}
-          className="bg-surface-container-lowest rounded-xl p-space-md shadow-[0px_1px_3px_rgba(15,23,42,0.04)] border border-outline-variant/30 flex items-center gap-space-md cursor-pointer hover:border-outline-variant transition-all"
+        <Link
+          to="/methodology#consent"
+          className="bg-surface-container-lowest dark:bg-[#111A2E] rounded-xl p-space-md shadow-[0px_1px_3px_rgba(15,23,42,0.04)] border border-outline-variant/30 dark:border-[#26324A] flex items-center gap-space-md cursor-pointer hover:border-outline-variant dark:hover:border-outline transition-all group"
         >
-          <div className="w-10 h-10 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-[20px]">rule</span>
+          <div className="w-10 h-10 rounded-full bg-primary-fixed dark:bg-[#2DD4BF]/20 text-on-primary-fixed dark:text-[#2DD4BF] flex items-center justify-center shrink-0">
+            <CheckSquare className="w-5 h-5 text-on-primary-fixed dark:text-[#2DD4BF]" aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1">
-            <h4 className="font-body-md font-semibold text-on-surface text-sm">Consent</h4>
-            <p className="font-body-sm text-on-surface-variant text-xs truncate">Pre-ticked boxes for data sharing</p>
+            <h4 className="font-semibold text-on-surface dark:text-[#E2E8F0] group-hover:text-primary dark:group-hover:text-[#2DD4BF] text-sm transition-colors">Consent</h4>
+            <p className="text-sm text-on-surface-variant dark:text-[#94A3B8] truncate">Pre-ticked boxes for data sharing</p>
           </div>
-        </div>
+        </Link>
       </div>
     </div>
   );
