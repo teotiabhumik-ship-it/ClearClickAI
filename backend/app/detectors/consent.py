@@ -53,6 +53,9 @@ class ConsentDetector(BaseDetector):
         # 3. Detect double-negative language in page text and checkbox labels
         findings.extend(self._detect_double_negatives(page_data))
 
+        # 4. AidUI Rule: Detect disguised ads
+        findings.extend(self._detect_disguised_ads(page_data))
+
         return findings
 
     def _detect_preticked(self, checkboxes: List[ExtractedCheckbox]) -> List[Finding]:
@@ -182,6 +185,27 @@ class ConsentDetector(BaseDetector):
                         bbox=[0.0, 0.0, 0.0, 0.0],
                         why="The phrasing contains confusing double negatives ('do not wish to not receive') that may cause users to unintentionally agree to unwanted communications.",
                         safer_alternative="Use clear, direct affirmative wording such as 'Send me partner promotions' with an unchecked box.",
+                        source="rule"
+                    ))
+                    break
+        return findings
+
+    def _detect_disguised_ads(self, page_data: PageData) -> List[Finding]:
+        findings = []
+        for el in page_data.links + page_data.buttons:
+            text_clean = el.text.strip().lower()
+            if text_clean in ["ad", "sponsored", "promoted", "advertisement"]:
+                is_subdued = el.font_size_px <= 10.0 or el.contrast_ratio < 3.0
+                if is_subdued:
+                    findings.append(Finding(
+                        category="consent",
+                        type="disguised_ads",
+                        severity="medium",
+                        confidence=0.85,
+                        evidence=f"Disguised ad disclosure: '{el.text}' rendered in {el.font_size_px}px with low contrast ({el.contrast_ratio}:1)",
+                        bbox=el.bbox,
+                        why="Advertising markers are visually degraded in tiny font and low contrast, disguising sponsored commercial links as regular editorial content.",
+                        safer_alternative="Clearly label sponsored links with high-contrast, prominent 'Sponsored' badges.",
                         source="rule"
                     ))
                     break

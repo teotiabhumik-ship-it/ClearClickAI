@@ -31,6 +31,19 @@ FORCED_OFFLINE_PATTERNS = [
     r"\bsubmit\s+a\s+written\s+(?:letter|mail|notice)\b",
 ]
 
+# AidUI-derived Nagging & Gamification Patterns (Table I & Table II)
+NAGGING_REVIEW_PATTERNS = [
+    r"(?:enjoying|love|like)\s+(?:our\s+)?(?:app|service|website)\??\s+(?:rate|review|give\s+us\s+\d+\s+stars)",
+    r"\b(?:rate\s+us\s+now|give\s+us\s+5\s+stars|rate\s+this\s+app)\b.*(?:ask\s+me\s+later|not\s+now|maybe\s+later)",
+    r"\b(?:please\s+rate|leave\s+(?:a\s+)?review)\b.*(?:★|stars?|later)",
+]
+
+GAMIFICATION_PATTERNS = [
+    r"(?:invite|refer|ask)\s+(\d+|\w+)?\s*friends\s+to\s+(?:unlock|earn|get|receive|access)",
+    r"(?:sign\s*up|register)\s+for\s+(\d+)?\s*(?:credits|points|tokens|spins|coins)",
+    r"watch\s+(?:an?\s+)?(?:ad|video|session)\s+to\s+(?:continue|unlock|proceed|earn)",
+]
+
 
 class CancellationDetector(BaseDetector):
     category = "cancellation"
@@ -135,6 +148,68 @@ class CancellationDetector(BaseDetector):
                 ))
                 break
 
+        # 4. AidUI Rules: Nagging review prompts and Gamification referral loops
+        findings.extend(self._detect_nagging_reviews(page_data))
+        findings.extend(self._detect_gamification_referrals(page_data))
+
+        return findings
+
+    def _detect_nagging_reviews(self, page_data: PageData) -> List[Finding]:
+        findings = []
+        all_elements = page_data.buttons + page_data.links
+        full_text = page_data.visible_text
+
+        for pat in NAGGING_REVIEW_PATTERNS:
+            m = re.search(pat, full_text, re.IGNORECASE)
+            if m:
+                match_str = m.group(0).strip()
+                bbox = [0.0, 0.0, 0.0, 0.0]
+                for el in all_elements:
+                    if match_str.lower() in el.text.lower() or el.text.lower() in match_str.lower():
+                        bbox = el.bbox
+                        break
+
+                findings.append(Finding(
+                    category="cancellation",
+                    type="nagging_review",
+                    severity="medium",
+                    confidence=0.86,
+                    evidence=f"Interruptive rating prompt: '{match_str}'",
+                    bbox=bbox,
+                    why="Interruptive review and rating popups repeatedly obstruct normal user tasks without providing a permanent opt-out mechanism.",
+                    safer_alternative="Place feedback and rating requests passively inside account or settings menus.",
+                    source="rule"
+                ))
+                break
+        return findings
+
+    def _detect_gamification_referrals(self, page_data: PageData) -> List[Finding]:
+        findings = []
+        all_elements = page_data.buttons + page_data.links
+        full_text = page_data.visible_text
+
+        for pat in GAMIFICATION_PATTERNS:
+            m = re.search(pat, full_text, re.IGNORECASE)
+            if m:
+                match_str = m.group(0).strip()
+                bbox = [0.0, 0.0, 0.0, 0.0]
+                for el in all_elements:
+                    if match_str.lower() in el.text.lower() or el.text.lower() in match_str.lower():
+                        bbox = el.bbox
+                        break
+
+                findings.append(Finding(
+                    category="cancellation",
+                    type="gamification_referral",
+                    severity="medium",
+                    confidence=0.86,
+                    evidence=f"Forced referral / gamified gating: '{match_str}'",
+                    bbox=bbox,
+                    why="Gating application functionality or discounts behind mandatory contact recruitment or ad watching turns users into involuntary promoters.",
+                    safer_alternative="Offer direct transparent pricing and features without viral referral walls or mandatory ad viewing.",
+                    source="rule"
+                ))
+                break
         return findings
 
     def detect_flow(self, flow: FlowData) -> List[Finding]:

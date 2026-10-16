@@ -84,6 +84,41 @@ const PLAIN_ENGLISH_INFO: Record<string, PlainEnglishInfo> = {
     title: 'Deceptive Cancellation Screen',
     simpleExplanation: 'The cancellation screen makes "Keep My Subscription" look big and inviting while making the actual cancellation button look gray or disabled.',
     whatToDo: 'Look for the muted secondary button that actually proceeds with cancellation.'
+  },
+  countdown_timer: {
+    title: 'Ticking Countdown Timer',
+    simpleExplanation: 'A ticking countdown timer creates artificial urgency to pressure you into rushing your purchase before thinking it through.',
+    whatToDo: 'Ignore the countdown clock. Take your time to compare prices and check if the offer is genuinely worth purchasing.'
+  },
+  low_stock_scarcity: {
+    title: 'Artificial Low-Stock Warning',
+    simpleExplanation: 'Warnings claiming "Only 2 left in stock!" or "Almost sold out" create artificial scarcity and fear of missing out.',
+    whatToDo: 'Do not let low-stock alerts rush your decision. Verify whether you actually need the item right now.'
+  },
+  high_demand_scarcity: {
+    title: 'High-Demand Pressure Alert',
+    simpleExplanation: 'Alerts saying "18 people are looking at this right now" use competition anxiety to make you feel you might lose out if you do not buy immediately.',
+    whatToDo: 'Recognize this as a sales tactic. Check the actual item details and final checkout terms calmly.'
+  },
+  activity_message: {
+    title: 'Social Proof Sales Tally',
+    simpleExplanation: 'Messages boasting "50 items sold in the last 24 hours" use peer pressure and bandwagon effects to validate the purchase.',
+    whatToDo: 'Judge the product on its actual specifications, price, and real reviews rather than recent sales counters.'
+  },
+  nagging_review: {
+    title: 'Interruptive Rating Prompt',
+    simpleExplanation: 'Popups asking you to rate the app or service interrupt what you are doing, often without a permanent "Never ask again" option.',
+    whatToDo: 'Dismiss the prompt or look for "No thanks" / "Don\'t ask again". Rate apps only when and if you choose to do so in the settings.'
+  },
+  gamification_referral: {
+    title: 'Viral Referral / Ad Gate',
+    simpleExplanation: 'Promising bonus tokens, discounts, or unlocked features only if you recruit your friends or watch advertisements turns you into an unpaid promoter.',
+    whatToDo: 'Carefully consider if you want to share your contacts or personal information just to unlock a feature.'
+  },
+  disguised_ads: {
+    title: 'Disguised Advertisement',
+    simpleExplanation: 'Sponsored promotional links are styled to look identical to real editorial articles or navigation links, with the "Ad" label hidden in tiny, faint text.',
+    whatToDo: 'Check the destination URL before clicking to verify whether it leads to the actual site content or a third-party paid sponsor.'
   }
 };
 

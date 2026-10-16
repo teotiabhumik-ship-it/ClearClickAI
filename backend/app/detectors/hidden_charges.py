@@ -37,6 +37,29 @@ BUNDLED_ADDON_KEYWORDS = [
     r"tip",
 ]
 
+# AidUI-derived Urgency & Scarcity Patterns (Table II & Section III-D1)
+COUNTDOWN_TIMER_PATTERNS = [
+    r"(?:sale|deal|offer|discount|flash\s+sale)\s+(?:ends|expires|countdown|ends\s+in)\s*[:\-]?\s*(\d{1,2}:\d{2}(?::\d{2})?|\d+\s*(?:hours?|mins?|minutes?|secs?|seconds?))",
+    r"\b(?:ends\s+in|expires\s+in|time\s+left)\s*[:\-]?\s*(\d{1,2}:\d{2}(?::\d{2})?)\b",
+    r"\b\d{1,2}:\d{2}:\d{2}\b(?=.*(?:sale|deal|ends|hurry|offer|expires|countdown|now))",
+]
+
+LOW_STOCK_PATTERNS = [
+    r"\bonly\s+(\d+|one|two|three|four|five)\s+(?:left\s+in\s+stock|remaining|in\s+stock|left|available)\b",
+    r"\b(?:almost\s+sold\s+out|hurry,?\s+only\s+\d+\s+left)\b",
+    r"\b(?:order|order\s+within)\s+\d+\s+(?:hours?|mins?|minutes?)\s+for\s+(?:delivery|dispatch|same\s*day)\b",
+]
+
+HIGH_DEMAND_PATTERNS = [
+    r"(\d+)\s+(?:people|travelers|guests|viewers|shoppers)\s+(?:are\s+)?(?:viewing|looking\s+at|checking|browsing)\s+(?:this|now)(?:\s+right\s+now)?",
+    r"\b(?:in\s+high\s+demand|selling\s+fast|booked\s+\d+\s+times\s+today)\b",
+]
+
+ACTIVITY_MESSAGE_PATTERNS = [
+    r"(\d+)\s+(?:items?|units?|rooms?|tickets?)\s+(?:sold|bought|purchased|reserved)\s+in\s+the\s+last\s+(\d+|24|48)?\s*(?:hours?|days?|today)",
+    r"\b(\d+)\s+people\s+bought\s+this\s+(?:recently|today|in\s+the\s+last\s+\d+\s+hours?)\b",
+]
+
 
 class HiddenChargesDetector(BaseDetector):
     category = "hidden_charges"
@@ -106,6 +129,128 @@ class HiddenChargesDetector(BaseDetector):
         if drip_finding:
             findings.append(drip_finding)
 
+        # 4. AidUI Rules: Countdown Timers, Scarcity, High Demand & Social Proof
+        findings.extend(self._detect_countdown_timers(page_data))
+        findings.extend(self._detect_low_stock_scarcity(page_data))
+        findings.extend(self._detect_high_demand_scarcity(page_data))
+        findings.extend(self._detect_activity_messages(page_data))
+
+        return findings
+
+    def _detect_countdown_timers(self, page_data: PageData) -> List[Finding]:
+        findings = []
+        all_elements = page_data.prices + page_data.buttons + page_data.links
+        full_text = page_data.visible_text
+
+        for pat in COUNTDOWN_TIMER_PATTERNS:
+            m = re.search(pat, full_text, re.IGNORECASE)
+            if m:
+                match_str = m.group(0).strip()
+                bbox = [0.0, 0.0, 0.0, 0.0]
+                for el in all_elements:
+                    if match_str.lower() in el.text.lower() or el.text.lower() in match_str.lower():
+                        bbox = el.bbox
+                        break
+
+                findings.append(Finding(
+                    category="hidden_charges",
+                    type="countdown_timer",
+                    severity="medium",
+                    confidence=0.88,
+                    evidence=f"Countdown timer detected: '{match_str}'",
+                    bbox=bbox,
+                    why="A ticking countdown timer creates high urgency pressure, nudging users to bypass deliberate purchasing decisions.",
+                    safer_alternative="State standard promotional deadlines without artificial ticking timers unless part of a genuine live auction or scheduled broadcast.",
+                    source="rule"
+                ))
+                break
+        return findings
+
+    def _detect_low_stock_scarcity(self, page_data: PageData) -> List[Finding]:
+        findings = []
+        all_elements = page_data.prices + page_data.buttons + page_data.links
+        full_text = page_data.visible_text
+
+        for pat in LOW_STOCK_PATTERNS:
+            m = re.search(pat, full_text, re.IGNORECASE)
+            if m:
+                match_str = m.group(0).strip()
+                bbox = [0.0, 0.0, 0.0, 0.0]
+                for el in all_elements:
+                    if match_str.lower() in el.text.lower() or el.text.lower() in match_str.lower():
+                        bbox = el.bbox
+                        break
+
+                findings.append(Finding(
+                    category="hidden_charges",
+                    type="low_stock_scarcity",
+                    severity="medium",
+                    confidence=0.86,
+                    evidence=f"Low stock pressure cue: '{match_str}'",
+                    bbox=bbox,
+                    why="Highlighting extreme low inventory creates artificial scarcity pressure to force impulsive checkout.",
+                    safer_alternative="Provide factual inventory status (e.g., 'In Stock') without emotive hurry banners unless inventory is genuinely exhausted.",
+                    source="rule"
+                ))
+                break
+        return findings
+
+    def _detect_high_demand_scarcity(self, page_data: PageData) -> List[Finding]:
+        findings = []
+        all_elements = page_data.prices + page_data.buttons + page_data.links
+        full_text = page_data.visible_text
+
+        for pat in HIGH_DEMAND_PATTERNS:
+            m = re.search(pat, full_text, re.IGNORECASE)
+            if m:
+                match_str = m.group(0).strip()
+                bbox = [0.0, 0.0, 0.0, 0.0]
+                for el in all_elements:
+                    if match_str.lower() in el.text.lower() or el.text.lower() in match_str.lower():
+                        bbox = el.bbox
+                        break
+
+                findings.append(Finding(
+                    category="hidden_charges",
+                    type="high_demand_scarcity",
+                    severity="medium",
+                    confidence=0.85,
+                    evidence=f"High-demand alert: '{match_str}'",
+                    bbox=bbox,
+                    why="Displaying real-time viewer counts or high-demand alerts exploits competition anxiety to rush the user through payment.",
+                    safer_alternative="Allow consumers to review listings without intrusive live viewer tallies.",
+                    source="rule"
+                ))
+                break
+        return findings
+
+    def _detect_activity_messages(self, page_data: PageData) -> List[Finding]:
+        findings = []
+        all_elements = page_data.prices + page_data.buttons + page_data.links
+        full_text = page_data.visible_text
+
+        for pat in ACTIVITY_MESSAGE_PATTERNS:
+            m = re.search(pat, full_text, re.IGNORECASE)
+            if m:
+                match_str = m.group(0).strip()
+                bbox = [0.0, 0.0, 0.0, 0.0]
+                for el in all_elements:
+                    if match_str.lower() in el.text.lower() or el.text.lower() in match_str.lower():
+                        bbox = el.bbox
+                        break
+
+                findings.append(Finding(
+                    category="hidden_charges",
+                    type="activity_message",
+                    severity="low",
+                    confidence=0.82,
+                    evidence=f"Social proof sales activity: '{match_str}'",
+                    bbox=bbox,
+                    why="Displaying rapid recent sales numbers leverages bandwagon effects to influence immediate buying behavior.",
+                    safer_alternative="Allow users to evaluate products on their own merits and verified long-term reviews.",
+                    source="rule"
+                ))
+                break
         return findings
 
     def detect_flow(self, flow: FlowData) -> List[Finding]:
