@@ -85,15 +85,27 @@ export default async function handler(req: any, res: any) {
           headers: {
             'User-Agent':
               'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-            Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            Accept:
+              'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1',
           },
           signal: AbortSignal.timeout(12000),
         });
 
         if (!fetchResponse.ok) {
+          const status = fetchResponse.status;
+          if (status === 403) {
+            return res.status(502).json({
+              detail: `External site returned HTTP 403 (Forbidden). The target website is protected by an anti-bot firewall (such as DataDome or Cloudflare) which blocks automated inspection requests. Tip: Try accessible sites like CNN, BBC, The Guardian, Wikipedia, or Steam — or upload the page's HTML file directly via the "HTML" tab!`,
+            });
+          }
           return res.status(502).json({
-            detail: `External site returned HTTP ${fetchResponse.status} (${fetchResponse.statusText})`,
+            detail: `External site returned HTTP ${status} (${fetchResponse.statusText})`,
           });
         }
 
