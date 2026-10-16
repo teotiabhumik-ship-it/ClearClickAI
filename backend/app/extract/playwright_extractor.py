@@ -404,8 +404,35 @@ class PageExtractor:
 
     @classmethod
     def _fallback_soup_extract(cls, html: str, url: Optional[str] = None) -> PageData:
-        """Lightweight pure-python fallback for fast offline testing."""
-        soup = BeautifulSoup(html, "html.parser")
+        """Lightweight pure-python fallback for fast offline testing and serverless environments."""
+        if not html and url:
+            if url.startswith("http://") or url.startswith("https://"):
+                import urllib.request
+                try:
+                    req = urllib.request.Request(
+                        url,
+                        headers={
+                            "User-Agent": (
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                                "Chrome/124.0.0.0 Safari/537.36"
+                            ),
+                            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                            "Accept-Language": "en-US,en;q=0.9",
+                        }
+                    )
+                    with urllib.request.urlopen(req, timeout=15) as resp:
+                        html = resp.read().decode("utf-8", errors="replace")
+                except Exception as fetch_e:
+                    logger.warning(f"Fallback URL fetch failed for {url}: {fetch_e}")
+            elif os.path.exists(url):
+                try:
+                    with open(url, "r", encoding="utf-8") as f:
+                        html = f.read()
+                except Exception as file_e:
+                    logger.warning(f"Fallback file read failed for {url}: {file_e}")
+
+        soup = BeautifulSoup(html or "", "html.parser")
         title = soup.title.string if soup.title else ""
         text = soup.get_text(separator=" ", strip=True)
 
