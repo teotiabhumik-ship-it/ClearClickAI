@@ -203,7 +203,11 @@ export const AnalysePage: React.FC = () => {
         const scanData: Scan = await res.json();
         if (isMountedRef.current) {
           setActiveScan(scanData);
-          pollScanStatus(scanData.scan_id);
+          if (scanData.status === 'completed' || scanData.status === 'cancelled' || scanData.status === 'failed') {
+            setIsScanning(false);
+          } else {
+            pollScanStatus(scanData.scan_id);
+          }
         }
       } catch (scanErr: any) {
         if (scanErr.name === 'AbortError') return;

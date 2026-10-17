@@ -4,6 +4,14 @@
   "outputDirectory": "frontend/dist",
   "rewrites": [
     {
+      "source": "/api/scans/:id/cancel",
+      "destination": "/api/scans?scan_id=:id&action=cancel"
+    },
+    {
+      "source": "/api/scans/:id",
+      "destination": "/api/scans?scan_id=:id"
+    },
+    {
       "source": "/((?!api/|assets/|favicon|.*\\..*).*)$",
       "destination": "/index.html"
     }
