@@ -11,6 +11,7 @@ import { buildApiUrl } from '../config/api';
 import corpusCatalog from '../data/corpusCatalog.json';
 import sampleReports from '../data/sampleReports.json';
 import { ServerSettingsModal } from '../components/ServerSettingsModal';
+import { SamplePagesCarousel } from '../components/SamplePagesCarousel';
 
 export const AnalysePage: React.FC = () => {
   const [report, setReport] = useState<AnalysisReport | null>(null);
@@ -368,9 +369,16 @@ export const AnalysePage: React.FC = () => {
           <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-ink dark:text-[#E2E8F0] tracking-tight mb-2 outline-none focus:outline-none focus-visible:outline-none">
             Check a page or scan a site for design that may mislead you
           </h1>
-          <p className="text-ink-muted dark:text-[#94A3B8] text-base leading-relaxed max-w-3xl">
+          <p className="text-ink-muted dark:text-[#94A3B8] text-base leading-relaxed max-w-3xl mb-6">
             Audit single URLs, scan priority transactional pages of a domain, drop screenshots, or inspect ground-truth fixtures. ClearClick flags hidden charges, cancellation hurdles, and one-sided consent choices.
           </p>
+
+          {/* Glassmorphic Carousel of Sample Pages */}
+          <SamplePagesCarousel
+            samples={corpusList}
+            onSelectSample={(corpusId) => handleAnalyze({ corpus_id: corpusId, include_ai: false })}
+            isLoading={isLoading || isScanning}
+          />
         </div>
       )}
 

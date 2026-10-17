@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Link2,
@@ -7,8 +7,6 @@ import {
   CreditCard,
   Ban,
   ShieldAlert,
-  CheckCircle,
-  ChevronRight,
   Loader2,
   Search,
   Lock,
@@ -26,29 +24,21 @@ interface InputFormProps {
     scan_url?: string;
   }) => void;
   isLoading: boolean;
-  corpusList: CorpusItem[];
+  corpusList?: CorpusItem[];
 }
 
 export const InputForm: React.FC<InputFormProps> = ({
   onAnalyze,
   isLoading,
-  corpusList,
 }) => {
-  const [activeTab, setActiveTab] = useState<'scan' | 'url' | 'screenshots' | 'samples'>('url');
+  const [activeTab, setActiveTab] = useState<'scan' | 'url' | 'screenshots'>('scan');
   const [url, setUrl] = useState('');
   const [includeAi, setIncludeAi] = useState(false);
-  const [selectedCorpusId, setSelectedCorpusId] = useState<string>('consent_asymmetric_buttons');
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [uploadedContent, setUploadedContent] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (corpusList.length > 0 && !corpusList.some((item) => item.id === selectedCorpusId)) {
-      setSelectedCorpusId(corpusList[0].id);
-    }
-  }, [corpusList, selectedCorpusId]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isLoading) return;
@@ -142,28 +132,6 @@ export const InputForm: React.FC<InputFormProps> = ({
         return;
       }
       onAnalyze({ html_content: uploadedContent, include_ai: includeAi });
-    } else if (activeTab === 'samples') {
-      if (!selectedCorpusId || corpusList.length === 0) return;
-      onAnalyze({ corpus_id: selectedCorpusId, include_ai: includeAi });
-    }
-  };
-
-  const handleSelectSample = (id: string) => {
-    if (isLoading) return;
-    setSelectedCorpusId(id);
-    onAnalyze({ corpus_id: id, include_ai: includeAi });
-  };
-
-  const renderCorpusIcon = (cat: string) => {
-    switch (cat) {
-      case 'hidden_charges':
-        return <CreditCard className="w-5 h-5 text-red-pen shrink-0" aria-hidden="true" />;
-      case 'cancellation':
-        return <Ban className="w-5 h-5 text-ink-muted dark:text-[#94A3B8] shrink-0" aria-hidden="true" />;
-      case 'consent':
-        return <ShieldAlert className="w-5 h-5 text-ink dark:text-[#2DD4BF] shrink-0" aria-hidden="true" />;
-      default:
-        return <Search className="w-5 h-5 text-ink dark:text-[#2DD4BF] shrink-0" aria-hidden="true" />;
     }
   };
 
@@ -217,21 +185,6 @@ export const InputForm: React.FC<InputFormProps> = ({
             }`}
           >
             Screenshots
-          </button>
-          <button
-            type="button"
-            id="tab-samples"
-            role="tab"
-            aria-selected={activeTab === 'samples'}
-            aria-controls="content-samples"
-            onClick={() => setActiveTab('samples')}
-            className={`flex-1 py-2 text-center text-sm rounded-sm transition-all font-medium ${
-              activeTab === 'samples'
-                ? 'bg-white dark:bg-[#111A2E] text-ink dark:text-[#E2E8F0] shadow-sm font-semibold'
-                : 'text-ink-muted dark:text-[#94A3B8] hover:text-ink dark:hover:text-[#E2E8F0]'
-            }`}
-          >
-            Sample pages
           </button>
         </div>
 
@@ -407,53 +360,6 @@ export const InputForm: React.FC<InputFormProps> = ({
                   <div className="w-11 h-6 bg-paper dark:bg-[#26324A] border border-border-hairline dark:border-[#26324A] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ink dark:peer-checked:bg-[#2DD4BF]"></div>
                 </label>
               </div>
-            </div>
-          )}
-
-          {/* Tab Content: Sample Pages */}
-          {activeTab === 'samples' && (
-            <div className="space-y-2 max-h-72 overflow-y-auto pr-1" id="content-samples" role="tabpanel" aria-labelledby="tab-samples">
-              {corpusList.length > 0 ? (
-                corpusList.map((item) => {
-                  const isSelected = selectedCorpusId === item.id;
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => !isLoading && handleSelectSample(item.id)}
-                      className={`p-4 rounded-sm transition-all flex items-center justify-between group border ${
-                        isLoading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
-                      } ${
-                        isSelected
-                          ? 'bg-paper dark:bg-[#0B1220] border-2 border-ink dark:border-[#2DD4BF] shadow-sm'
-                          : 'bg-white dark:bg-[#111A2E] hover:bg-paper dark:hover:bg-[#0B1220] border-border-hairline dark:border-[#26324A]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {renderCorpusIcon(item.category)}
-                        <div>
-                          <h4 className="text-sm font-medium text-ink dark:text-[#E2E8F0] group-hover:text-red-pen transition-colors">
-                            {item.notes || item.id}
-                          </h4>
-                          <p className="text-xs text-ink-muted dark:text-[#94A3B8]">
-                            {item.patterns.length > 0
-                              ? `Deceptive: ${item.patterns.join(', ')}`
-                              : 'Clean fair design control (negative control fixture)'}
-                          </p>
-                        </div>
-                      </div>
-                      {isSelected ? (
-                        <CheckCircle className="w-5 h-5 text-ink dark:text-[#2DD4BF] shrink-0" aria-hidden="true" />
-                      ) : (
-                        <ChevronRight className="w-5 h-5 text-border-hairline dark:border-[#26324A] shrink-0" aria-hidden="true" />
-                      )}
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="text-center py-6 text-ink-muted dark:text-[#94A3B8] text-sm">
-                  Loading ground-truth sample pages...
-                </div>
-              )}
             </div>
           )}
 

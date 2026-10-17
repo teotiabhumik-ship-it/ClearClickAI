@@ -16,10 +16,12 @@ import {
   Clock,
   ArrowRight,
   UploadCloud,
-  PlayCircle
+  PlayCircle,
+  Camera,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Scan, ScanPage, GroupedFinding } from '../types';
+import { ScreenshotViewer } from './ScreenshotViewer';
 
 interface ScanReportViewProps {
   scan: Scan;
@@ -35,6 +37,11 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
   const [expandedFindings, setExpandedFindings] = useState<Record<number, boolean>>({});
   const [expandedPages, setExpandedPages] = useState<boolean>(true);
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
+  const [selectedPageUrl, setSelectedPageUrl] = useState<string>(() => {
+    const firstAnalysed = scan.pages.find((p) => p.page_status === 'ok') || scan.pages[0];
+    return firstAnalysed ? firstAnalysed.url : scan.root_url;
+  });
+  const [selectedFindingIndex, setSelectedFindingIndex] = useState<number | null>(null);
 
   const toggleFinding = (idx: number) => {
     setExpandedFindings((prev) => ({ ...prev, [idx]: !prev[idx] }));
@@ -481,6 +488,176 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
         )}
       </section>
 
+      {/* Visual Page Inspector: Page Screenshots & Proof Marker Pins */}
+      <section id="visual-page-inspector" aria-labelledby="inspector-heading" className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-hairline dark:border-[#26324A] pb-3">
+          <div className="flex items-center gap-2">
+            <Camera className="w-5 h-5 text-red-pen" aria-hidden="true" />
+            <h3 id="inspector-heading" className="text-lg font-bold font-serif text-ink dark:text-[#E2E8F0]">
+              Visual Page Inspector · Screenshots & Dark Pattern Proof Pins
+            </h3>
+          </div>
+          <span className="text-xs font-mono text-ink-muted dark:text-[#94A3B8]">
+            Click any pin or yellow box on the screenshot to inspect the dark pattern
+          </span>
+        </div>
+
+        {/* Audited Page Switcher Tabs */}
+        {scan.pages.filter((p) => p.page_status === 'ok' || p.decision === 'will_analyse').length > 0 && (
+          <div className="space-y-2">
+            <div className="text-xs font-mono text-ink-muted dark:text-[#94A3B8]">
+              Select an audited page to inspect screenshot and proof markers:
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {scan.pages
+                .filter((p) => p.page_status === 'ok' || p.decision === 'will_analyse')
+                .map((p, idx) => {
+                  const isSelected = p.url === selectedPageUrl;
+                  return (
+                    <button
+                      key={p.url}
+                      type="button"
+                      onClick={() => {
+                        setSelectedPageUrl(p.url);
+                        setSelectedFindingIndex(null);
+                      }}
+                      className={`px-3 py-2 rounded-sm text-xs font-medium border transition-all flex items-center gap-2 cursor-pointer ${
+                        isSelected
+                          ? 'bg-ink dark:bg-[#2DD4BF] text-paper dark:text-[#0B1220] border-ink dark:border-[#2DD4BF] shadow-sm font-semibold'
+                          : 'bg-white dark:bg-[#111A2E] text-ink dark:text-[#E2E8F0] border-border-hairline dark:border-[#26324A] hover:border-ink-muted'
+                      }`}
+                    >
+                      <span className="font-mono opacity-80">#{idx + 1}</span>
+                      <span className="capitalize">{p.page_type}</span>
+                      <span className="font-mono text-[11px] opacity-75 max-w-[140px] truncate">
+                        {p.url.replace(/^https?:\/\/[^/]+/i, '') || '/'}
+                      </span>
+                      {p.findings.length > 0 ? (
+                        <span
+                          className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                            isSelected ? 'bg-red-pen text-white' : 'bg-red-tint text-red-pen'
+                          }`}
+                        >
+                          {p.findings.length}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] opacity-60">Clean</span>
+                      )}
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+
+        {/* Interactive Viewer Container */}
+        {(() => {
+          const activePage =
+            scan.pages.find((p) => p.url === selectedPageUrl) ||
+            scan.pages.find((p) => p.page_status === 'ok') ||
+            scan.pages[0];
+
+          if (!activePage) return null;
+
+          return (
+            <div className="space-y-4">
+              <div className="bg-paper/60 dark:bg-[#0B1220]/60 p-3 rounded-sm border border-border-hairline dark:border-[#26324A] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-semibold text-ink dark:text-[#E2E8F0]">Viewing:</span>
+                  <span className="font-mono text-ink dark:text-[#2DD4BF] truncate">{activePage.url}</span>
+                  <span className="px-1.5 py-0.5 rounded bg-white dark:bg-[#111A2E] border font-mono text-ink-muted">
+                    {activePage.page_type}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-ink-muted">Page findings:</span>
+                  <span className="font-bold font-mono text-ink dark:text-[#E2E8F0]">
+                    {activePage.findings.length}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Screenshot Viewer (8 cols on large screen) */}
+                <div className="lg:col-span-8 min-h-[520px]">
+                  <ScreenshotViewer
+                    screenshotBase64={activePage.screenshot_base64}
+                    url={activePage.url}
+                    findings={activePage.findings}
+                    selectedFindingIndex={selectedFindingIndex}
+                    onSelectFinding={(idx) =>
+                      setSelectedFindingIndex(idx === selectedFindingIndex ? null : idx)
+                    }
+                  />
+                </div>
+
+                {/* Finding Proof Margin Notes (4 cols on large screen) */}
+                <div className="lg:col-span-4 space-y-3">
+                  <div className="flex items-center justify-between pb-1 border-b border-border-hairline dark:border-[#26324A]">
+                    <span className="font-mono text-xs uppercase font-semibold text-ink-muted dark:text-[#94A3B8]">
+                      Page Proof Annotations ({activePage.findings.length})
+                    </span>
+                    {selectedFindingIndex !== null && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFindingIndex(null)}
+                        className="text-xs text-red-pen hover:underline cursor-pointer"
+                      >
+                        Reset view
+                      </button>
+                    )}
+                  </div>
+
+                  {activePage.findings.length === 0 ? (
+                    <div className="p-6 text-center bg-white dark:bg-[#111A2E] rounded-sm border border-border-hairline dark:border-[#26324A] text-xs text-ink-muted">
+                      <p className="font-semibold text-ink dark:text-[#E2E8F0]">Clean page layout</p>
+                      <p className="mt-1">No deceptive dark pattern markers were flagged on this page.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5 max-h-[500px] overflow-y-auto pr-1">
+                      {activePage.findings.map((f, fIdx) => {
+                        const isSelected = selectedFindingIndex === fIdx;
+                        return (
+                          <div
+                            key={fIdx}
+                            onClick={() => setSelectedFindingIndex(isSelected ? null : fIdx)}
+                            className={`p-3.5 rounded-sm border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'border-red-pen bg-red-tint/10 dark:bg-[#B91C1C]/10 shadow-sm ring-1 ring-red-pen'
+                                : 'bg-white dark:bg-[#111A2E] border-border-hairline dark:border-[#26324A] hover:border-ink-muted'
+                            }`}
+                          >
+                            <div className="flex items-start gap-2.5">
+                              <span className="proof-marker text-xs w-5 h-5 leading-4 border-red-pen text-red-pen shrink-0">
+                                #{fIdx + 1}
+                              </span>
+                              <div className="min-w-0 flex-1 space-y-1">
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="font-semibold text-xs text-ink dark:text-[#E2E8F0] truncate">
+                                    {f.type}
+                                  </span>
+                                  {getSeverityBadge(f.severity)}
+                                </div>
+                                <p className="text-[11px] font-mono text-ink dark:text-[#E2E8F0] line-clamp-2 bg-paper dark:bg-[#0B1220] p-1.5 rounded border border-border-hairline dark:border-[#26324A]">
+                                  "{f.evidence}"
+                                </p>
+                                <p className="text-[11px] text-ink-muted dark:text-[#94A3B8] line-clamp-2">
+                                  {f.why}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </section>
+
       {/* Discovered Pages Table */}
       <section aria-labelledby="pages-heading" className="space-y-4">
         <div className="flex items-center justify-between">
@@ -553,6 +730,20 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
                               Flow
                             </button>
                           </div>
+                        ) : p.page_status === 'ok' || p.decision === 'will_analyse' ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedPageUrl(p.url);
+                              setSelectedFindingIndex(null);
+                              document.getElementById('visual-page-inspector')?.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-white dark:bg-[#111A2E] text-ink dark:text-[#2DD4BF] border border-border-hairline dark:border-[#26324A] hover:border-ink hover:shadow-sm transition-all cursor-pointer"
+                            title="Inspect page screenshot and proof markers"
+                          >
+                            <Camera className="w-3.5 h-3.5 text-red-pen" />
+                            <span>Inspect Screenshot</span>
+                          </button>
                         ) : (
                           <span className="text-ink-muted dark:text-[#94A3B8] text-xs">—</span>
                         )}
