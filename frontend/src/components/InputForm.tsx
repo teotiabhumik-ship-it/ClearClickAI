@@ -13,11 +13,18 @@ import {
   Search,
   Lock,
   CheckSquare,
+  Globe,
 } from 'lucide-react';
 import { CorpusItem } from '../types';
 
 interface InputFormProps {
-  onAnalyze: (payload: { url?: string; html_content?: string; corpus_id?: string; include_ai?: boolean }) => void;
+  onAnalyze: (payload: {
+    url?: string;
+    html_content?: string;
+    corpus_id?: string;
+    include_ai?: boolean;
+    scan_url?: string;
+  }) => void;
   isLoading: boolean;
   corpusList: CorpusItem[];
 }
@@ -27,9 +34,9 @@ export const InputForm: React.FC<InputFormProps> = ({
   isLoading,
   corpusList,
 }) => {
-  const [activeTab, setActiveTab] = useState<'url' | 'screenshots' | 'samples'>('url');
+  const [activeTab, setActiveTab] = useState<'scan' | 'url' | 'screenshots' | 'samples'>('url');
   const [url, setUrl] = useState('');
-  const [includeAi, setIncludeAi] = useState(true);
+  const [includeAi, setIncludeAi] = useState(false);
   const [selectedCorpusId, setSelectedCorpusId] = useState<string>('consent_asymmetric_buttons');
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
@@ -108,7 +115,17 @@ export const InputForm: React.FC<InputFormProps> = ({
     e.preventDefault();
     if (isLoading) return;
 
-    if (activeTab === 'url') {
+    if (activeTab === 'scan') {
+      let rawUrl = url.trim();
+      if (!rawUrl) {
+        urlInputRef.current?.focus();
+        return;
+      }
+      if (!/^https?:\/\//i.test(rawUrl)) {
+        rawUrl = `https://${rawUrl}`;
+      }
+      onAnalyze({ scan_url: rawUrl, include_ai: includeAi });
+    } else if (activeTab === 'url') {
       let rawUrl = url.trim();
       if (!rawUrl) {
         urlInputRef.current?.focus();
@@ -158,6 +175,21 @@ export const InputForm: React.FC<InputFormProps> = ({
         <div className="flex bg-paper dark:bg-[#0B1220] p-1 rounded-sm mb-6 border border-border-hairline dark:border-[#26324A]" role="tablist">
           <button
             type="button"
+            id="tab-scan"
+            role="tab"
+            aria-selected={activeTab === 'scan'}
+            aria-controls="content-scan"
+            onClick={() => setActiveTab('scan')}
+            className={`flex-1 py-2 text-center text-sm rounded-sm transition-all font-medium ${
+              activeTab === 'scan'
+                ? 'bg-white dark:bg-[#111A2E] text-ink dark:text-[#E2E8F0] shadow-sm font-semibold'
+                : 'text-ink-muted dark:text-[#94A3B8] hover:text-ink dark:hover:text-[#E2E8F0]'
+            }`}
+          >
+            Scan this site
+          </button>
+          <button
+            type="button"
             id="tab-url"
             role="tab"
             aria-selected={activeTab === 'url'}
@@ -169,7 +201,7 @@ export const InputForm: React.FC<InputFormProps> = ({
                 : 'text-ink-muted dark:text-[#94A3B8] hover:text-ink dark:hover:text-[#E2E8F0]'
             }`}
           >
-            URL
+            Single page
           </button>
           <button
             type="button"
@@ -205,6 +237,65 @@ export const InputForm: React.FC<InputFormProps> = ({
 
         {/* Form Container */}
         <form onSubmit={handleSubmit}>
+          {/* Tab Content: Scan this site */}
+          {activeTab === 'scan' && (
+            <div className="space-y-4" id="content-scan" role="tabpanel" aria-labelledby="tab-scan">
+              <div>
+                <label htmlFor="scan-url-input" className="block text-sm text-ink-muted dark:text-[#94A3B8] mb-1.5 font-medium">
+                  Site or Domain Web Address
+                </label>
+                <div className="flex items-center bg-paper dark:bg-[#0B1220] rounded-sm px-4 h-12 border border-border-hairline dark:border-[#26324A] focus-within:border-ink dark:focus-within:border-[#2DD4BF] transition-all">
+                  <Globe className="w-5 h-5 text-ink-muted dark:text-[#94A3B8] mr-3 shrink-0" aria-hidden="true" />
+                  <input
+                    ref={urlInputRef}
+                    id="scan-url-input"
+                    className="w-full bg-transparent text-sm text-ink dark:text-[#E2E8F0] focus:outline-none placeholder:text-ink-muted/60"
+                    placeholder="https://example-shop.com"
+                    type="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Plain words limits disclosure */}
+              <div className="p-3.5 rounded-sm bg-paper/70 dark:bg-[#0B1220]/70 border border-border-hairline dark:border-[#26324A] text-xs text-ink-muted dark:text-[#94A3B8] space-y-1">
+                <span className="font-semibold text-ink dark:text-[#E2E8F0] block">
+                  Scan limits: Up to 8 pages; AI on at most 5.
+                </span>
+                <p>
+                  Discovers and prioritises key transactional pages: pricing, cart, checkout, registration, cancellation, and consent. Keeps concurrency to 1 per domain with polite delay and robots.txt obedience.
+                </p>
+              </div>
+
+              {/* Plain on/off toggle for AI with state written out */}
+              <div className="flex items-center justify-between py-2 border-t border-border-hairline dark:border-[#26324A]">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="w-5 h-5 text-ink dark:text-[#2DD4BF]" aria-hidden="true" />
+                  <div>
+                    <span className="text-sm font-semibold text-ink dark:text-[#E2E8F0] block">
+                      {includeAi ? 'AI analysis: ON' : 'AI analysis: OFF'}
+                    </span>
+                    <span className="text-xs text-ink-muted dark:text-[#94A3B8] block">
+                      {includeAi ? 'Deep pattern inspection enabled on top 5 pages' : 'Operating in deterministic rules-only mode (No AI calls)'}
+                    </span>
+                  </div>
+                </div>
+                <label className={`relative inline-flex items-center ${isLoading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
+                  <input
+                    type="checkbox"
+                    checked={includeAi}
+                    disabled={isLoading}
+                    onChange={(e) => setIncludeAi(e.target.checked)}
+                    className="sr-only peer"
+                    aria-label="Toggle AI analysis"
+                  />
+                  <div className="w-11 h-6 bg-paper dark:bg-[#26324A] border border-border-hairline dark:border-[#26324A] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ink dark:peer-checked:bg-[#2DD4BF]"></div>
+                </label>
+              </div>
+            </div>
+          )}
+
           {/* Tab Content: URL */}
           {activeTab === 'url' && (
             <div className="space-y-4" id="content-url" role="tabpanel" aria-labelledby="tab-url">
@@ -231,8 +322,12 @@ export const InputForm: React.FC<InputFormProps> = ({
                 <div className="flex items-center gap-3">
                   <Sparkles className="w-5 h-5 text-ink dark:text-[#2DD4BF]" aria-hidden="true" />
                   <div>
-                    <span className="text-sm font-medium text-ink dark:text-[#E2E8F0] block">AI analysis</span>
-                    <span className="text-xs text-ink-muted dark:text-[#94A3B8] block">Deep pattern inspection & element quote verification</span>
+                    <span className="text-sm font-semibold text-ink dark:text-[#E2E8F0] block">
+                      {includeAi ? 'AI analysis: ON' : 'AI analysis: OFF'}
+                    </span>
+                    <span className="text-xs text-ink-muted dark:text-[#94A3B8] block">
+                      {includeAi ? 'Deep pattern inspection enabled' : 'Operating in deterministic rules-only mode'}
+                    </span>
                   </div>
                 </div>
                 <label className={`relative inline-flex items-center ${isLoading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
@@ -292,8 +387,12 @@ export const InputForm: React.FC<InputFormProps> = ({
                 <div className="flex items-center gap-3">
                   <Sparkles className="w-5 h-5 text-ink dark:text-[#2DD4BF]" aria-hidden="true" />
                   <div>
-                    <span className="text-sm font-medium text-ink dark:text-[#E2E8F0] block">AI vision inspection</span>
-                    <span className="text-xs text-ink-muted dark:text-[#94A3B8] block">Use Gemini multi-modal vision to inspect visual hierarchy</span>
+                    <span className="text-sm font-semibold text-ink dark:text-[#E2E8F0] block">
+                      {includeAi ? 'AI analysis: ON' : 'AI analysis: OFF'}
+                    </span>
+                    <span className="text-xs text-ink-muted dark:text-[#94A3B8] block">
+                      {includeAi ? 'Gemini multi-modal vision inspection enabled' : 'Operating in deterministic rules-only mode'}
+                    </span>
                   </div>
                 </div>
                 <label className={`relative inline-flex items-center ${isLoading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
@@ -345,7 +444,7 @@ export const InputForm: React.FC<InputFormProps> = ({
                       {isSelected ? (
                         <CheckCircle className="w-5 h-5 text-ink dark:text-[#2DD4BF] shrink-0" aria-hidden="true" />
                       ) : (
-                        <ChevronRight className="w-5 h-5 text-border-hairline dark:text-[#26324A] shrink-0" aria-hidden="true" />
+                        <ChevronRight className="w-5 h-5 text-border-hairline dark:border-[#26324A] shrink-0" aria-hidden="true" />
                       )}
                     </div>
                   );
@@ -373,7 +472,12 @@ export const InputForm: React.FC<InputFormProps> = ({
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
-                  <span>Analysing interface patterns...</span>
+                  <span>{activeTab === 'scan' ? 'Scanning site priority pages...' : 'Analysing interface patterns...'}</span>
+                </>
+              ) : activeTab === 'scan' ? (
+                <>
+                  <Globe className="w-5 h-5" aria-hidden="true" />
+                  <span>Scan this site (up to 8 pages)</span>
                 </>
               ) : (
                 <>

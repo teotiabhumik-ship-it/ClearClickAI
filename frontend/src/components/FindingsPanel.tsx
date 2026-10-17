@@ -8,7 +8,7 @@ interface FindingsPanelProps {
   selectedFindingIndex: number | null;
   onSelectFinding: (idx: number) => void;
   disclaimer: string;
-  aiStatus?: 'not_run' | 'completed' | 'failed';
+  aiStatus?: 'ran' | 'skipped_no_key' | 'ai_skipped_budget' | 'unavailable' | 'limit_reached' | 'invalid_response' | 'completed' | 'not_run' | 'failed' | string;
   aiStatusMessage?: string;
   ruleFindingsCount?: number;
   aiFindingsCount?: number;

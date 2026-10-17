@@ -16,8 +16,11 @@ import logging
 from typing import Optional, Dict, Any, List
 from bs4 import BeautifulSoup
 
-from ..schema import PageData, ExtractedCheckbox, ExtractedElement
+from ..schema import PageData, ExtractedCheckbox, ExtractedElement, PageStatus
 from .contrast import calculate_contrast_ratio, parse_color_to_rgb
+from ..config.scan_settings import SCAN_USER_AGENT, PER_PAGE_TIMEOUT
+from ..crawler.block_detector import detect_page_block, domain_cooldown_tracker
+from ..security import validate_url_safety
 
 logger = logging.getLogger("clearclick.extractor")
 
@@ -290,52 +293,51 @@ class PageExtractor:
                     ]
                 )
                 # Lock device_scale_factor to 1.0 for pixel-perfect screenshot & coordinate matching
-                # Set realistic desktop Chrome User-Agent, locale, and client headers to prevent bot blocking
+                # Use honest identifying User-Agent from config (Hard Rule 1 & 2: no stealth plugins or spoofing)
                 context = await browser.new_context(
                     viewport={"width": viewport_width, "height": viewport_height},
                     device_scale_factor=1.0,
-                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+                    user_agent=SCAN_USER_AGENT,
                     locale="en-US",
                     timezone_id="America/New_York",
-                    extra_http_headers={
-                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                        "Accept-Language": "en-US,en;q=0.9",
-                        "Sec-Ch-Ua": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
-                        "Sec-Ch-Ua-Mobile": "?0",
-                        "Sec-Ch-Ua-Platform": '"Windows"',
-                        "Sec-Fetch-Dest": "document",
-                        "Sec-Fetch-Mode": "navigate",
-                        "Sec-Fetch-Site": "none",
-                        "Sec-Fetch-User": "?1",
-                        "Upgrade-Insecure-Requests": "1",
-                    }
                 )
-
-                # Stealth initialization script: remove navigator.webdriver and mock plugins & chrome object
-                await context.add_init_script("""
-                Object.defineProperty(navigator, 'webdriver', {
-                    get: () => undefined
-                });
-                Object.defineProperty(navigator, 'languages', {
-                    get: () => ['en-US', 'en']
-                });
-                Object.defineProperty(navigator, 'plugins', {
-                    get: () => [1, 2, 3, 4, 5]
-                });
-                window.chrome = {
-                    runtime: {},
-                    loadTimes: function() {},
-                    csi: function() {},
-                    app: {}
-                };
-                """)
 
                 page = await context.new_page()
 
+                # Re-check each redirect target against SSRF safety (Hard Rule 4)
+                redirect_violation = None
+
+                def _on_response(resp):
+                    nonlocal redirect_violation
+                    if resp.status in (301, 302, 303, 307, 308):
+                        loc = resp.headers.get("location")
+                        if loc:
+                            from urllib.parse import urljoin
+                            target_url = urljoin(resp.url, loc)
+                            is_safe, reason = validate_url_safety(target_url)
+                            if not is_safe:
+                                redirect_violation = f"Redirect target '{target_url}' violates SSRF safety: {reason}"
+                                logger.warning(redirect_violation)
+
+                page.on("response", _on_response)
+
+                http_status = None
+                nav_status: PageStatus = "ok"
+                nav_reason = "Page loaded successfully"
+
                 if url and (url.startswith("http://") or url.startswith("https://")):
                     try:
-                        await page.goto(url, wait_until="domcontentloaded", timeout=25000)
+                        resp = await page.goto(url, wait_until="domcontentloaded", timeout=int(PER_PAGE_TIMEOUT * 1000))
+                        if resp:
+                            http_status = resp.status
                     except Exception as nav_e:
+                        err_str = str(nav_e)
+                        if "timeout" in err_str.lower():
+                            nav_status = "timeout"
+                            nav_reason = f"Navigation timeout exceeded ({PER_PAGE_TIMEOUT}s)"
+                        else:
+                            nav_status = "error"
+                            nav_reason = f"Navigation failed: {nav_e}"
                         logger.warning(f"Navigation warning or partial timeout for {url}: {nav_e}")
                 elif url and os.path.exists(url):
                     abs_path = os.path.abspath(url)
@@ -344,6 +346,10 @@ class PageExtractor:
                     await page.set_content(html_content, wait_until="domcontentloaded")
                 else:
                     raise ValueError("Must provide either a valid URL, file path, or HTML content.")
+
+                if redirect_violation:
+                    nav_status = "invalid_url"
+                    nav_reason = redirect_violation
 
                 # Dynamic wait for late-loading cookie banners or dialogs
                 await cls._wait_for_dynamic_content(page)
@@ -359,6 +365,29 @@ class PageExtractor:
                 await cls._extract_iframe_elements(page, data)
 
                 await browser.close()
+
+                # Block and access barrier detection
+                has_interactive = bool(
+                    data.get("checkboxes")
+                    or data.get("buttons")
+                    or data.get("links")
+                    or data.get("prices")
+                )
+                if nav_status == "ok":
+                    det_status, det_reason = detect_page_block(
+                        http_status=http_status,
+                        title=data.get("title", ""),
+                        visible_text=data.get("visibleText", ""),
+                        html_content=html_content or "",
+                        has_interactive_elements=has_interactive,
+                    )
+                    page_status = det_status
+                    status_reason = det_reason
+                    if page_status == "blocked" and url:
+                        domain_cooldown_tracker.record_block(url)
+                else:
+                    page_status = nav_status
+                    status_reason = nav_reason
 
                 body_fg = data.get("bodyColor", "#000000")
                 body_bg = data.get("bodyBg", "#ffffff")
@@ -385,7 +414,10 @@ class PageExtractor:
                     body_color=body_fg,
                     body_background_color=body_bg,
                     body_contrast_ratio=body_contrast,
-                    device_pixel_ratio=float(data.get("dpr", 1.0))
+                    device_pixel_ratio=float(data.get("dpr", 1.0)),
+                    page_status=page_status,
+                    status_reason=status_reason,
+                    http_status=http_status
                 )
 
         except Exception as e:
@@ -444,26 +476,67 @@ class PageExtractor:
     @classmethod
     def _fallback_soup_extract(cls, html: str, url: Optional[str] = None) -> PageData:
         """Lightweight pure-python fallback for fast offline testing and serverless environments."""
+        page_status: PageStatus = "ok"
+        status_reason = "Page loaded successfully"
+        http_status: Optional[int] = None
+
         if not html and url:
             if url.startswith("http://") or url.startswith("https://"):
                 import urllib.request
+                import urllib.error
+
+                class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+                    def redirect_request(self, req, fp, code, msg, headers, newurl):
+                        is_safe, reason = validate_url_safety(newurl)
+                        if not is_safe:
+                            raise urllib.error.HTTPError(
+                                newurl, 400, f"SSRF security violation on redirect: {reason}", headers, None
+                            )
+                        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
                 try:
                     req = urllib.request.Request(
                         url,
                         headers={
-                            "User-Agent": (
-                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                                "Chrome/124.0.0.0 Safari/537.36"
-                            ),
+                            "User-Agent": SCAN_USER_AGENT,
                             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                             "Accept-Language": "en-US,en;q=0.9",
                         }
                     )
-                    with urllib.request.urlopen(req, timeout=15) as resp:
+                    opener = urllib.request.build_opener(SafeRedirectHandler())
+                    with opener.open(req, timeout=int(PER_PAGE_TIMEOUT)) as resp:
+                        http_status = resp.getcode()
                         html = resp.read().decode("utf-8", errors="replace")
+                except urllib.error.HTTPError as http_err:
+                    http_status = http_err.code
+                    try:
+                        html = http_err.read().decode("utf-8", errors="replace")
+                    except Exception:
+                        html = ""
+                    det_status, det_reason = detect_page_block(http_status=http_status, html_content=html)
+                    if det_status == "blocked" and url:
+                        domain_cooldown_tracker.record_block(url)
+                    logger.warning(f"Fallback URL fetch HTTP error {http_status} for {url}: {det_reason}")
+                    return PageData(
+                        url=url,
+                        title="",
+                        visible_text="",
+                        page_status=det_status,
+                        status_reason=det_reason,
+                        http_status=http_status
+                    )
                 except Exception as fetch_e:
+                    err_str = str(fetch_e)
+                    status = "timeout" if "timed out" in err_str.lower() else "error"
                     logger.warning(f"Fallback URL fetch failed for {url}: {fetch_e}")
+                    return PageData(
+                        url=url,
+                        title="",
+                        visible_text="",
+                        page_status=status,
+                        status_reason=f"Fetch failed: {err_str}",
+                        http_status=None
+                    )
             elif os.path.exists(url):
                 try:
                     with open(url, "r", encoding="utf-8") as f:
@@ -474,6 +547,19 @@ class PageExtractor:
         soup = BeautifulSoup(html or "", "html.parser")
         title = soup.title.string if soup.title else ""
         text = soup.get_text(separator=" ", strip=True)
+
+        # Detect block or empty content on rendered HTML
+        det_status, det_reason = detect_page_block(
+            http_status=http_status or 200,
+            title=title or "",
+            visible_text=text,
+            html_content=html or ""
+        )
+        if det_status != "ok":
+            page_status = det_status
+            status_reason = det_reason
+            if page_status == "blocked" and url:
+                domain_cooldown_tracker.record_block(url)
 
         el_counter = 1
 
@@ -599,5 +685,8 @@ class PageExtractor:
             screenshot_base64=None,
             viewport_width=1280,
             viewport_height=800,
-            device_pixel_ratio=1.0
+            device_pixel_ratio=1.0,
+            page_status=page_status,
+            status_reason=status_reason,
+            http_status=http_status or 200
         )

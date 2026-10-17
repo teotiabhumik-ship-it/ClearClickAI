@@ -11,6 +11,54 @@ CategoryType = Literal["hidden_charges", "cancellation", "consent"]
 SeverityType = Literal["low", "medium", "high"]
 SourceType = Literal["rule", "ai", "hybrid"]
 
+PageStatus = Literal[
+    "ok",
+    "blocked",
+    "needs_login",
+    "empty",
+    "timeout",
+    "robots_disallowed",
+    "invalid_url",
+    "error",
+]
+
+PageType = Literal[
+    "pricing",
+    "cart",
+    "checkout",
+    "signup",
+    "account",
+    "cancel",
+    "consent",
+    "other",
+]
+
+SkippedReason = Literal[
+    "skipped_low_priority",
+    "skipped_duplicate",
+    "skipped_robots",
+    "skipped_cap",
+    "skipped_blocked_domain",
+]
+
+ScanDecision = Literal[
+    "will_analyse",
+    "skipped_low_priority",
+    "skipped_duplicate",
+    "skipped_robots",
+    "skipped_cap",
+]
+
+ScanAIStatus = Literal[
+    "ran",
+    "not_run",
+    "skipped_no_key",
+    "ai_skipped_budget",
+    "limit_reached",
+    "unavailable",
+    "invalid_response",
+]
+
 
 class Finding(BaseModel):
     category: CategoryType = Field(
@@ -103,6 +151,9 @@ class PageData(BaseModel):
     body_background_color: str = "#ffffff"
     body_contrast_ratio: float = 21.0
     device_pixel_ratio: float = 1.0
+    page_status: PageStatus = "ok"
+    status_reason: str = "ok"
+    http_status: Optional[int] = None
 
     def get_element(self, element_id: str) -> Optional[Any]:
         """Look up element by element_id or DOM id."""
@@ -146,6 +197,7 @@ class AnalysisReport(BaseModel):
     ai_status: Literal[
         "ran",
         "skipped_no_key",
+        "ai_skipped_budget",
         "unavailable",
         "limit_reached",
         "invalid_response",
@@ -156,6 +208,85 @@ class AnalysisReport(BaseModel):
     ai_status_message: str = "AI analysis not run (no API key configured)"
     screenshot_base64: Optional[str] = None
     page_title: str = ""
+    page_status: PageStatus = "ok"
+    status_reason: str = ""
     is_flow: bool = False
     step_count: int = 1
+
+
+class ScanPage(BaseModel):
+    url: str
+    page_type: PageType = "other"
+    page_type_evidence: str = ""
+    score: float = 0.0
+    decision: ScanDecision = "will_analyse"
+    page_status: PageStatus = "ok"
+    status_reason: str = ""
+    ai_status: ScanAIStatus = "not_run"
+    ai_status_message: str = ""
+    findings: List[Finding] = Field(default_factory=list)
+    skipped_reason: Optional[SkippedReason] = None
+    screenshot_base64: Optional[str] = None
+    page_title: str = ""
+    discovered_from: Optional[str] = None
+    depth: int = 0
+
+
+class GroupedFinding(BaseModel):
+    category: CategoryType
+    type: str
+    severity: SeverityType
+    confidence: float
+    evidence: str
+    why: str
+    safer_alternative: str
+    source: SourceType = "rule"
+    element_fingerprint: str
+    pages: List[str] = Field(default_factory=list)
+    page_types: List[str] = Field(default_factory=list)
+    sample_bbox: List[float] = Field(default_factory=lambda: [0.0, 0.0, 0.0, 0.0])
+
+
+class Coverage(BaseModel):
+    pages_discovered: int = 0
+    pages_analysed: int = 0
+    pages_skipped_by_reason: Dict[str, int] = Field(default_factory=dict)
+    pages_blocked: int = 0
+    pages_needs_login: int = 0
+    pages_ai_analysed: int = 0
+    ai_calls_used: int = 0
+    key_page_types_found: List[str] = Field(default_factory=list)
+    key_page_types_reached: List[str] = Field(default_factory=list)
+
+
+class Scan(BaseModel):
+    scan_id: str
+    root_url: str
+    status: Literal["queued", "running", "completed", "cancelled", "failed"] = "queued"
+    created_at: str
+    completed_at: Optional[str] = None
+    config_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    pages: List[ScanPage] = Field(default_factory=list)
+    grouped_findings: List[GroupedFinding] = Field(default_factory=list)
+    coverage: Coverage = Field(default_factory=Coverage)
+    error_message: Optional[str] = None
+
+
+class FlowStepResult(BaseModel):
+    step_index: int
+    step_name: str
+    url: Optional[str] = None
+    status: Literal["reached", "not_reached"]
+    stopped_reason: Optional[str] = None
+    page_data: Optional[PageData] = None
+
+
+class GuidedFlowResult(BaseModel):
+    flow_id: str
+    root_url: str
+    status: Literal["completed", "aborted", "failed"]
+    flow_stopped_reason: Optional[str] = None
+    steps: List[FlowStepResult] = Field(default_factory=list)
+    findings: List[Finding] = Field(default_factory=list)
+
 

@@ -28,6 +28,7 @@ export const MethodologyPage: React.FC = () => {
         <nav aria-label="Methodology sections" className="lg:hidden sticky top-14 z-30 -mx-4 px-4 py-2 bg-surface/95 dark:bg-[#0B1220]/95 backdrop-blur-md border-b border-outline-variant/20 dark:border-[#26324A] flex items-center gap-2 overflow-x-auto text-sm">
           <a href="#what-it-checks" className="px-3 py-1 rounded-full bg-surface-container dark:bg-[#111A2E] text-on-surface dark:text-[#E2E8F0] whitespace-nowrap hover:bg-primary hover:text-white transition-colors">What it checks</a>
           <a href="#how-it-checks" className="px-3 py-1 rounded-full bg-surface-container dark:bg-[#111A2E] text-on-surface dark:text-[#E2E8F0] whitespace-nowrap hover:bg-primary hover:text-white transition-colors">How it checks</a>
+          <a href="#multi-page-scanning" className="px-3 py-1 rounded-full bg-surface-container dark:bg-[#111A2E] text-on-surface dark:text-[#E2E8F0] whitespace-nowrap hover:bg-primary hover:text-white transition-colors">Scanning multiple pages</a>
           <a href="#limits" className="px-3 py-1 rounded-full bg-surface-container dark:bg-[#111A2E] text-on-surface dark:text-[#E2E8F0] whitespace-nowrap hover:bg-primary hover:text-white transition-colors">Limits</a>
           <a href="#accuracy" className="px-3 py-1 rounded-full bg-surface-container dark:bg-[#111A2E] text-on-surface dark:text-[#E2E8F0] whitespace-nowrap hover:bg-primary hover:text-white transition-colors">Accuracy</a>
           <a href="#privacy" className="px-3 py-1 rounded-full bg-surface-container dark:bg-[#111A2E] text-on-surface dark:text-[#E2E8F0] whitespace-nowrap hover:bg-primary hover:text-white transition-colors">Privacy</a>
@@ -148,6 +149,37 @@ export const MethodologyPage: React.FC = () => {
           </div>
         </section>
 
+        {/* SECTION: SCANNING MULTIPLE PAGES */}
+        <section id="multi-page-scanning" className="scroll-mt-24 space-y-6">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-6 rounded-full bg-primary dark:bg-[#2DD4BF] inline-block" />
+            <h2 className="text-xl sm:text-2xl font-bold text-on-surface dark:text-[#E2E8F0]">Scanning multiple pages</h2>
+          </div>
+          <div className="p-5 rounded-xl bg-surface-container-lowest dark:bg-[#111A2E] border border-outline-variant/30 dark:border-[#26324A] space-y-4 text-sm sm:text-base text-on-surface-variant dark:text-[#94A3B8] leading-relaxed">
+            <p>
+              Rather than crawling an entire website indiscriminately, ClearClick discovers and ranks the key pages where deceptive design typically clusters: pricing plans, cart review, checkout, account registration, cancellation, and consent dialogs.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
+              <div className="p-3 bg-surface-container-low dark:bg-[#0B1220] rounded-lg">
+                <strong className="text-on-surface dark:text-[#E2E8F0] block mb-1">Targeted Discovery & Priority Ranking</strong>
+                Discovers URLs via <code>robots.txt</code> sitemaps, <code>sitemap.xml</code>, and navigation links. Normalises paths, collapses near-duplicate templates, and prioritises transactional paths.
+              </div>
+              <div className="p-3 bg-surface-container-low dark:bg-[#0B1220] rounded-lg">
+                <strong className="text-on-surface dark:text-[#E2E8F0] block mb-1">Strict Crawler Caps & Politeness</strong>
+                Up to 8 pages analysed per site; AI analysis on at most 5 top-ranked pages. Concurrency is strictly 1 per domain with a polite 1.0s inter-request delay and full robots.txt respect.
+              </div>
+              <div className="p-3 bg-surface-container-low dark:bg-[#0B1220] rounded-lg">
+                <strong className="text-on-surface dark:text-[#E2E8F0] block mb-1">Honest Block Detection</strong>
+                Anti-bot challenges, CAPTCHAs, and HTTP 403/429/503 barriers are reported transparently as blocked—never bypassed or scored as clean. Blocked domains enter a 30-minute cooldown.
+              </div>
+              <div className="p-3 bg-surface-container-low dark:bg-[#0B1220] rounded-lg">
+                <strong className="text-on-surface dark:text-[#E2E8F0] block mb-1">Session-Only In-Memory Storage</strong>
+                Scan reports, discovered paths, and extracted DOM findings are kept in-memory for the active session and are not persisted in external databases.
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* SECTION 3: LIMITS */}
         <section id="limits" className="scroll-mt-24 space-y-6">
           <div className="flex items-center gap-2">
@@ -157,6 +189,7 @@ export const MethodologyPage: React.FC = () => {
           <div className="p-5 rounded-xl bg-surface-container-lowest dark:bg-[#111A2E] border border-outline-variant/30 dark:border-[#26324A] space-y-3">
             <ul className="list-disc list-inside space-y-2 text-sm sm:text-base text-on-surface-variant dark:text-[#94A3B8] leading-relaxed">
               <li><strong>Three categories only:</strong> ClearClick is calibrated exclusively for hidden charges, cancellation hurdles, and consent manipulation. It does not check other patterns such as fake social proof or disguised search ads.</li>
+              <li><strong>Partial coverage:</strong> Results cover only the pages reached. Skipping low-priority pages or blocked pages means unreached areas of a site were not checked; zero findings does not guarantee that the unreached portions of a domain are free from dark patterns.</li>
               <li><strong>Logins and interactions:</strong> The crawler cannot access content behind user authentication, payment credentials, or multi-step shopping funnels unless captured screenshots or saved HTML are directly uploaded.</li>
               <li><strong>AI variability:</strong> LLM responses can vary between runs, may misinterpret playful brand tone, or miss visual context.</li>
               <li><strong>"No findings" is not a clean bill of health:</strong> A page with zero findings may still contain deceptive practices that fall outside the three evaluated categories.</li>
@@ -378,6 +411,11 @@ export const MethodologyPage: React.FC = () => {
           <li className="pt-1">
             <a href="#how-it-checks" className="text-on-surface dark:text-[#E2E8F0] hover:text-primary dark:hover:text-[#2DD4BF] block py-0.5 transition-colors">
               How it checks
+            </a>
+          </li>
+          <li>
+            <a href="#multi-page-scanning" className="text-on-surface dark:text-[#E2E8F0] hover:text-primary dark:hover:text-[#2DD4BF] block py-0.5 transition-colors">
+              Scanning multiple pages
             </a>
           </li>
           <li>

@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AnalysisReport, CorpusItem } from '../types';
+import { AnalysisReport, CorpusItem, Scan, GuidedFlowResult } from '../types';
 import { InputForm } from '../components/InputForm';
 import { ScreenshotViewer } from '../components/ScreenshotViewer';
 import { FindingsPanel } from '../components/FindingsPanel';
-import { AlertCircle, X, Server } from 'lucide-react';
+import { ScanReportView } from '../components/ScanReportView';
+import { SiteScanProgress } from '../components/SiteScanProgress';
+import { AlertCircle, X, Server, ShieldAlert, UploadCloud, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { buildApiUrl } from '../config/api';
 import corpusCatalog from '../data/corpusCatalog.json';
 import sampleReports from '../data/sampleReports.json';
@@ -11,6 +14,9 @@ import { ServerSettingsModal } from '../components/ServerSettingsModal';
 
 export const AnalysePage: React.FC = () => {
   const [report, setReport] = useState<AnalysisReport | null>(null);
+  const [activeScan, setActiveScan] = useState<Scan | null>(null);
+  const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [isCancelling, setIsCancelling] = useState<boolean>(false);
   const [corpusList, setCorpusList] = useState<CorpusItem[]>(corpusCatalog as CorpusItem[]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedFindingIndex, setSelectedFindingIndex] = useState<number | null>(null);
@@ -18,14 +24,18 @@ export const AnalysePage: React.FC = () => {
   const [showInputForm, setShowInputForm] = useState<boolean>(true);
   const [isServerModalOpen, setIsServerModalOpen] = useState<boolean>(false);
   const analyzeAbortRef = useRef<AbortController | null>(null);
+  const scanPollTimeoutRef = useRef<any>(null);
   const isMountedRef = useRef<boolean>(true);
 
-  // Clean up any pending analysis request on unmount
+  // Clean up any pending analysis request or polling on unmount
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
       analyzeAbortRef.current?.abort();
+      if (scanPollTimeoutRef.current) {
+        clearTimeout(scanPollTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -53,21 +63,161 @@ export const AnalysePage: React.FC = () => {
     };
   }, []);
 
+  const pollScanStatus = async (scanId: string) => {
+    if (!isMountedRef.current) return;
+
+    try {
+      const res = await fetch(buildApiUrl(`/api/scans/${scanId}`));
+      if (!res.ok) throw new Error(`Failed to fetch scan status (${res.status})`);
+      const data: Scan = await res.json();
+
+      if (isMountedRef.current) {
+        setActiveScan(data);
+
+        if (data.status === 'completed' || data.status === 'cancelled' || data.status === 'failed') {
+          setIsScanning(false);
+          setIsCancelling(false);
+        } else {
+          scanPollTimeoutRef.current = setTimeout(() => pollScanStatus(scanId), 1200);
+        }
+      }
+    } catch (err: any) {
+      if (isMountedRef.current) {
+        setIsScanning(false);
+        setIsCancelling(false);
+        setErrorMsg(`Scan status query failed: ${err?.message || err}`);
+      }
+    }
+  };
+
+  const handleCancelScan = async () => {
+    if (!activeScan || isCancelling) return;
+    setIsCancelling(true);
+    try {
+      const res = await fetch(buildApiUrl(`/api/scans/${activeScan.scan_id}/cancel`), {
+        method: 'POST',
+      });
+      if (res.ok) {
+        const cancelledScan: Scan = await res.json();
+        if (isMountedRef.current) {
+          setActiveScan(cancelledScan);
+          setIsScanning(false);
+          setIsCancelling(false);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to cancel scan:', err);
+      setIsCancelling(false);
+    }
+  };
+
+  const handleStartFlow = async (url: string) => {
+    setIsLoading(true);
+    setErrorMsg(null);
+    try {
+      const res = await fetch(buildApiUrl('/api/flows/guided'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ start_url: url, include_ai: false }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || `Flow capture failed (${res.status})`);
+      }
+      const flowRes: GuidedFlowResult = await res.json();
+      // Render flow findings
+      if (isMountedRef.current) {
+        setReport({
+          url: flowRes.root_url,
+          timestamp: new Date().toISOString(),
+          disclaimer: 'Guided safe checkout flow findings for human review, not legal conclusions.',
+          summary_by_category: {
+            consent: flowRes.findings.filter((f) => f.category === 'consent').length,
+            hidden_charges: flowRes.findings.filter((f) => f.category === 'hidden_charges').length,
+            cancellation: flowRes.findings.filter((f) => f.category === 'cancellation').length,
+          },
+          findings: flowRes.findings,
+          rule_findings: flowRes.findings,
+          ai_findings: [],
+          rule_findings_count: flowRes.findings.length,
+          ai_findings_count: 0,
+          ai_status: 'skipped_no_key',
+          ai_status_message: flowRes.flow_stopped_reason || 'Flow capture concluded',
+          page_title: `Guided Checkout Flow (${flowRes.steps.filter((s) => s.status === 'reached').length} steps reached)`,
+          is_flow: true,
+          step_count: flowRes.steps.length,
+        });
+        setActiveScan(null);
+        setShowInputForm(false);
+      }
+    } catch (err: any) {
+      if (isMountedRef.current) {
+        setErrorMsg(`Guided flow error: ${err.message || err}`);
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
+    }
+  };
+
   const handleAnalyze = async (payload: {
     url?: string;
     html_content?: string;
     corpus_id?: string;
     include_ai?: boolean;
+    scan_url?: string;
   }) => {
-    if (isLoading) return;
+    if (isLoading || isScanning) return;
 
     analyzeAbortRef.current?.abort();
     const controller = new AbortController();
     analyzeAbortRef.current = controller;
 
-    setIsLoading(true);
     setErrorMsg(null);
     setSelectedFindingIndex(null);
+
+    // If multi-page site scan requested
+    if (payload.scan_url) {
+      setReport(null);
+      setActiveScan(null);
+      setIsScanning(true);
+      setShowInputForm(false);
+
+      try {
+        const res = await fetch(buildApiUrl('/api/scans'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            root_url: payload.scan_url,
+            include_ai: payload.include_ai,
+          }),
+          signal: controller.signal,
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || `Scan initiation failed (${res.status})`);
+        }
+
+        const scanData: Scan = await res.json();
+        if (isMountedRef.current) {
+          setActiveScan(scanData);
+          pollScanStatus(scanData.scan_id);
+        }
+      } catch (scanErr: any) {
+        if (scanErr.name === 'AbortError') return;
+        if (isMountedRef.current) {
+          setIsScanning(false);
+          setErrorMsg(scanErr.message || 'Failed to start multi-page site scan');
+        }
+      }
+      return;
+    }
+
+    // Single page or sample analysis
+    setIsLoading(true);
+    setActiveScan(null);
     setReport(null);
 
     try {
@@ -205,28 +355,67 @@ export const AnalysePage: React.FC = () => {
         </div>
       )}
 
-      {/* When NO report is active: Standalone Page Header */}
-      {!report && (
+      {/* When NO report or scan is active: Standalone Page Header */}
+      {!report && !activeScan && !isScanning && (
         <div className="mb-8">
           <p className="font-mono text-xs text-ink-muted dark:text-[#94A3B8] uppercase tracking-wider mb-1">
             Inspection Engine · Dark Pattern Audit
           </p>
           <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-ink dark:text-[#E2E8F0] tracking-tight mb-2 outline-none focus:outline-none focus-visible:outline-none">
-            Check a page for design that may mislead you
+            Check a page or scan a site for design that may mislead you
           </h1>
           <p className="text-ink-muted dark:text-[#94A3B8] text-base leading-relaxed max-w-3xl">
-            Paste a link, drop a screenshot, or choose a demo fixture. ClearClick looks for hidden charges, cancellation hurdles, and one-sided consent choices.
+            Audit single URLs, scan priority transactional pages of a domain, drop screenshots, or inspect ground-truth fixtures. ClearClick flags hidden charges, cancellation hurdles, and one-sided consent choices.
           </p>
         </div>
       )}
 
-      {/* Input Form (visible by default when no report, collapsible when report active) */}
-      {(!report || showInputForm) && (
-        <div className={report ? 'mb-8 pb-8 border-b border-border-hairline dark:border-[#26324A]' : ''}>
+      {/* Input Form (visible by default when no report/scan, collapsible when report/scan active) */}
+      {(!report && !activeScan && !isScanning) || showInputForm ? (
+        <div className={report || activeScan ? 'mb-8 pb-8 border-b border-border-hairline dark:border-[#26324A]' : ''}>
           <InputForm
             onAnalyze={handleAnalyze}
-            isLoading={isLoading}
+            isLoading={isLoading || isScanning}
             corpusList={corpusList}
+          />
+        </div>
+      ) : null}
+
+      {/* Live Site Scan Progress Screen */}
+      {isScanning && activeScan && (
+        <div className="mb-8">
+          <SiteScanProgress
+            scan={activeScan}
+            onCancel={handleCancelScan}
+            isCancelling={isCancelling}
+          />
+        </div>
+      )}
+
+      {/* Finished or Partial Site Scan Report Screen */}
+      {!isScanning && activeScan && (
+        <div className="mb-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveScan(null);
+                setReport(null);
+                setShowInputForm(true);
+              }}
+              className="text-xs font-mono underline hover:text-red-pen transition-colors text-ink dark:text-[#2DD4BF] cursor-pointer"
+            >
+              ← Scan another site or check a page
+            </button>
+          </div>
+          <ScanReportView
+            scan={activeScan}
+            onOpenUpload={() => {
+              setActiveScan(null);
+              setReport(null);
+              setShowInputForm(true);
+            }}
+            onStartFlow={handleStartFlow}
           />
         </div>
       )}
@@ -251,31 +440,74 @@ export const AnalysePage: React.FC = () => {
                   </button>
                 </div>
                 <h1 className="font-serif text-3xl font-semibold text-ink dark:text-[#E2E8F0] outline-none focus:outline-none focus-visible:outline-none">
-                  {report.findings.length === 0
+                  {report.page_status && report.page_status !== 'ok'
+                    ? "We couldn't access this page automatically"
+                    : report.findings.length === 0
                     ? 'No misleading patterns detected'
                     : `${report.findings.length} thing${report.findings.length === 1 ? '' : 's'} worth a closer look`}
                 </h1>
               </div>
               <div className="text-left md:text-right">
                 <p className="text-sm text-ink-muted dark:text-[#94A3B8]">
-                  Automated warnings for you to judge, not legal conclusions.
+                  {report.page_status && report.page_status !== 'ok'
+                    ? 'Automated fetch blocked or restricted by host'
+                    : 'Automated warnings for you to judge, not legal conclusions.'}
                 </p>
                 <p className="font-mono text-xs text-ink-muted dark:text-[#94A3B8] mt-0.5">
                   Status:{' '}
                   <span className="text-ink dark:text-[#E2E8F0] font-medium">
-                    AI analysis: {report.ai_status === 'completed' ? 'on' : report.ai_status === 'failed' ? 'unavailable' : 'off'}
+                    {report.page_status && report.page_status !== 'ok'
+                      ? `Access status: ${report.page_status}`
+                      : `AI analysis: ${report.ai_status === 'completed' || report.ai_status === 'ran' ? 'on' : report.ai_status === 'failed' || report.ai_status === 'unavailable' ? 'unavailable' : 'off'}`}
                   </span>{' '}
                   · Engine:{' '}
                   <span className="text-ink dark:text-[#E2E8F0] font-medium">
-                    {report.ai_status === 'completed' ? 'Rules + Vision LLM' : 'Deterministic Rules'}
+                    {report.page_status && report.page_status !== 'ok' ? 'Block Guard' : report.ai_status === 'completed' || report.ai_status === 'ran' ? 'Rules + Vision LLM' : 'Deterministic Rules'}
                   </span>
                 </p>
               </div>
             </div>
           </section>
 
-          {/* Main Content Area: Left 60% Proof Markup / Right 40% Margin Notes */}
-          <div className="grid grid-cols-1 lg:grid-cols-10 gap-8 items-start">
+          {/* Access Blocked Banner */}
+          {report.page_status && report.page_status !== 'ok' ? (
+            <div className="p-8 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800 rounded-sm mb-8">
+              <div className="flex items-start gap-4">
+                <ShieldAlert className="w-8 h-8 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-3">
+                  <div>
+                    <h2 className="font-serif text-2xl font-semibold text-ink dark:text-[#E2E8F0] mb-1">
+                      We couldn't access this page automatically
+                    </h2>
+                    <p className="text-sm text-ink-muted dark:text-[#94A3B8] leading-relaxed">
+                      {report.status_reason || 'This website returned an anti-bot challenge or requires interactive authentication.'}
+                    </p>
+                  </div>
+                  <p className="text-xs text-ink-muted dark:text-[#94A3B8] leading-relaxed">
+                    ClearClick AI strictly adheres to automated politeness: we do not bypass bot walls, spoof fingerprints, or solve CAPTCHAs. Because the page could not be accessed, it has not been scored or certified as clean.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowInputForm(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-ink dark:bg-[#2DD4BF] text-paper dark:text-[#0F172A] text-xs font-mono font-medium rounded-sm hover:opacity-90 transition-opacity"
+                    >
+                      <UploadCloud className="w-4 h-4" />
+                      Upload Screenshot Instead
+                    </button>
+                    <Link
+                      to="/methodology#limits"
+                      className="inline-flex items-center gap-1 text-xs font-mono underline text-ink-muted dark:text-[#94A3B8] hover:text-ink dark:hover:text-[#E2E8F0]"
+                    >
+                      Read about automated access limits
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-10 gap-8 items-start">
             {/* LEFT: Screenshot Canvas with Proofreader's Markup (6 cols) */}
             <section className="lg:col-span-6 flex flex-col">
               <ScreenshotViewer
@@ -303,6 +535,7 @@ export const AnalysePage: React.FC = () => {
               />
             </section>
           </div>
+        )}
         </div>
       )}
 

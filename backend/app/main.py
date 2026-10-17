@@ -6,7 +6,7 @@ Provides inspection endpoints, corpus demo fixtures, and evaluation benchmarking
 import os
 import json
 from datetime import datetime, timezone
-from typing import Optional, List, Dict, Literal
+from typing import Optional, List, Dict, Literal, Any
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -24,9 +24,15 @@ from .schema import (
     CategoryType,
     ExtractedCheckbox,
     ExtractedElement,
-    FlowData
+    FlowData,
+    Scan,
+    ScanPage,
+    GroupedFinding,
+    Coverage,
+    GuidedFlowResult,
 )
 from .extract.playwright_extractor import PageExtractor
+from .crawler.scan_manager import scan_manager
 from .detectors.consent import ConsentDetector
 from .detectors.hidden_charges import HiddenChargesDetector
 from .detectors.cancellation import CancellationDetector
@@ -170,6 +176,26 @@ async def analyze_page(req: AnalyzeRequest, request: Request):
         html_content=html_to_process
     )
 
+    # Hard Rule 1 & Phase 1: A blocked or failed page is NEVER analysed or scored as clean
+    if page_data.page_status != "ok":
+        return AnalysisReport(
+            url=url_to_process or "Uploaded HTML",
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            disclaimer="We couldn't access or extract this page automatically. No design patterns were evaluated.",
+            summary_by_category={"consent": 0, "hidden_charges": 0, "cancellation": 0},
+            findings=[],
+            rule_findings=[],
+            ai_findings=[],
+            rule_findings_count=0,
+            ai_findings_count=0,
+            ai_status="not_run",
+            ai_status_message=f"Analysis halted: {page_data.status_reason}",
+            screenshot_base64=page_data.screenshot_base64,
+            page_title=page_data.title or f"Page Access: {page_data.page_status.capitalize()}",
+            page_status=page_data.page_status,
+            status_reason=page_data.status_reason
+        )
+
     # 2. Execute Rule Detectors
     rule_findings: List[Finding] = []
     rule_findings.extend(consent_detector.detect(page_data))
@@ -245,7 +271,9 @@ async def analyze_page(req: AnalyzeRequest, request: Request):
         ai_status=ai_status,
         ai_status_message=ai_status_message,
         screenshot_base64=page_data.screenshot_base64,
-        page_title=page_data.title or "Page Analysis"
+        page_title=page_data.title or "Page Analysis",
+        page_status=page_data.page_status,
+        status_reason=page_data.status_reason
     )
 
 
@@ -329,6 +357,105 @@ async def analyze_flow_endpoint(req: AnalyzeFlowRequest, request: Request):
         is_flow=True,
         step_count=len(steps_data)
     )
+
+
+class CreateScanRequest(BaseModel):
+    root_url: str
+    include_ai: bool = True
+    max_pages: Optional[int] = None
+    max_ai_pages: Optional[int] = None
+
+
+@app.post("/api/scans", response_model=Scan, status_code=201)
+@app.post("/scans", response_model=Scan, status_code=201)
+async def create_scan_endpoint(req: CreateScanRequest, request: Request):
+    """
+    Starts an asynchronous multi-page site scan.
+    Enforces SSRF guards, robots.txt obedience, politeness delay, and AI call budget.
+    """
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    if not rate_limiter.is_allowed(client_ip):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded.")
+
+    if not req.root_url.startswith("http://") and not req.root_url.startswith("https://"):
+        raise HTTPException(status_code=400, detail="Only 'http' and 'https' URLs are supported.")
+
+    is_safe, reason = validate_url_safety(req.root_url)
+    if not is_safe:
+        raise HTTPException(status_code=400, detail=f"SSRF Security Violation: {reason}")
+
+    scan = scan_manager.create_scan(
+        root_url=req.root_url,
+        include_ai=req.include_ai,
+        max_pages=req.max_pages,
+        max_ai_pages=req.max_ai_pages
+    )
+    await scan_manager.start_scan_background(scan.scan_id)
+    return scan
+
+
+@app.get("/api/scans/{scan_id}", response_model=Scan)
+@app.get("/scans/{scan_id}", response_model=Scan)
+def get_scan_endpoint(scan_id: str):
+    """Returns current scan progress, coverage, and results so far."""
+    scan = scan_manager.get_scan(scan_id)
+    if not scan:
+        raise HTTPException(status_code=404, detail=f"Scan '{scan_id}' not found.")
+    return scan
+
+
+@app.post("/api/scans/{scan_id}/cancel", response_model=Scan)
+@app.post("/scans/{scan_id}/cancel", response_model=Scan)
+def cancel_scan_endpoint(scan_id: str):
+    """Gracefully cancels an in-progress scan, saving results obtained so far."""
+    scan = scan_manager.cancel_scan(scan_id)
+    if not scan:
+        raise HTTPException(status_code=404, detail=f"Scan '{scan_id}' not found.")
+    return scan
+
+
+class CreateGuidedFlowRequest(BaseModel):
+    start_url: str
+    include_ai: bool = False
+
+
+_guided_flows_cache: Dict[str, Any] = {}
+
+
+@app.post("/api/flows/guided", response_model=GuidedFlowResult, status_code=201)
+@app.post("/flows/guided", response_model=GuidedFlowResult, status_code=201)
+async def create_guided_flow_endpoint(req: CreateGuidedFlowRequest, request: Request):
+    """
+    Executes a safe, automated checkout flow from product/pricing to checkout review.
+    Stops before payment and personal data entry under Hard Rule 3.
+    """
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    if not rate_limiter.is_allowed(client_ip):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded.")
+
+    if not req.start_url.startswith("http://") and not req.start_url.startswith("https://"):
+        raise HTTPException(status_code=400, detail="Only 'http' and 'https' URLs are supported.")
+
+    is_safe, reason = validate_url_safety(req.start_url)
+    if not is_safe:
+        raise HTTPException(status_code=400, detail=f"SSRF Security Violation: {reason}")
+
+    from .crawler.guided_flow import GuidedFlowCapturer
+    ai_cli = ai_text_detector.client if req.include_ai else None
+    result = await GuidedFlowCapturer.capture_safe_flow(req.start_url, ai_client=ai_cli)
+    _guided_flows_cache[result.flow_id] = result
+    return result
+
+
+@app.get("/api/flows/guided/{flow_id}", response_model=GuidedFlowResult)
+@app.get("/flows/guided/{flow_id}", response_model=GuidedFlowResult)
+def get_guided_flow_endpoint(flow_id: str):
+    """Returns the result and journey steps of a guided flow capture."""
+    result = _guided_flows_cache.get(flow_id)
+    if not result:
+        raise HTTPException(status_code=404, detail=f"Guided flow '{flow_id}' not found.")
+    return result
+
 
 
 def consolidate_findings(rule_findings: List[Finding], ai_findings: List[Finding]) -> List[Finding]:
