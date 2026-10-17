@@ -3,7 +3,7 @@ Unified Finding & Analysis Schema for ClearClick AI
 Strictly conforms to Section 9 of the ClearClick AI Build Guide.
 """
 
-from typing import List, Optional, Tuple, Literal
+from typing import List, Optional, Tuple, Literal, Any, Union, Dict
 from pydantic import BaseModel, Field
 
 
@@ -47,6 +47,10 @@ class Finding(BaseModel):
         ...,
         description="Actionable suggestion for a transparent, fair alternative design"
     )
+    element_id: Optional[str] = Field(
+        default=None,
+        description="Stable extracted element ID"
+    )
     source: SourceType = Field(
         default="rule",
         description="Source of finding: rule, ai, or hybrid"
@@ -55,17 +59,23 @@ class Finding(BaseModel):
 
 class ExtractedCheckbox(BaseModel):
     id: Optional[str] = None
+    element_id: str = ""
     name: Optional[str] = None
     checked: bool
     disabled: bool = False
     label: str
     bbox: List[float] = Field(default_factory=lambda: [0.0, 0.0, 0.0, 0.0])
+    font_size_px: float = 14.0
+    color: str = "#000000"
+    background_color: str = "#ffffff"
+    contrast_ratio: float = 21.0
 
 
 class ExtractedElement(BaseModel):
     tag: str
     text: str
     id: Optional[str] = None
+    element_id: str = ""
     classes: List[str] = Field(default_factory=list)
     bbox: List[float] = Field(default_factory=lambda: [0.0, 0.0, 0.0, 0.0])
     font_size_px: float = 14.0
@@ -84,6 +94,7 @@ class PageData(BaseModel):
     buttons: List[ExtractedElement] = Field(default_factory=list)
     links: List[ExtractedElement] = Field(default_factory=list)
     prices: List[ExtractedElement] = Field(default_factory=list)
+    text_elements: List[ExtractedElement] = Field(default_factory=list)
     screenshot_base64: Optional[str] = None
     viewport_width: int = 1280
     viewport_height: int = 800
@@ -93,10 +104,27 @@ class PageData(BaseModel):
     body_contrast_ratio: float = 21.0
     device_pixel_ratio: float = 1.0
 
+    def get_element(self, element_id: str) -> Optional[Any]:
+        """Look up element by element_id or DOM id."""
+        if not element_id:
+            return None
+        for el in self.buttons + self.links + self.prices + self.text_elements:
+            if el.element_id == element_id or el.id == element_id:
+                return el
+        for cb in self.checkboxes:
+            if cb.element_id == element_id or cb.id == element_id:
+                return cb
+        return None
+
+    def all_elements(self) -> List[Any]:
+        """Return all extracted interactive and content elements."""
+        return self.buttons + self.links + self.prices + self.text_elements + self.checkboxes
+
 
 class FlowData(BaseModel):
     flow_type: Literal["cancellation", "checkout", "signup", "general"] = "general"
     steps: List[PageData] = Field(default_factory=list)
+    signup_steps_count: int = 1
 
 
 class CategorySummary(BaseModel):
@@ -115,7 +143,16 @@ class AnalysisReport(BaseModel):
     ai_findings: List[Finding] = Field(default_factory=list)
     rule_findings_count: int = 0
     ai_findings_count: int = 0
-    ai_status: Literal["not_run", "completed", "failed"] = "not_run"
+    ai_status: Literal[
+        "ran",
+        "skipped_no_key",
+        "unavailable",
+        "limit_reached",
+        "invalid_response",
+        "completed",
+        "not_run",
+        "failed"
+    ] = "skipped_no_key"
     ai_status_message: str = "AI analysis not run (no API key configured)"
     screenshot_base64: Optional[str] = None
     page_title: str = ""

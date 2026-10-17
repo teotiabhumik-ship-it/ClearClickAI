@@ -4,11 +4,22 @@ Detects:
 1. Micro-print fees and low-contrast cost disclosures (microprint_fee, low_contrast_fee)
 2. Late-appearing charges and price inflation across flow steps (drip_pricing)
 3. Pre-selected bundled fee add-ons (bundled_hidden_fee)
+4. Urgency and scarcity claims (countdown_timer_urgency, fake_scarcity_low_stock, etc.)
+Thresholds and severity mappings centralized in backend/app/config/thresholds.py.
 """
 
 import re
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from ..schema import PageData, Finding, ExtractedElement, FlowData
+from ..config.thresholds import (
+    FEE_RELATIVE_FONT_SIZE_RATIO,
+    FEE_ABSOLUTE_MICROPRINT_FONT_PX,
+    FEE_LOW_CONTRAST_THRESHOLD,
+    FEE_RELATIVE_CONTRAST_RATIO,
+    DRIP_PRICING_FLOW_RATIO,
+    DRIP_PRICING_SINGLE_PAGE_RATIO,
+    SEVERITY_MAPPING,
+)
 from .base import BaseDetector
 
 
@@ -37,7 +48,7 @@ BUNDLED_ADDON_KEYWORDS = [
     r"tip",
 ]
 
-# AidUI-derived Urgency & Scarcity Patterns (Table II & Section III-D1)
+# AidUI-derived Urgency & Scarcity Patterns
 COUNTDOWN_TIMER_PATTERNS = [
     r"(?:sale|deal|offer|discount|flash\s+sale)\s+(?:ends|expires|countdown|ends\s+in)\s*[:\-]?\s*(\d{1,2}:\d{2}(?::\d{2})?|\d+\s*(?:hours?|mins?|minutes?|secs?|seconds?))",
     r"\b(?:ends\s+in|expires\s+in|time\s+left)\s*[:\-]?\s*(\d{1,2}:\d{2}(?::\d{2})?)\b",
@@ -68,40 +79,59 @@ class HiddenChargesDetector(BaseDetector):
         findings: List[Finding] = []
 
         # 1. Inspect price elements and surrounding fee notes
-        baseline_price_size = self._find_headline_price_size(page_data.prices)
+        baseline_price_size, baseline_contrast = self._find_headline_price_metrics(page_data.prices)
 
         for price_el in page_data.prices:
             is_fee_text = any(re.search(kw, price_el.text, re.IGNORECASE) for kw in FEE_KEYWORDS)
             
+            # Flag only elements related to fees
             if is_fee_text:
-                # Check font size disparity (microprint is <= 10px or <= 35% of main price headline)
-                is_microprint = price_el.font_size_px <= 10.0 or (
-                    baseline_price_size > 0 and price_el.font_size_px <= baseline_price_size * 0.35
-                )
+                # Relative font size comparison against baseline price headline on same page
+                if baseline_price_size > 0:
+                    is_microprint = price_el.font_size_px <= baseline_price_size * FEE_RELATIVE_FONT_SIZE_RATIO
+                else:
+                    is_microprint = price_el.font_size_px <= FEE_ABSOLUTE_MICROPRINT_FONT_PX
+
                 if is_microprint:
+                    evidence_str = (
+                        f"Fee disclosure: '{price_el.text.strip()}' rendered at {price_el.font_size_px}px "
+                        f"(relative to headline {baseline_price_size:.0f}px, ratio {price_el.font_size_px / max(baseline_price_size, 1.0):.2f})"
+                    ) if baseline_price_size > 0 else f"Fee disclosure: '{price_el.text.strip()}' rendered at {price_el.font_size_px}px"
                     findings.append(Finding(
                         category="hidden_charges",
                         type="microprint_fee",
-                        severity="high",
+                        severity=SEVERITY_MAPPING.get("microprint_fee", "high"),
                         confidence=0.91,
-                        evidence=f"Fee disclosure: '{price_el.text.strip()}' rendered at {price_el.font_size_px}px (baseline headline: {baseline_price_size}px)",
+                        evidence=evidence_str,
+                        element_id=price_el.element_id or price_el.id,
                         bbox=price_el.bbox,
-                        why="A mandatory surcharge or renewal cost is rendered in diminutive micro-print font, making it easy for users to miss the true cost before purchasing.",
+                        why="A mandatory surcharge or renewal cost is rendered in diminutive micro-print font compared to the main price, making it easy for users to miss the true cost before purchasing.",
                         safer_alternative="Display mandatory fees in standard, legible font size directly alongside the advertised headline rate.",
                         source="rule"
                     ))
 
-                # Contextual contrast: check if fee text contrast is significantly impaired (< 4.0:1)
-                is_low_contrast = price_el.contrast_ratio < 4.0
+                # Contextual contrast: check if fee text contrast is significantly impaired (< 4.0:1) and degraded relative to baseline
+                if baseline_contrast > 0:
+                    is_low_contrast = (price_el.contrast_ratio < FEE_LOW_CONTRAST_THRESHOLD) or (
+                        price_el.contrast_ratio <= baseline_contrast * FEE_RELATIVE_CONTRAST_RATIO
+                    )
+                else:
+                    is_low_contrast = price_el.contrast_ratio < FEE_LOW_CONTRAST_THRESHOLD
+
                 if is_low_contrast:
+                    evidence_str = (
+                        f"Fee: '{price_el.text.strip()}' contrast is {price_el.contrast_ratio}:1 "
+                        f"(relative to baseline {baseline_contrast:.1f}:1, below WCAG 4.5:1 minimum on resolved background)"
+                    ) if baseline_contrast > 0 else f"Fee: '{price_el.text.strip()}' contrast is {price_el.contrast_ratio}:1 (below WCAG 4.5:1 minimum on resolved background)"
                     findings.append(Finding(
                         category="hidden_charges",
                         type="low_contrast_fee",
-                        severity="high",
+                        severity=SEVERITY_MAPPING.get("low_contrast_fee", "high"),
                         confidence=0.94,
-                        evidence=f"Fee: '{price_el.text.strip()}' contrast is {price_el.contrast_ratio}:1 (below WCAG 4.5:1 minimum on resolved background)",
+                        evidence=evidence_str,
+                        element_id=price_el.element_id or price_el.id,
                         bbox=price_el.bbox,
-                        why="Fee details are displayed using faint, low-contrast text against the background, impairing readability and obscuring the final price.",
+                        why="Fee details are displayed using faint, low-contrast text relative to the main price, impairing readability and obscuring the final price.",
                         safer_alternative="Render all pricing notices with at least 4.5:1 contrast against their background (WCAG AA compliant).",
                         source="rule"
                     ))
@@ -115,110 +145,102 @@ class HiddenChargesDetector(BaseDetector):
                     findings.append(Finding(
                         category="hidden_charges",
                         type="bundled_hidden_fee",
-                        severity="high",
+                        severity=SEVERITY_MAPPING.get("bundled_hidden_fee", "high"),
                         confidence=0.92,
                         evidence=box.label.strip(),
+                        element_id=box.element_id or box.id,
                         bbox=box.bbox,
-                        why="An optional paid add-on is pre-selected by default, adding unexpected cost to the purchase total without requiring explicit opt-in.",
-                        safer_alternative="Present paid add-ons as un-checked options requiring affirmative user selection.",
+                        why="A supplementary fee, paid warranty, or paid add-on is bundled and pre-selected by default, adding unexpected cost to the purchase.",
+                        safer_alternative="Present all add-on products and warranties with un-ticked checkboxes, requiring affirmative opt-in.",
                         source="rule"
                     ))
 
-        # 3. Check for single-page drip pricing (initial advertised vs final total jump)
-        drip_finding = self._detect_single_page_drip_pricing(page_data)
-        if drip_finding:
-            findings.append(drip_finding)
+        # 3. Check for single-page drip pricing in checkout summaries
+        single_page_drip = self._detect_single_page_drip_pricing(page_data)
+        if single_page_drip:
+            findings.append(single_page_drip)
 
-        # 4. AidUI Rules: Countdown Timers, Scarcity, High Demand & Social Proof
+        # 4. AidUI Rule: Detect countdown timer urgency
         findings.extend(self._detect_countdown_timers(page_data))
-        findings.extend(self._detect_low_stock_scarcity(page_data))
-        findings.extend(self._detect_high_demand_scarcity(page_data))
+
+        # 5. AidUI Rule: Detect fake scarcity / low stock claims
+        findings.extend(self._detect_fake_scarcity(page_data))
+
+        # 6. AidUI Rule: Detect high demand social proof
+        findings.extend(self._detect_high_demand(page_data))
+
+        # 7. AidUI Rule: Detect activity messages
         findings.extend(self._detect_activity_messages(page_data))
 
         return findings
 
     def _detect_countdown_timers(self, page_data: PageData) -> List[Finding]:
         findings = []
-        all_elements = page_data.prices + page_data.buttons + page_data.links
-        full_text = page_data.visible_text
-
         for pat in COUNTDOWN_TIMER_PATTERNS:
-            m = re.search(pat, full_text, re.IGNORECASE)
-            if m:
-                match_str = m.group(0).strip()
+            match = re.search(pat, page_data.visible_text, re.IGNORECASE)
+            if match:
+                match_text = match.group(0).strip()
                 bbox = [0.0, 0.0, 0.0, 0.0]
-                for el in all_elements:
-                    if match_str.lower() in el.text.lower() or el.text.lower() in match_str.lower():
-                        bbox = el.bbox
+                for p in page_data.prices + page_data.buttons:
+                    if match_text.lower() in p.text.lower():
+                        bbox = p.bbox
                         break
 
                 findings.append(Finding(
                     category="hidden_charges",
                     type="countdown_timer",
-                    severity="medium",
+                    severity=SEVERITY_MAPPING.get("countdown_timer", "medium"),
                     confidence=0.88,
-                    evidence=f"Countdown timer detected: '{match_str}'",
+                    evidence=f"Urgency timer claim: '{match_text}'",
                     bbox=bbox,
-                    why="A ticking countdown timer creates high urgency pressure, nudging users to bypass deliberate purchasing decisions.",
-                    safer_alternative="State standard promotional deadlines without artificial ticking timers unless part of a genuine live auction or scheduled broadcast.",
+                    why="Countdown timers create artificial time pressure, prompting hurried purchases before users can scrutinize hidden charges or terms.",
+                    safer_alternative="State clear sale deadlines without animated or deceptive countdown tickers.",
                     source="rule"
                 ))
                 break
         return findings
 
-    def _detect_low_stock_scarcity(self, page_data: PageData) -> List[Finding]:
+    def _detect_fake_scarcity(self, page_data: PageData) -> List[Finding]:
         findings = []
-        all_elements = page_data.prices + page_data.buttons + page_data.links
-        full_text = page_data.visible_text
-
         for pat in LOW_STOCK_PATTERNS:
-            m = re.search(pat, full_text, re.IGNORECASE)
-            if m:
-                match_str = m.group(0).strip()
+            match = re.search(pat, page_data.visible_text, re.IGNORECASE)
+            if match:
+                match_text = match.group(0).strip()
                 bbox = [0.0, 0.0, 0.0, 0.0]
-                for el in all_elements:
-                    if match_str.lower() in el.text.lower() or el.text.lower() in match_str.lower():
-                        bbox = el.bbox
+                for p in page_data.prices + page_data.buttons:
+                    if match_text.lower() in p.text.lower():
+                        bbox = p.bbox
                         break
 
                 findings.append(Finding(
                     category="hidden_charges",
                     type="low_stock_scarcity",
-                    severity="medium",
-                    confidence=0.86,
-                    evidence=f"Low stock pressure cue: '{match_str}'",
+                    severity=SEVERITY_MAPPING.get("low_stock_scarcity", "medium"),
+                    confidence=0.87,
+                    evidence=f"Scarcity claim: '{match_text}'",
                     bbox=bbox,
-                    why="Highlighting extreme low inventory creates artificial scarcity pressure to force impulsive checkout.",
-                    safer_alternative="Provide factual inventory status (e.g., 'In Stock') without emotive hurry banners unless inventory is genuinely exhausted.",
+                    why="Aggressive scarcity warnings ('only 1 left in stock') pressure users into expedited purchases without comparing prices or verifying hidden fees.",
+                    safer_alternative="Display actual inventory status transparently without alarmist phrasing.",
                     source="rule"
                 ))
                 break
         return findings
 
-    def _detect_high_demand_scarcity(self, page_data: PageData) -> List[Finding]:
+    def _detect_high_demand(self, page_data: PageData) -> List[Finding]:
         findings = []
-        all_elements = page_data.prices + page_data.buttons + page_data.links
-        full_text = page_data.visible_text
-
         for pat in HIGH_DEMAND_PATTERNS:
-            m = re.search(pat, full_text, re.IGNORECASE)
-            if m:
-                match_str = m.group(0).strip()
-                bbox = [0.0, 0.0, 0.0, 0.0]
-                for el in all_elements:
-                    if match_str.lower() in el.text.lower() or el.text.lower() in match_str.lower():
-                        bbox = el.bbox
-                        break
-
+            match = re.search(pat, page_data.visible_text, re.IGNORECASE)
+            if match:
+                match_text = match.group(0).strip()
                 findings.append(Finding(
                     category="hidden_charges",
                     type="high_demand_scarcity",
-                    severity="medium",
+                    severity=SEVERITY_MAPPING.get("high_demand_scarcity", "medium"),
                     confidence=0.85,
-                    evidence=f"High-demand alert: '{match_str}'",
-                    bbox=bbox,
-                    why="Displaying real-time viewer counts or high-demand alerts exploits competition anxiety to rush the user through payment.",
-                    safer_alternative="Allow consumers to review listings without intrusive live viewer tallies.",
+                    evidence=f"Social proof pressure: '{match_text}'",
+                    bbox=[0.0, 0.0, 0.0, 0.0],
+                    why="Displaying real-time viewer counts uses artificial social proof to induce fear of missing out (FOMO), leading users to accept unverified costs.",
+                    safer_alternative="Allow consumers to review options at their own pace without simulated competition.",
                     source="rule"
                 ))
                 break
@@ -226,27 +248,18 @@ class HiddenChargesDetector(BaseDetector):
 
     def _detect_activity_messages(self, page_data: PageData) -> List[Finding]:
         findings = []
-        all_elements = page_data.prices + page_data.buttons + page_data.links
-        full_text = page_data.visible_text
-
         for pat in ACTIVITY_MESSAGE_PATTERNS:
-            m = re.search(pat, full_text, re.IGNORECASE)
-            if m:
-                match_str = m.group(0).strip()
-                bbox = [0.0, 0.0, 0.0, 0.0]
-                for el in all_elements:
-                    if match_str.lower() in el.text.lower() or el.text.lower() in match_str.lower():
-                        bbox = el.bbox
-                        break
-
+            match = re.search(pat, page_data.visible_text, re.IGNORECASE)
+            if match:
+                match_text = match.group(0).strip()
                 findings.append(Finding(
                     category="hidden_charges",
                     type="activity_message",
-                    severity="low",
-                    confidence=0.82,
-                    evidence=f"Social proof sales activity: '{match_str}'",
-                    bbox=bbox,
-                    why="Displaying rapid recent sales numbers leverages bandwagon effects to influence immediate buying behavior.",
+                    severity=SEVERITY_MAPPING.get("activity_message", "medium"),
+                    confidence=0.85,
+                    evidence=f"Activity notification: '{match_text}'",
+                    bbox=[0.0, 0.0, 0.0, 0.0],
+                    why="Highlighting recent purchases creates urgency by implying limited availability or surging demand.",
                     safer_alternative="Allow users to evaluate products on their own merits and verified long-term reviews.",
                     source="rule"
                 ))
@@ -267,7 +280,7 @@ class HiddenChargesDetector(BaseDetector):
         initial_headline = self._extract_largest_price(first_step)
         final_total = self._extract_largest_price(last_step)
 
-        if initial_headline and final_total and final_total > initial_headline * 1.20:
+        if initial_headline and final_total and final_total > initial_headline * DRIP_PRICING_FLOW_RATIO:
             # Detect fees introduced in intermediate/final steps
             new_fees = []
             for step in flow.steps[1:]:
@@ -278,7 +291,7 @@ class HiddenChargesDetector(BaseDetector):
             findings.append(Finding(
                 category="hidden_charges",
                 type="drip_pricing",
-                severity="high",
+                severity=SEVERITY_MAPPING.get("drip_pricing", "high"),
                 confidence=0.95,
                 evidence=f"Price increased across flow from ${initial_headline:.2f} (Step 1) to ${final_total:.2f} (Step {len(flow.steps)}) via late-added fees: {', '.join(new_fees[:3]) or 'undisclosed surcharges'}",
                 bbox=[0.0, 0.0, 0.0, 0.0],
@@ -289,12 +302,24 @@ class HiddenChargesDetector(BaseDetector):
 
         return findings
 
-    def _find_headline_price_size(self, prices: List[ExtractedElement]) -> float:
+    def _find_headline_price_metrics(self, prices: List[ExtractedElement]) -> Tuple[float, float]:
         headline_size = 0.0
+        headline_contrast = 21.0
+        # Exclude fee-labeled elements when searching for primary headline price
         for p in prices:
-            if re.search(r"[\$€£₹]\s*\d+", p.text) and p.font_size_px > headline_size:
+            is_fee = any(re.search(kw, p.text, re.IGNORECASE) for kw in FEE_KEYWORDS)
+            if not is_fee and re.search(r"[\$€£₹]\s*\d+", p.text) and p.font_size_px > headline_size:
                 headline_size = p.font_size_px
-        return headline_size
+                headline_contrast = p.contrast_ratio
+
+        # Fallback if all prices contain fee keywords
+        if headline_size == 0.0:
+            for p in prices:
+                if re.search(r"[\$€£₹]\s*\d+", p.text) and p.font_size_px > headline_size:
+                    headline_size = p.font_size_px
+                    headline_contrast = p.contrast_ratio
+
+        return headline_size, headline_contrast
 
     def _extract_largest_price(self, page_data: PageData) -> Optional[float]:
         values = []
@@ -305,26 +330,23 @@ class HiddenChargesDetector(BaseDetector):
         return max(values) if values else None
 
     def _detect_single_page_drip_pricing(self, page_data: PageData) -> Optional[Finding]:
-        # Normalize whitespace across newlines
         norm_text = " ".join(page_data.visible_text.split())
         
-        # Generic match: advertised/initial price vs final total
         init_match = re.search(r"(?:advertised\s+(?:ticket\s+)?price|initial\s+price|starting\s+(?:at|price))\s*[:\-]?\s*[\$€£₹]\s*(\d+(?:\.\d{2})?)", norm_text, re.IGNORECASE)
         total_match = re.search(r"(?:final\s+total|order\s+total|grand\s+total)\s*[:\-]?\s*[\$€£₹]\s*(\d+(?:\.\d{2})?)", norm_text, re.IGNORECASE)
         
-        # Generic search for any fee additions (e.g. "Delivery Fee: $9.50")
         detected_fees = re.findall(r"[A-Za-z\s]{3,30}(?:fee|surcharge|charge)\s*[:\-]?\s*[\$€£₹]\s*\d+(?:\.\d{2})?", norm_text, re.IGNORECASE)
 
         if init_match and total_match and len(detected_fees) >= 1:
             init_val = float(init_match.group(1))
             total_val = float(total_match.group(1))
             
-            if total_val > init_val * 1.15:
+            if total_val > init_val * DRIP_PRICING_SINGLE_PAGE_RATIO:
                 clean_fees = [f.strip() for f in detected_fees]
                 return Finding(
                     category="hidden_charges",
                     type="drip_pricing",
-                    severity="high",
+                    severity=SEVERITY_MAPPING.get("drip_pricing", "high"),
                     confidence=0.93,
                     evidence=f"Advertised price ${init_val:.2f} inflated to final total ${total_val:.2f} via late-added fees: {', '.join(clean_fees[:3])}",
                     bbox=[0.0, 0.0, 0.0, 0.0],

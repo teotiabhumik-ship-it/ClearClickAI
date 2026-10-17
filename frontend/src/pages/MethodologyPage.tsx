@@ -139,7 +139,7 @@ export const MethodologyPage: React.FC = () => {
                 When an API key is available and AI inspection is toggled on, ClearClick queries Google Gemini for subtle semantic cues (such as emotional guilt-tripping and complex double negatives).
               </p>
               <div className="p-3 bg-surface-container-low dark:bg-[#0B1220] rounded-lg text-xs text-on-surface dark:text-[#E2E8F0] space-y-1">
-                <strong>Anti-Hallucination Guard:</strong> Every AI finding must return a verbatim quote that is checked against the page text. If the quote cannot be verified or is too short, the AI finding is dropped.
+                <strong>Verbatim Quote & Element Guard:</strong> Every AI finding must return a verbatim quote that is verified against the specific extracted DOM element. If the quote cannot be verified in that element or is too short, the AI finding is dropped. Note that while deterministic rules are repeatable, they are heuristic and subject to potential false positives or misses.
               </div>
               <p className="text-xs text-on-surface-variant dark:text-[#94A3B8]">
                 AI analysis can be toggled off at any time; if no key is configured, ClearClick operates seamlessly in rules-only mode.

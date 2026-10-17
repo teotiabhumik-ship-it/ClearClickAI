@@ -9,7 +9,7 @@ ClearClick AI is an evidence-based audit tool that inspects web pages (DOM eleme
 
 ## Three Core Engineering Principles
 1. **Evidence, not accusations**: Every finding provides concrete proof (exact verbatim quotes, measured WCAG contrast ratios, element coordinates `[x, y, w, h]`) and cautious phrasing ("potentially misleading", never legal accusations like "fraud").
-2. **Rules where possible, AI where needed**: Exact DOM and style measurements are computed via deterministic Python rule engines; nuanced copy and visual hierarchy are evaluated via AI detectors equipped with strict anti-hallucination quote verification.
+2. **Rules where possible, AI where needed**: Exact DOM and style measurements are computed via deterministic Python rule engines; nuanced copy and visual hierarchy are evaluated via AI detectors equipped with element-grounded verbatim quote verification. Deterministic rules are repeatable and structured, but heuristic and subject to false positives or misses; AI findings are tied to extracted DOM elements to mitigate hallucination.
 3. **Honest measurement**: Includes an automated benchmark evaluation suite that assesses precision and recall against a ground-truth corpus.
 
 ---
@@ -97,6 +97,9 @@ clearclick-ai/
 │   ├── app/
 │   │   ├── main.py           # FastAPI entrypoint & REST endpoints
 │   │   ├── schema.py         # Standard Pydantic schemas (Finding, PageData)
+│   │   ├── config/
+│   │   │   ├── settings.py   # Configurable models, providers, rate limits
+│   │   │   └── thresholds.py # Centralized detector thresholds & severity map
 │   │   ├── extract/
 │   │   │   ├── playwright_extractor.py # DOM, style & screenshot extractor
 │   │   │   └── contrast.py   # WCAG 2.1 contrast calculation
@@ -104,11 +107,13 @@ clearclick-ai/
 │   │   │   ├── base.py       # Base detector protocol
 │   │   │   ├── consent.py    # Consent detector rules
 │   │   │   ├── hidden_charges.py # Microprint & low contrast fee rules
-│   │   │   └── cancellation.py   # Buried links & confirm-shaming rules
+│   │   │   ├── cancellation.py   # Buried links & confirm-shaming rules
+│   │   │   └── flow_analysis.py  # Multi-step flow price and friction comparison
 │   │   ├── ai/
-│   │   │   ├── client.py     # Modular LLM client (Claude, Gemini, heuristic)
+│   │   │   ├── client.py     # Modular LLM client (Claude, Gemini, caching, limits)
 │   │   │   ├── text_analysis.py # Linguistic pattern detector
-│   │   │   └── quote_verifier.py # Anti-hallucination quote verifier
+│   │   │   ├── vision_analysis.py # Visual asymmetry detector with fact checks
+│   │   │   └── quote_verifier.py # Element-grounded verbatim quote verifier
 │   │   └── evaluation/
 │   │       └── benchmark.py  # Precision/recall benchmark evaluator
 ├── frontend/                 # React 18 + Vite + Tailwind CSS UI
@@ -118,5 +123,5 @@ clearclick-ai/
 │   │   │   ├── ScreenshotViewer.tsx # Interactive SVG bounding box canvas
 │   │   │   ├── FindingsPanel.tsx    # Finding cards & safer alternatives
 │   │   │   └── EvaluationModal.tsx  # Benchmark scorecard modal
-└── tests/                    # Pytest test suite (15 passing tests)
+└── tests/                    # Pytest test suite (42+ automated tests)
 ```

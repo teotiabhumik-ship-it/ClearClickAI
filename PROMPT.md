@@ -3,7 +3,7 @@
 Read `PROJECT.md` and `ROADMAP.md`.
 
 ## Task:
-Pass all detector unit tests in `tests/` and maintain 100% adherence to the ground-truth corpus labels in `corpus/labels.json`.
+Pass all detector unit tests in `tests/` and maintain adherence to the ground-truth corpus labels in `corpus/labels.json`.
 
 ## Rules:
 1. Detectors may only analyze structured input extracted from the page (text, checkboxes, buttons, computed styles, bounding boxes); never initiate unsolicited outbound network calls during detection.

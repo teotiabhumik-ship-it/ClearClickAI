@@ -232,7 +232,7 @@ export const InputForm: React.FC<InputFormProps> = ({
                   <Sparkles className="w-5 h-5 text-ink dark:text-[#2DD4BF]" aria-hidden="true" />
                   <div>
                     <span className="text-sm font-medium text-ink dark:text-[#E2E8F0] block">AI analysis</span>
-                    <span className="text-xs text-ink-muted dark:text-[#94A3B8] block">Deep pattern inspection & anti-hallucination quote check</span>
+                    <span className="text-xs text-ink-muted dark:text-[#94A3B8] block">Deep pattern inspection & element quote verification</span>
                   </div>
                 </div>
                 <label className={`relative inline-flex items-center ${isLoading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>

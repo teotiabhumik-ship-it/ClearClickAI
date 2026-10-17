@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-16T05:25:29.226679+00:00",
+  "generated_at": "2026-10-17T08:00:02.367601+00:00",
   "provider": null,
   "model": null,
   "datasets": {
@@ -40,10 +40,11 @@
       "rules_ai": null
     }
   },
+  "verifier_stats": null,
   "failures": [
     {
       "title": "heldout_charges_tiny_print_renewal",
-      "description": "Expected: ['microprint_fee'], Detected: ['microprint_fee', 'low_contrast_fee'] (FP: 1, FN: 0)"
+      "description": "Expected: ['microprint_fee'], Detected: ['low_contrast_fee', 'microprint_fee'] (FP: 1, FN: 0)"
     }
   ]
 }

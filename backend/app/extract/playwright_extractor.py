@@ -22,7 +22,7 @@ from .contrast import calculate_contrast_ratio, parse_color_to_rgb
 logger = logging.getLogger("clearclick.extractor")
 
 
-EXTRACTION_JS = """
+EXTRACTION_JS = r"""
 () => {
     const dpr = window.devicePixelRatio || 1;
 
@@ -90,6 +90,7 @@ EXTRACTION_JS = """
     }
 
     const allNodes = getAllElementsWithShadow(document.documentElement);
+    let elCounter = 1;
 
     // 1. Checkboxes
     const checkboxes = [];
@@ -110,8 +111,10 @@ EXTRACTION_JS = """
             labelText = cb.getAttribute('aria-label') || '';
         }
 
+        const assignedId = `el_${elCounter++}`;
         checkboxes.push({
-            id: cb.id || `cb_${idx}`,
+            id: cb.id || assignedId,
+            element_id: assignedId,
             name: cb.name || '',
             checked: cb.checked,
             disabled: cb.disabled,
@@ -131,10 +134,12 @@ EXTRACTION_JS = """
         const txt = btn.innerText || btn.value || btn.getAttribute('aria-label') || '';
         if (!txt.trim()) return;
         const s = getStyle(btn);
+        const assignedId = `el_${elCounter++}`;
         buttons.push({
             tag: btn.tagName.toLowerCase(),
             text: txt.trim(),
-            id: btn.id || `btn_${idx}`,
+            id: btn.id || assignedId,
+            element_id: assignedId,
             classes: Array.from(btn.classList || []),
             bbox: getBBox(btn),
             font_size_px: s.fontSizePx,
@@ -151,10 +156,12 @@ EXTRACTION_JS = """
         const txt = link.innerText || link.getAttribute('aria-label') || '';
         if (!txt.trim()) return;
         const s = getStyle(link);
+        const assignedId = `el_${elCounter++}`;
         links.push({
             tag: 'a',
             text: txt.trim(),
-            id: link.id || `link_${idx}`,
+            id: link.id || assignedId,
+            element_id: assignedId,
             classes: Array.from(link.classList || []),
             bbox: getBBox(link),
             font_size_px: s.fontSizePx,
@@ -167,7 +174,7 @@ EXTRACTION_JS = """
 
     // 4. Prices and fees
     const prices = [];
-    const priceRegex = /([$€£₹]\\s*\\d+(?:\\.\\d{2})?|fee|charge|surcharge|total|resort|processing|handling|cleaning)/i;
+    const priceRegex = /([$€£₹]\s*\d+(?:\.\d{2})?|fee|charge|surcharge|total|resort|processing|handling|cleaning)/i;
 
     allNodes.filter(n => {
         const tag = n.tagName.toLowerCase();
@@ -177,16 +184,44 @@ EXTRACTION_JS = """
         const txt = el.innerText || '';
         if (priceRegex.test(txt) && txt.trim().length < 150) {
             const s = getStyle(el);
+            const assignedId = `el_${elCounter++}`;
             prices.push({
                 tag: el.tagName.toLowerCase(),
                 text: txt.trim(),
-                id: el.id || `price_${idx}`,
+                id: el.id || assignedId,
+                element_id: assignedId,
                 classes: Array.from(el.classList || []),
                 bbox: getBBox(el),
                 font_size_px: s.fontSizePx,
                 color: s.color,
                 background_color: s.backgroundColor,
                 role: 'price_item',
+                href: null
+            });
+        }
+    });
+
+    // 5. Relevant Content and Text Elements
+    const textElements = [];
+    allNodes.filter(n => {
+        const tag = n.tagName.toLowerCase();
+        return ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li'].includes(tag);
+    }).forEach((el) => {
+        const txt = el.innerText || '';
+        if (txt.trim().length >= 8 && txt.trim().length < 500) {
+            const s = getStyle(el);
+            const assignedId = `el_${elCounter++}`;
+            textElements.push({
+                tag: el.tagName.toLowerCase(),
+                text: txt.trim(),
+                id: el.id || assignedId,
+                element_id: assignedId,
+                classes: Array.from(el.classList || []),
+                bbox: getBBox(el),
+                font_size_px: s.fontSizePx,
+                color: s.color,
+                background_color: s.backgroundColor,
+                role: 'text',
                 href: null
             });
         }
@@ -204,7 +239,8 @@ EXTRACTION_JS = """
         checkboxes,
         buttons,
         links,
-        prices
+        prices,
+        textElements
     };
 }
 """
@@ -332,6 +368,7 @@ class PageExtractor:
                 cls._compute_contrasts(data.get("buttons", []), default_bg=body_bg)
                 cls._compute_contrasts(data.get("links", []), default_bg=body_bg)
                 cls._compute_contrasts(data.get("prices", []), default_bg=body_bg)
+                cls._compute_contrasts(data.get("textElements", []), default_bg=body_bg)
 
                 return PageData(
                     url=url,
@@ -341,6 +378,7 @@ class PageExtractor:
                     buttons=[ExtractedElement(**b) for b in data.get("buttons", [])],
                     links=[ExtractedElement(**l) for l in data.get("links", [])],
                     prices=[ExtractedElement(**p) for p in data.get("prices", [])],
+                    text_elements=[ExtractedElement(**t) for t in data.get("textElements", [])],
                     screenshot_base64=screenshot_base64,
                     viewport_width=viewport_width,
                     viewport_height=viewport_height,
@@ -390,6 +428,7 @@ class PageExtractor:
                         main_data.setdefault("links", []).extend(frame_data.get("links", []))
                         main_data.setdefault("checkboxes", []).extend(frame_data.get("checkboxes", []))
                         main_data.setdefault("prices", []).extend(frame_data.get("prices", []))
+                        main_data.setdefault("textElements", []).extend(frame_data.get("textElements", []))
                 except Exception:
                     continue
         except Exception:
@@ -436,12 +475,16 @@ class PageExtractor:
         title = soup.title.string if soup.title else ""
         text = soup.get_text(separator=" ", strip=True)
 
+        el_counter = 1
+
         checkboxes: List[ExtractedCheckbox] = []
         for idx, cb in enumerate(soup.find_all("input", {"type": "checkbox"})):
-            cb_id = cb.get("id", f"cb_{idx}")
+            assigned_id = f"el_{el_counter}"
+            el_counter += 1
+            cb_id = cb.get("id") or assigned_id
             lbl_text = ""
-            if cb_id:
-                lbl = soup.find("label", {"for": cb_id})
+            if cb.get("id"):
+                lbl = soup.find("label", {"for": cb.get("id")})
                 if lbl:
                     lbl_text = lbl.get_text(strip=True)
             if not lbl_text and cb.parent and cb.parent.name == "label":
@@ -451,6 +494,7 @@ class PageExtractor:
 
             checkboxes.append(ExtractedCheckbox(
                 id=cb_id,
+                element_id=assigned_id,
                 name=cb.get("name", ""),
                 checked=cb.has_attr("checked"),
                 disabled=cb.has_attr("disabled"),
@@ -465,10 +509,14 @@ class PageExtractor:
             txt = b.get_text(strip=True) or b.get("value", "")
             if not txt:
                 continue
+            assigned_id = f"el_{el_counter}"
+            el_counter += 1
+            b_id = b.get("id") or assigned_id
             buttons.append(ExtractedElement(
                 tag=b.name,
                 text=txt,
-                id=b.get("id", f"btn_{idx}"),
+                id=b_id,
+                element_id=assigned_id,
                 classes=b.get("class", []),
                 bbox=[40.0, float(200 + idx * 50), 120.0, 36.0],
                 font_size_px=14.0,
@@ -482,10 +530,14 @@ class PageExtractor:
             txt = a.get_text(strip=True)
             if not txt:
                 continue
+            assigned_id = f"el_{el_counter}"
+            el_counter += 1
+            link_id = a.get("id") or assigned_id
             links.append(ExtractedElement(
                 tag="a",
                 text=txt,
-                id=a.get("id", f"link_{idx}"),
+                id=link_id,
+                element_id=assigned_id,
                 classes=a.get("class", []),
                 bbox=[20.0, float(350 + idx * 30), 150.0, 20.0],
                 font_size_px=12.0,
@@ -499,12 +551,36 @@ class PageExtractor:
         for idx, p in enumerate(soup.find_all(["span", "div", "p"])):
             txt = p.get_text(strip=True)
             if any(sym in txt for sym in ["$", "€", "£", "₹", "fee", "surcharge", "resort", "cleaning"]):
+                assigned_id = f"el_{el_counter}"
+                el_counter += 1
+                p_id = p.get("id") or assigned_id
                 prices.append(ExtractedElement(
                     tag=p.name,
                     text=txt,
-                    id=p.get("id", f"price_{idx}"),
+                    id=p_id,
+                    element_id=assigned_id,
                     classes=p.get("class", []),
                     bbox=[20.0, float(400 + idx * 30), 200.0, 24.0],
+                    font_size_px=14.0,
+                    color="#000000",
+                    background_color="#ffffff",
+                    contrast_ratio=21.0
+                ))
+
+        text_elements: List[ExtractedElement] = []
+        for p in soup.find_all(["p", "h1", "h2", "h3", "h4", "li"]):
+            txt = p.get_text(strip=True)
+            if 8 <= len(txt) < 500:
+                assigned_id = f"el_{el_counter}"
+                el_counter += 1
+                t_id = p.get("id") or assigned_id
+                text_elements.append(ExtractedElement(
+                    tag=p.name,
+                    text=txt,
+                    id=t_id,
+                    element_id=assigned_id,
+                    classes=p.get("class", []),
+                    bbox=[20.0, float(450 + len(text_elements) * 25), 300.0, 20.0],
                     font_size_px=14.0,
                     color="#000000",
                     background_color="#ffffff",
@@ -519,6 +595,7 @@ class PageExtractor:
             buttons=buttons,
             links=links,
             prices=prices,
+            text_elements=text_elements,
             screenshot_base64=None,
             viewport_width=1280,
             viewport_height=800,
