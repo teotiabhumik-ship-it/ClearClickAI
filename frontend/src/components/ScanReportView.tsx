@@ -41,6 +41,56 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
   };
 
   const getPageStatusBadge = (page: ScanPage) => {
+    // 1. If page was skipped before analysis, show explicit skipped badge
+    if (page.decision !== 'will_analyse') {
+      const reason = page.skipped_reason || page.decision;
+      switch (reason) {
+        case 'skipped_cap':
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+              <span aria-hidden="true">⏸</span>
+              <span>Skipped (quota cap)</span>
+            </span>
+          );
+        case 'skipped_low_priority':
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+              <span aria-hidden="true">⏭</span>
+              <span>Skipped (low priority)</span>
+            </span>
+          );
+        case 'skipped_duplicate':
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+              <span aria-hidden="true">⎘</span>
+              <span>Skipped (duplicate template)</span>
+            </span>
+          );
+        case 'skipped_robots':
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-900 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
+              <span aria-hidden="true">🤖</span>
+              <span>Robots disallowed</span>
+            </span>
+          );
+        case 'skipped_blocked_domain':
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+              <span aria-hidden="true">⛔</span>
+              <span>Domain cooldown</span>
+            </span>
+          );
+        default:
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+              <span aria-hidden="true">⏸</span>
+              <span>Skipped</span>
+            </span>
+          );
+      }
+    }
+
+    // 2. For pages that were queued and attempted:
     switch (page.page_status) {
       case 'ok':
         return (
@@ -431,11 +481,11 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
         )}
       </section>
 
-      {/* Audited Pages Table */}
+      {/* Discovered Pages Table */}
       <section aria-labelledby="pages-heading" className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 id="pages-heading" className="text-lg font-bold font-serif text-ink dark:text-[#E2E8F0]">
-            All Site Pages Checked ({scan.pages.length})
+            Discovered Pages ({scan.pages.length} total • {scan.coverage.pages_analysed} analysed, {scan.pages.length - scan.coverage.pages_analysed} skipped)
           </h3>
           <button
             onClick={() => setExpandedPages(!expandedPages)}
@@ -454,7 +504,7 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
                   <tr className="border-b border-border-hairline dark:border-[#26324A] bg-paper dark:bg-[#0B1220] text-ink-muted dark:text-[#94A3B8]">
                     <th className="p-3 font-semibold">Page URL</th>
                     <th className="p-3 font-semibold">Type</th>
-                    <th className="p-3 font-semibold">Status</th>
+                    <th className="p-3 font-semibold">Decision / Status</th>
                     <th className="p-3 font-semibold">Findings</th>
                     <th className="p-3 font-semibold text-right">Actions</th>
                   </tr>
@@ -464,7 +514,7 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
                     <tr key={idx} className="hover:bg-paper/50 dark:hover:bg-[#0B1220]/50 transition-colors">
                       <td className="p-3 font-mono text-xs text-ink dark:text-[#E2E8F0] break-all max-w-[280px]">
                         {p.url}
-                        {p.status_reason && p.page_status !== 'ok' && (
+                        {p.status_reason && (p.page_status !== 'ok' || p.decision !== 'will_analyse') && (
                           <span className="block text-[11px] text-ink-muted dark:text-[#94A3B8] font-sans mt-0.5">
                             {p.status_reason}
                           </span>

@@ -482,8 +482,8 @@ export default async function handler(req: any, res: any) {
       pages.push({
         url: s.url,
         page_type: s.page_type,
-        page_status: 'ok',
-        status_reason: decision === 'skipped_cap' ? `Capped at ${maxAnalysed} pages` : 'Low relevance section',
+        page_status: 'empty',
+        status_reason: decision === 'skipped_cap' ? `Skipped: maximum analysed pages cap reached (${maxAnalysed})` : `Skipped low priority page (${s.score} pts)`,
         decision,
         skipped_reason: decision,
         score: s.score,
