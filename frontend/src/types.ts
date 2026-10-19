@@ -12,6 +12,10 @@ export interface Finding {
   why: string;
   safer_alternative: string;
   source: SourceType;
+  rule_confidence?: number;
+  ai_confidence?: number;
+  rule_evidence?: string;
+  ai_evidence?: string;
 }
 
 export interface AnalysisReport {

@@ -14,8 +14,9 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
 
-# Provider preference: gemini, claude, or auto
-AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini")
+# Provider preference: gemini, claude, or auto. Auto preserves the historical
+# Gemini-first selection while still allowing Anthropic-only configurations.
+AI_PROVIDER = os.getenv("AI_PROVIDER", "auto")
 
 # Prompt and cache versioning
 PROMPT_VERSION = "v2.0"

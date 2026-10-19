@@ -147,7 +147,7 @@ class AIClient:
         self.anthropic_model = os.getenv("ANTHROPIC_MODEL", ANTHROPIC_MODEL)
         self.gemini_key = gemini_key or os.getenv("GEMINI_API_KEY", GEMINI_API_KEY)
         self.anthropic_key = anthropic_key or os.getenv("ANTHROPIC_API_KEY", ANTHROPIC_API_KEY)
-        self.provider = os.getenv("AI_PROVIDER", AI_PROVIDER)
+        self.provider = self._normalize_provider(os.getenv("AI_PROVIDER", AI_PROVIDER))
 
         self.has_anthropic = bool(self.anthropic_key and self.anthropic_key.strip())
         self.has_gemini = bool(self.gemini_key and self.gemini_key.strip())
@@ -156,22 +156,51 @@ class AIClient:
         self.rate_limiter = RateLimiter(max_per_minute=calls_per_minute, clock_fn=clock_fn)
         self.daily_counter = DailyCallCounter(limit=daily_limit, clock_fn=clock_fn)
 
+    @staticmethod
+    def _normalize_provider(provider: Optional[str]) -> str:
+        """Return the canonical provider name used by the client.
+
+        ``claude`` is kept as a supported alias for the user-facing
+        ``anthropic`` provider setting. Unknown values fall back to Gemini,
+        matching the historical default rather than making the app fail at
+        import/startup time.
+        """
+        normalized = (provider or "gemini").strip().lower()
+        if normalized == "claude":
+            return "anthropic"
+        if normalized in {"gemini", "anthropic", "auto"}:
+            return normalized
+        logger.warning("Unknown AI_PROVIDER '%s'; using gemini", provider)
+        return "gemini"
+
     @property
     def active_model(self) -> str:
         """Returns the active model name based on configured keys and provider."""
         self._resolve_keys()
-        if self.has_gemini:
+        selected_provider = self._selected_provider()
+        if selected_provider == "gemini":
             return self.gemini_model
-        if self.has_anthropic:
+        if selected_provider == "anthropic":
+            return self.anthropic_model
+        if self.provider == "anthropic":
             return self.anthropic_model
         return self.gemini_model
 
     @property
+    def active_provider(self) -> Optional[str]:
+        """Return the provider selected for the currently available keys."""
+        return self._selected_provider()
+
+    @property
     def has_any_key(self) -> bool:
-        # Re-check environment dynamically if keys were not present at construction
-        g_key = self.gemini_key or os.getenv("GEMINI_API_KEY")
-        a_key = self.anthropic_key or os.getenv("ANTHROPIC_API_KEY")
-        return bool((g_key and g_key.strip()) or (a_key and a_key.strip()))
+        """Whether a key is available for the configured provider.
+
+        In particular, an explicit ``AI_PROVIDER=gemini`` never silently uses
+        an Anthropic key (and vice versa). ``auto`` chooses Gemini first and
+        Anthropic second when both are configured.
+        """
+        self._resolve_keys()
+        return self._selected_provider() is not None
 
     def _resolve_keys(self):
         if not self.gemini_key:
@@ -181,16 +210,30 @@ class AIClient:
         self.has_gemini = bool(self.gemini_key and self.gemini_key.strip())
         self.has_anthropic = bool(self.anthropic_key and self.anthropic_key.strip())
 
+    def _selected_provider(self) -> Optional[str]:
+        """Select exactly one provider according to AI_PROVIDER and key state."""
+        self._resolve_keys()
+        if self.provider == "gemini":
+            return "gemini" if self.has_gemini else None
+        if self.provider == "anthropic":
+            return "anthropic" if self.has_anthropic else None
+        if self.has_gemini:
+            return "gemini"
+        if self.has_anthropic:
+            return "anthropic"
+        return None
+
     async def check_model_availability(self) -> Tuple[bool, str]:
         """
         Check if the configured model is available and credentials are functional.
         Returns: (is_available, status_or_reason)
         """
         self._resolve_keys()
-        if not self.has_any_key:
+        provider = self._selected_provider()
+        if provider is None:
             return False, "skipped_no_key"
 
-        if self.has_gemini:
+        if provider == "gemini":
             try:
                 from google import genai
                 client = genai.Client(api_key=self.gemini_key)
@@ -211,7 +254,7 @@ class AIClient:
             except Exception as e:
                 return False, f"unavailable: {e}"
 
-        if self.has_anthropic:
+        if provider == "anthropic":
             try:
                 import anthropic
                 return True, f"anthropic ({self.anthropic_model}) available"
@@ -230,7 +273,8 @@ class AIClient:
         Applies disk caching, rate limiting, retry backoff, and safe JSON validation.
         """
         self._resolve_keys()
-        if not self.has_any_key:
+        provider = self._selected_provider()
+        if provider is None:
             return [], AIStatus("skipped_no_key"), "AI analysis not run (no API key configured)"
 
         # Check daily quota budget before making network call
@@ -249,14 +293,14 @@ class AIClient:
 
         # Execute outbound call with retry logic
         # 1. Gemini
-        if self.has_gemini:
+        if provider == "gemini":
             items, status, msg = await self._call_gemini_text(system_prompt, user_prompt)
             if status in ("ran", "completed"):
                 self.cache.set(PROMPT_VERSION, self.gemini_model, cache_payload, items)
             return items, status, msg
 
         # 2. Anthropic Claude fallback
-        if self.has_anthropic:
+        if provider == "anthropic":
             items, status, msg = await self._call_claude_text(system_prompt, user_prompt)
             if status in ("ran", "completed"):
                 self.cache.set(PROMPT_VERSION, self.anthropic_model, cache_payload, items)
@@ -277,7 +321,8 @@ class AIClient:
             return [], AIStatus("skipped_no_key"), "AI vision analysis not run (no screenshot provided)"
 
         self._resolve_keys()
-        if not self.has_any_key:
+        provider = self._selected_provider()
+        if provider is None:
             return [], AIStatus("skipped_no_key"), "AI vision analysis not run (no API key configured)"
 
         if not self.daily_counter.can_call():
@@ -295,14 +340,14 @@ class AIClient:
             return cached, AIStatus("ran"), f"AI vision completed via cache ({self.active_model})"
 
         # 1. Gemini Multimodal
-        if self.has_gemini:
+        if provider == "gemini":
             items, status, msg = await self._call_gemini_vision(system_prompt, user_prompt, clean_base64)
             if status in ("ran", "completed"):
                 self.cache.set(PROMPT_VERSION, self.gemini_model, cache_payload, items)
             return items, status, msg
 
         # 2. Anthropic Claude Multimodal
-        if self.has_anthropic:
+        if provider == "anthropic":
             items, status, msg = await self._call_claude_vision(system_prompt, user_prompt, clean_base64)
             if status in ("ran", "completed"):
                 self.cache.set(PROMPT_VERSION, self.anthropic_model, cache_payload, items)

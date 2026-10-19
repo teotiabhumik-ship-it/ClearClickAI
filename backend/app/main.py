@@ -47,19 +47,40 @@ from .security import validate_url_safety, validate_html_payload, SlidingWindowR
 
 logger = logging.getLogger("clearclick.server")
 
+DEFAULT_CORS_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+
+def parse_cors_origins(raw_origins: Optional[str] = None) -> List[str]:
+    """Parse comma-separated CORS origins, defaulting to local frontend dev."""
+    raw = os.getenv("CORS_ORIGINS") if raw_origins is None else raw_origins
+    if not raw or not raw.strip():
+        return DEFAULT_CORS_ORIGINS.copy()
+    origins = [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
+    return origins or DEFAULT_CORS_ORIGINS.copy()
+
+
+def cors_settings(raw_origins: Optional[str] = None) -> Dict[str, Any]:
+    """Build safe CORSMiddleware settings from the CORS_ORIGINS environment."""
+    origins = parse_cors_origins(raw_origins)
+    # Starlette cannot safely combine wildcard origins with credentials. If a
+    # wildcard is explicitly requested, keep it usable but disable credentials.
+    return {
+        "allow_origins": origins,
+        "allow_credentials": "*" not in origins,
+        "allow_methods": ["*"],
+        "allow_headers": ["*"],
+    }
+
 app = FastAPI(
     title="ClearClick AI Backend",
     description="Evidence-based dark pattern detection and fair design advisory engine.",
     version="1.0.0"
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, **cors_settings())
 
 consent_detector = ConsentDetector()
 charges_detector = HiddenChargesDetector()
@@ -84,12 +105,12 @@ async def startup_check():
     app.state.ai_model_status = status_msg
     if not is_available:
         logger.warning(
-            f"[ClearClick Startup] Configured AI model '{ai_text_detector.client.gemini_model}' is UNAVAILABLE: {status_msg}. "
+            f"[ClearClick Startup] Configured AI provider/model '{ai_text_detector.client.active_provider}/{ai_text_detector.client.active_model}' is UNAVAILABLE: {status_msg}. "
             "AI detection will fall back to 'unavailable' status."
         )
     else:
         logger.info(
-            f"[ClearClick Startup] Configured AI model '{ai_text_detector.client.gemini_model}' is functional: {status_msg}."
+            f"[ClearClick Startup] Configured AI provider/model '{ai_text_detector.client.active_provider}/{ai_text_detector.client.active_model}' is functional: {status_msg}."
         )
 
 
@@ -101,7 +122,8 @@ def health_check():
     return {
         "status": "healthy",
         "service": "ClearClick AI",
-        "ai_model": ai_text_detector.client.gemini_model,
+        "ai_provider": ai_text_detector.client.active_provider,
+        "ai_model": ai_text_detector.client.active_model,
         "ai_status": model_status,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
@@ -503,7 +525,11 @@ def consolidate_findings(rule_findings: List[Finding], ai_findings: List[Finding
                 bbox=rf.bbox if rf.bbox != [0, 0, 0, 0] else matching_ai.bbox,
                 why=matching_ai.why if len(matching_ai.why) > len(rf.why) else rf.why,
                 safer_alternative=matching_ai.safer_alternative or rf.safer_alternative,
-                source="hybrid"
+                source="hybrid",
+                rule_confidence=rf.confidence,
+                ai_confidence=matching_ai.confidence,
+                rule_evidence=rf.evidence,
+                ai_evidence=matching_ai.evidence,
             )
             dedup_key = (hybrid.element_id or hybrid.evidence[:30], hybrid.type)
             if dedup_key not in seen_keys:

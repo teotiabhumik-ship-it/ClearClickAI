@@ -103,6 +103,26 @@ class Finding(BaseModel):
         default="rule",
         description="Source of finding: rule, ai, or hybrid"
     )
+    rule_confidence: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Original confidence from the rule detector when source is hybrid"
+    )
+    ai_confidence: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Original confidence from the AI detector when source is hybrid"
+    )
+    rule_evidence: Optional[str] = Field(
+        default=None,
+        description="Original evidence from the rule detector when source is hybrid"
+    )
+    ai_evidence: Optional[str] = Field(
+        default=None,
+        description="Original evidence from the AI detector when source is hybrid"
+    )
 
 
 class ExtractedCheckbox(BaseModel):
