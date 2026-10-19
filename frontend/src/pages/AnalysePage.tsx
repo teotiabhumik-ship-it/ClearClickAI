@@ -491,6 +491,11 @@ export const AnalysePage: React.FC = () => {
               setShowInputForm(true);
             }}
             onStartFlow={handleStartFlow}
+            onAnalyzeSinglePage={(url) => {
+              setActiveScan(null);
+              setShowInputForm(false);
+              handleAnalyze({ url, include_ai: false });
+            }}
           />
         </div>
       )}

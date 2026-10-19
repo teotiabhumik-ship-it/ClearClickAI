@@ -18,21 +18,25 @@ import {
   UploadCloud,
   PlayCircle,
   Camera,
+  HelpCircle,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Scan, ScanPage, GroupedFinding } from '../types';
 import { ScreenshotViewer } from './ScreenshotViewer';
+import { PolicyExplanationModal, PolicyModalData } from './PolicyExplanationModal';
 
 interface ScanReportViewProps {
   scan: Scan;
   onOpenUpload?: () => void;
   onStartFlow?: (url: string) => void;
+  onAnalyzeSinglePage?: (url: string) => void;
 }
 
 export const ScanReportView: React.FC<ScanReportViewProps> = ({
   scan,
   onOpenUpload,
   onStartFlow,
+  onAnalyzeSinglePage,
 }) => {
   const [expandedFindings, setExpandedFindings] = useState<Record<number, boolean>>({});
   const [expandedPages, setExpandedPages] = useState<boolean>(true);
@@ -42,59 +46,88 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
     return firstAnalysed ? firstAnalysed.url : scan.root_url;
   });
   const [selectedFindingIndex, setSelectedFindingIndex] = useState<number | null>(null);
+  const [policyModalData, setPolicyModalData] = useState<PolicyModalData | null>(null);
+  const [isPolicyModalOpen, setIsPolicyModalOpen] = useState<boolean>(false);
+
+  const handleOpenPolicyModal = (page: ScanPage) => {
+    setPolicyModalData({
+      url: page.url,
+      pageType: page.page_type,
+      reason: page.skipped_reason || page.page_status || page.decision || 'skipped_cap',
+      statusReason: page.status_reason,
+      score: page.score,
+    });
+    setIsPolicyModalOpen(true);
+  };
+
+  const handleOpenPolicyCategory = (reason: string) => {
+    setPolicyModalData({
+      reason,
+      statusReason: `Discovered pages skipped under the ${reason.replace('skipped_', '').replace('_', ' ')} policy.`,
+    });
+    setIsPolicyModalOpen(true);
+  };
 
   const toggleFinding = (idx: number) => {
     setExpandedFindings((prev) => ({ ...prev, [idx]: !prev[idx] }));
   };
 
   const getPageStatusBadge = (page: ScanPage) => {
-    // 1. If page was skipped before analysis, show explicit skipped badge
+    // 1. If page was skipped before analysis, show explicit interactive skipped badge
     if (page.decision !== 'will_analyse') {
       const reason = page.skipped_reason || page.decision;
+      let label = 'Skipped';
+      let icon = '⏸';
+      let colorClass = 'bg-slate-100 text-slate-700 border-slate-300';
+
       switch (reason) {
         case 'skipped_cap':
-          return (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-300">
-              <span aria-hidden="true">⏸</span>
-              <span>Skipped (quota cap)</span>
-            </span>
-          );
+          label = 'Skipped (quota cap)';
+          icon = '⏸';
+          colorClass = 'bg-slate-100 text-slate-700 border-slate-300';
+          break;
         case 'skipped_low_priority':
-          return (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-300">
-              <span aria-hidden="true">⏭</span>
-              <span>Skipped (low priority)</span>
-            </span>
-          );
+          label = 'Skipped (low priority)';
+          icon = '⏭';
+          colorClass = 'bg-slate-100 text-slate-700 border-slate-300';
+          break;
         case 'skipped_duplicate':
-          return (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-300">
-              <span aria-hidden="true">⎘</span>
-              <span>Skipped (duplicate template)</span>
-            </span>
-          );
+          label = 'Skipped (duplicate template)';
+          icon = '⎘';
+          colorClass = 'bg-slate-100 text-slate-700 border-slate-300';
+          break;
         case 'skipped_robots':
-          return (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-900 border border-purple-300">
-              <span aria-hidden="true">🤖</span>
-              <span>Robots disallowed</span>
-            </span>
-          );
+          label = 'Robots disallowed';
+          icon = '🤖';
+          colorClass = 'bg-purple-100 text-purple-900 border-purple-300';
+          break;
         case 'skipped_blocked_domain':
-          return (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900 border border-amber-300">
-              <span aria-hidden="true">⛔</span>
-              <span>Domain cooldown</span>
-            </span>
-          );
+          label = 'Domain cooldown';
+          icon = '⛔';
+          colorClass = 'bg-amber-100 text-amber-900 border-amber-300';
+          break;
         default:
-          return (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-300">
-              <span aria-hidden="true">⏸</span>
-              <span>Skipped</span>
-            </span>
-          );
+          label = 'Skipped';
+          icon = '⏸';
+          colorClass = 'bg-slate-100 text-slate-700 border-slate-300';
+          break;
       }
+
+      return (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleOpenPolicyModal(page);
+          }}
+          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium ${colorClass} border hover:opacity-85 transition-opacity cursor-pointer text-left group`}
+          title="Click to see why this page was skipped by policy"
+        >
+          <span aria-hidden="true">{icon}</span>
+          <span>{label}</span>
+          <HelpCircle className="w-3 h-3 text-ink-muted group-hover:text-ink opacity-70 ml-0.5" />
+        </button>
+      );
     }
 
     // 2. For pages that were queued and attempted:
@@ -108,38 +141,83 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
         );
       case 'blocked':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900 border border-amber-300">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenPolicyModal(page);
+            }}
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900 border border-amber-300 hover:opacity-85 transition-opacity cursor-pointer group"
+            title="Click to see why this page was blocked"
+          >
             <span aria-hidden="true">⛔</span>
             <span>Blocked by site</span>
-          </span>
+            <HelpCircle className="w-3 h-3 text-amber-800 opacity-70 ml-0.5" />
+          </button>
         );
       case 'needs_login':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-900 border border-blue-300">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenPolicyModal(page);
+            }}
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-900 border border-blue-300 hover:opacity-85 transition-opacity cursor-pointer group"
+            title="Click to see why login pages are not automated"
+          >
             <span aria-hidden="true">🔒</span>
             <span>Requires login</span>
-          </span>
+            <HelpCircle className="w-3 h-3 text-blue-800 opacity-70 ml-0.5" />
+          </button>
         );
       case 'robots_disallowed':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-900 border border-purple-300">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenPolicyModal(page);
+            }}
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-900 border border-purple-300 hover:opacity-85 transition-opacity cursor-pointer group"
+            title="Click to see robots.txt policy details"
+          >
             <span aria-hidden="true">🤖</span>
             <span>Robots disallowed</span>
-          </span>
+            <HelpCircle className="w-3 h-3 text-purple-800 opacity-70 ml-0.5" />
+          </button>
         );
       case 'empty':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 border border-gray-300">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenPolicyModal(page);
+            }}
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 border border-gray-300 hover:opacity-85 transition-opacity cursor-pointer group"
+            title="Click to see empty content policy details"
+          >
             <span aria-hidden="true">⚠️</span>
             <span>Sparse/Empty content</span>
-          </span>
+            <HelpCircle className="w-3 h-3 text-gray-700 opacity-70 ml-0.5" />
+          </button>
         );
       case 'timeout':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-900 border border-rose-300">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenPolicyModal(page);
+            }}
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-900 border border-rose-300 hover:opacity-85 transition-opacity cursor-pointer group"
+            title="Click to see timeout policy details"
+          >
             <span aria-hidden="true">⏱</span>
             <span>Timeout</span>
-          </span>
+            <HelpCircle className="w-3 h-3 text-rose-800 opacity-70 ml-0.5" />
+          </button>
         );
       default:
         return (
@@ -365,17 +443,27 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
         {/* Skipped Reason Breakdown */}
         {Object.keys(scan.coverage.pages_skipped_by_reason).length > 0 && (
           <div className="pt-2 text-xs border-t border-border-hairline">
-            <span className="font-semibold text-ink block mb-1">
-              Pages skipped by policy:
-            </span>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="font-semibold text-ink">
+                Pages skipped by policy:
+              </span>
+              <span className="text-[11px] text-ink-muted">
+                Click any policy category to see why
+              </span>
+            </div>
             <div className="flex flex-wrap gap-2">
               {Object.entries(scan.coverage.pages_skipped_by_reason).map(([reason, count]) => (
-                <span
+                <button
                   key={reason}
-                  className="px-2 py-1 rounded bg-paper border border-border-hairline text-ink-muted"
+                  type="button"
+                  onClick={() => handleOpenPolicyCategory(reason)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-paper border border-border-hairline text-ink hover:border-ink hover:bg-white transition-all cursor-pointer text-xs group"
+                  title={`Click to see why pages were skipped under ${reason}`}
                 >
-                  <span className="font-mono font-medium text-ink">{count}</span> {reason.replace('skipped_', '').replace('_', ' ')}
-                </span>
+                  <span className="font-mono font-medium text-ink">{count}</span>
+                  <span className="capitalize">{reason.replace('skipped_', '').replace('_', ' ')}</span>
+                  <HelpCircle className="w-3 h-3 text-ink-muted group-hover:text-ink opacity-70" />
+                </button>
               ))}
             </div>
           </div>
@@ -715,6 +803,15 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
                           <div className="flex items-center justify-end gap-2">
                             <button
                               type="button"
+                              onClick={() => handleOpenPolicyModal(p)}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border border-border-hairline text-ink hover:bg-paper cursor-pointer"
+                              title="Why this page was blocked"
+                            >
+                              <HelpCircle className="w-3.5 h-3.5 text-amber-700" />
+                              <span>Why</span>
+                            </button>
+                            <button
+                              type="button"
                               onClick={onOpenUpload}
                               className="px-2 py-1 rounded text-xs font-medium bg-ink text-paper hover:opacity-90 transition-opacity"
                               title="Upload saved HTML or screenshot"
@@ -745,7 +842,15 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
                             <span>Inspect Screenshot</span>
                           </button>
                         ) : (
-                          <span className="text-ink-muted text-xs">—</span>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPolicyModal(p)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-white text-ink border border-border-hairline hover:border-ink hover:shadow-none transition-all cursor-pointer"
+                            title="See why this page was skipped by policy"
+                          >
+                            <HelpCircle className="w-3.5 h-3.5 text-ink-muted" />
+                            <span>See why</span>
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -756,6 +861,14 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
           </div>
         )}
       </section>
+
+      {/* Policy Explanation Modal */}
+      <PolicyExplanationModal
+        isOpen={isPolicyModalOpen}
+        onClose={() => setIsPolicyModalOpen(false)}
+        data={policyModalData}
+        onAnalyzePage={onAnalyzeSinglePage}
+      />
     </div>
   );
 };
