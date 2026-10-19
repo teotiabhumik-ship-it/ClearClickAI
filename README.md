@@ -78,8 +78,10 @@ Vite will start on `http://localhost:3000` with instant proxy forwarding to the 
 ### Running on a Static Web Host (GitHub Pages / Vercel)
 If you deploy only the frontend to a static host (like GitHub Pages or Vercel static):
 - **Ground-Truth Sample Cases**: Work out of the box! All 14 ground-truth sample audits, proofreader annotations, and WCAG contrast measurements are bundled directly with the frontend.
-- **Live URL Scanning**: Inspecting arbitrary external websites requires browser automation (Playwright + FastAPI). Because static web hosts cannot execute Python or run headless browsers, live URL requests must point to a running backend.
+- **Live URL Scanning**: The static deployment does not run a second, reduced analyzer. Inspecting arbitrary external websites requires browser automation (Playwright + FastAPI), so live URL requests must point to a running backend.
 - **Connecting a Backend**: Click the **Server Settings** icon in the top header (or on the error alert) to point your web frontend to your hosted backend URL (e.g., `https://your-backend.onrender.com`).
+
+The static `/api/analyze` fallback returns a clear `501` response for live URL or uploaded HTML requests instead of producing results that differ from the canonical backend.
 
 ### 1-Click Cloud Deployment (Render / Docker)
 ClearClick AI includes a multi-stage `Dockerfile` and `render.yaml`:
