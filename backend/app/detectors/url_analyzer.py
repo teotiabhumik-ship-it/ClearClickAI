@@ -183,7 +183,7 @@ class URLAnalyzer:
 
         if not is_ip_literal:
             labels = host_lower.split(".")
-            # A valid public domain name must have at least two labels (e.g. example.com)
+            # A valid public domain name must have at least two labels (e.g. domain.org)
             if len(labels) < 2:
                 return URLAnalysisResult(
                     is_valid=False,

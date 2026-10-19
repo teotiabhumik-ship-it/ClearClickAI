@@ -40,12 +40,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install the pinned Python dependency set generated from requirements.txt.
-COPY requirements.lock .
-RUN pip install --no-cache-dir -r requirements.lock
+# Install Python requirements
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browser
-RUN playwright install chromium
+# Install Playwright browser and system dependencies
+RUN playwright install --with-deps chromium || playwright install chromium
 
 # Copy application code and ground-truth corpus
 COPY backend/ ./backend/
