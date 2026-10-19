@@ -28,8 +28,9 @@ export const AnalysePage: React.FC = () => {
   const scanPollTimeoutRef = useRef<any>(null);
   const isMountedRef = useRef<boolean>(true);
 
-  // Clean up any pending analysis request or polling on unmount
+  // Set document title and clean up any pending analysis request or polling on unmount
   useEffect(() => {
+    document.title = 'ClearClick AI — Evidence-Based Dark Pattern Auditor';
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;

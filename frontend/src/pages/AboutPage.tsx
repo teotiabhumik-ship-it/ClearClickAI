@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink, ArrowRight, Shield, CheckCircle, HelpCircle } from 'lucide-react';
 import { aboutConfig } from '../config/about';
@@ -6,6 +6,10 @@ import pkg from '../../package.json';
 
 export const AboutPage: React.FC = () => {
   const version = pkg.version || '1.0.0';
+
+  useEffect(() => {
+    document.title = 'About & Mission — ClearClick AI';
+  }, []);
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-12 pb-16">

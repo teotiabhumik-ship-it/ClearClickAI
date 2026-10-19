@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ExternalLink, HelpCircle, Shield, AlertTriangle, CheckCircle2, Lock } from 'lucide-react';
 import { privacyConfig } from '../config/privacy';
 import evaluationData from '../data/evaluation.json';
 
 export const MethodologyPage: React.FC = () => {
   const evalData = evaluationData;
+
+  useEffect(() => {
+    document.title = 'Methodology & Heuristics — ClearClick AI';
+  }, []);
 
   return (
     <div className="w-full max-w-6xl mx-auto lg:grid lg:grid-cols-[1fr_240px] lg:gap-12 items-start">

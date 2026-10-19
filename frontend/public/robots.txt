@@ -1,0 +1,6 @@
+# Robots.txt for ClearClick AI
+User-agent: *
+Allow: /
+
+# Canonical XML Sitemap
+Sitemap: /sitemap.xml
