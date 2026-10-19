@@ -16,26 +16,55 @@ ClearClick AI is an evidence-based audit tool that inspects web pages (DOM eleme
 
 ## Quickstart
 
-### 1. Launch the Full Application (Single Command)
+### 1. Reproducible Setup
+
+The repository pins the Docker-aligned runtimes in `.nvmrc` (`Node 20`) and
+`.python-version` (`Python 3.11`). On a clean Linux checkout, install the
+locked dependencies with:
+
+```bash
+python3.11 -m venv .venv
+. .venv/bin/activate
+make install
+```
+
+`make install` uses `requirements.lock` for Python and `frontend/package-lock.json`
+for the frontend. Do not use `pip install -r requirements.txt` or `npm install`
+for a reproducible setup; `requirements.txt` is the editable input used to
+generate the Python lock.
+
+### 2. Launch the Full Application (Single Command)
 Run the FastAPI backend which simultaneously serves the REST API and the compiled React frontend:
 ```bash
-python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+make run
 ```
 Open your browser at **[http://localhost:8000](http://localhost:8000)**.
 
-### 2. Run the Detector Unit Tests
+### 3. Run the Detector Unit Tests Offline
 ```bash
-python -m pytest tests/ -v
+make test
 ```
-All 42 automated tests pass deterministically.
+This target only runs the local pytest suite; it does not install packages or access the network.
 
-### 3. Run the Ground-Truth Benchmark Evaluation
+### 4. Build the Frontend
+```bash
+make build
+```
+
+### 5. Run the Ground-Truth Benchmark Evaluation
 ```bash
 python -m backend.app.evaluation.benchmark
 ```
 Computes True Positives, False Positives, False Negatives, Precision, Recall, and F1 score across all positive fixtures and negative clean controls.
 
-### 4. Optional: Run Frontend in Vite Dev Mode
+The benchmark prints results without modifying tracked files. To explicitly
+refresh the frontend evaluation artifact, provide an output path:
+
+```bash
+python -m backend.app.evaluation.benchmark --export frontend/src/data/evaluation.json
+```
+
+### 6. Optional: Run Frontend in Vite Dev Mode
 ```bash
 cd frontend
 npm run dev
@@ -58,6 +87,13 @@ ClearClick AI includes a multi-stage `Dockerfile` and `render.yaml`:
 2. Create a new **Web Service** from your repository (select **Docker** runtime).
 3. Set the environment variable `PORT=8000`.
 4. Render will automatically build the frontend, install Playwright Chromium, and serve the full application at your public `https://<service-name>.onrender.com` URL.
+
+To build and run the same image locally:
+
+```bash
+make docker-build
+docker run --rm -p 8000:8000 -e PORT=8000 clearclick-ai
+```
 
 ---
 
@@ -123,5 +159,5 @@ clearclick-ai/
 │   │   │   ├── ScreenshotViewer.tsx # Interactive SVG bounding box canvas
 │   │   │   ├── FindingsPanel.tsx    # Finding cards & safer alternatives
 │   │   │   └── EvaluationModal.tsx  # Benchmark scorecard modal
-└── tests/                    # Pytest test suite (42+ automated tests)
+└── tests/                    # Offline pytest regression suite
 ```

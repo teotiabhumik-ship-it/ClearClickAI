@@ -6,10 +6,10 @@ disk-cached AI inference to prevent quota burn, and verifier rejection statistic
 """
 
 import os
-import sys
 import json
 import asyncio
-from typing import Dict, Any, List
+import argparse
+from typing import Dict, Any, List, Optional
 
 from ..schema import PageData, Finding
 from ..extract.playwright_extractor import PageExtractor
@@ -44,7 +44,8 @@ def _calc_metrics(d: Dict[str, Any]) -> Dict[str, float]:
 
 async def run_benchmark(
     split: str = "held_out",
-    include_ai: bool = False
+    include_ai: bool = False,
+    export_path: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Executes benchmark evaluation across ground-truth corpus.
@@ -205,68 +206,69 @@ async def run_benchmark(
         print(f"  - {cat:15}: Rules: P={r_m['precision']:.1%}, R={r_m['recall']:.1%}, F1={r_m['f1']:.3f}{ai_str}")
     print("=================================================================\n")
 
-    # Export frontend evaluation.json
-    try:
-        from datetime import datetime, timezone
-        output_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "frontend", "src", "data"))
-        os.makedirs(output_dir, exist_ok=True)
-        eval_file = os.path.join(output_dir, "evaluation.json")
+    # Export only when explicitly requested. A benchmark/API read should not
+    # mutate tracked frontend data as a side effect.
+    if export_path:
+        try:
+            from datetime import datetime, timezone
+            eval_file = os.path.abspath(os.path.expanduser(export_path))
+            os.makedirs(os.path.dirname(eval_file), exist_ok=True)
 
-        dev_labels_file = os.path.join(corpus_dir, "dev_labels.json")
-        dev_count = 0
-        dev_clean = 0
-        if os.path.exists(dev_labels_file):
-            with open(dev_labels_file, "r", encoding="utf-8") as df:
-                dev_data = json.load(df)
-                dev_count = len(dev_data)
-                dev_clean = sum(1 for c in dev_data if len(c.get("patterns", [])) == 0)
+            dev_labels_file = os.path.join(corpus_dir, "dev_labels.json")
+            dev_count = 0
+            dev_clean = 0
+            if os.path.exists(dev_labels_file):
+                with open(dev_labels_file, "r", encoding="utf-8") as df:
+                    dev_data = json.load(df)
+                    dev_count = len(dev_data)
+                    dev_clean = sum(1 for c in dev_data if len(c.get("patterns", [])) == 0)
 
-        held_clean = sum(1 for c in cases if len(c.get("patterns", [])) == 0)
+            held_clean = sum(1 for c in cases if len(c.get("patterns", [])) == 0)
 
-        failures_list = []
-        for d in details:
-            if d["status"] == "FAIL":
-                failures_list.append({
-                    "title": d["id"],
-                    "description": f"Expected: {d['expected'] or 'Clean control'}, Detected: {d['detected'] or 'None'} (FP: {d['fp']}, FN: {d['fn']})"
-                })
+            failures_list = []
+            for d in details:
+                if d["status"] == "FAIL":
+                    failures_list.append({
+                        "title": d["id"],
+                        "description": f"Expected: {d['expected'] or 'Clean control'}, Detected: {d['detected'] or 'None'} (FP: {d['fp']}, FN: {d['fn']})"
+                    })
 
-        export_data = {
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "provider": AI_PROVIDER if include_ai else None,
-            "model": GEMINI_MODEL if include_ai else None,
-            "datasets": {
-                "dev": dev_count,
-                "heldout": len(cases),
-                "heldout_source": "mixed",
-                "clean": dev_clean + held_clean
-            },
-            "categories": {
-                cat: {
-                    "rules": {
-                        "precision": rules_stats["categories"][cat]["precision"],
-                        "recall": rules_stats["categories"][cat]["recall"],
-                        "tp": rules_stats["categories"][cat]["tp"],
-                        "fp": rules_stats["categories"][cat]["fp"],
-                        "fn": rules_stats["categories"][cat]["fn"]
-                    },
-                    "rules_ai": {
-                        "precision": ai_stats["categories"][cat]["precision"],
-                        "recall": ai_stats["categories"][cat]["recall"],
-                        "tp": ai_stats["categories"][cat]["tp"],
-                        "fp": ai_stats["categories"][cat]["fp"],
-                        "fn": ai_stats["categories"][cat]["fn"]
-                    } if (include_ai and ai_stats) else None
-                }
-                for cat in ["hidden_charges", "cancellation", "consent"]
-            },
-            "verifier_stats": verifier_stats if include_ai else None,
-            "failures": failures_list
-        }
-        with open(eval_file, "w", encoding="utf-8") as ef:
-            json.dump(export_data, ef, indent=2)
-    except Exception as e:
-        print(f"[WARN] Failed to write frontend evaluation.json: {e}")
+            export_data = {
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "provider": AI_PROVIDER if include_ai else None,
+                "model": GEMINI_MODEL if include_ai else None,
+                "datasets": {
+                    "dev": dev_count,
+                    "heldout": len(cases),
+                    "heldout_source": "mixed",
+                    "clean": dev_clean + held_clean
+                },
+                "categories": {
+                    cat: {
+                        "rules": {
+                            "precision": rules_stats["categories"][cat]["precision"],
+                            "recall": rules_stats["categories"][cat]["recall"],
+                            "tp": rules_stats["categories"][cat]["tp"],
+                            "fp": rules_stats["categories"][cat]["fp"],
+                            "fn": rules_stats["categories"][cat]["fn"]
+                        },
+                        "rules_ai": {
+                            "precision": ai_stats["categories"][cat]["precision"],
+                            "recall": ai_stats["categories"][cat]["recall"],
+                            "tp": ai_stats["categories"][cat]["tp"],
+                            "fp": ai_stats["categories"][cat]["fp"],
+                            "fn": ai_stats["categories"][cat]["fn"]
+                        } if (include_ai and ai_stats) else None
+                    }
+                    for cat in ["hidden_charges", "cancellation", "consent"]
+                },
+                "verifier_stats": verifier_stats if include_ai else None,
+                "failures": failures_list
+            }
+            with open(eval_file, "w", encoding="utf-8") as ef:
+                json.dump(export_data, ef, indent=2)
+        except Exception as e:
+            print(f"[WARN] Failed to export benchmark results to {export_path}: {e}")
 
     return {
         "split": split,
@@ -283,15 +285,16 @@ async def run_benchmark(
 
 
 if __name__ == "__main__":
-    split_arg = "held_out"
-    with_ai_arg = False
+    parser = argparse.ArgumentParser(description="Run the ClearClick AI benchmark.")
+    parser.add_argument("split", nargs="?", choices=["dev", "held_out"], default="held_out")
+    parser.add_argument("--with-ai", "--ai", dest="with_ai", action="store_true")
+    parser.add_argument("--rules-only", "--no-ai", dest="with_ai", action="store_false")
+    parser.add_argument(
+        "--export",
+        metavar="PATH",
+        help="Explicitly write the JSON report to PATH; omitted by default.",
+    )
+    parser.set_defaults(with_ai=False)
+    args = parser.parse_args()
 
-    for arg in sys.argv[1:]:
-        if arg in ["dev", "held_out"]:
-            split_arg = arg
-        elif arg in ["--with-ai", "--ai"]:
-            with_ai_arg = True
-        elif arg in ["--rules-only", "--no-ai"]:
-            with_ai_arg = False
-
-    asyncio.run(run_benchmark(split=split_arg, include_ai=with_ai_arg))
+    asyncio.run(run_benchmark(split=args.split, include_ai=args.with_ai, export_path=args.export))
