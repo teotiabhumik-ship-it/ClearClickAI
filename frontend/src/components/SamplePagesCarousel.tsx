@@ -158,12 +158,14 @@ export const SamplePagesCarousel: React.FC<SamplePagesCarouselProps> = ({
   const trackRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<(HTMLElement | null)[]>([]);
   const [activePip, setActivePip] = useState<number>(0);
+  const [isEngaged, setIsEngaged] = useState<boolean>(false);
   const totalCards = SAMPLE_CASES.length;
   const baseSpeed = 0.115; // cards/sec continuous gentle drift
 
   // Mutable animation state references to avoid React render loop overhead
   const stateRef = useRef({
     pos: 0,
+    isEngaged: false,
     targetSpeed: baseSpeed,
     currentSpeed: baseSpeed,
     cardWidth: 390,
@@ -489,7 +491,13 @@ export const SamplePagesCarousel: React.FC<SamplePagesCarouselProps> = ({
     if (!stageEl) return;
 
     const handleWheel = (e: WheelEvent) => {
-      // Prevent window vertical scroll jump while user is scrolling through carousel cards
+      // Only capture wheel / 2-finger scroll if the user has hard clicked on a card to engage the carousel!
+      // When not engaged, let the browser scroll down the webpage naturally without trapping.
+      if (!stateRef.current.isEngaged) {
+        return;
+      }
+
+      // Prevent window vertical scroll jump while user is actively scrolling through carousel cards
       e.preventDefault();
 
       const s = stateRef.current;
@@ -624,11 +632,30 @@ export const SamplePagesCarousel: React.FC<SamplePagesCarouselProps> = ({
     }
   };
 
+  // Disengage carousel wheel capture when clicking outside
+  useEffect(() => {
+    const handleGlobalClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (carouselRegionRef.current && !carouselRegionRef.current.contains(e.target as Node)) {
+        setIsEngaged(false);
+        stateRef.current.isEngaged = false;
+      }
+    };
+    window.addEventListener('mousedown', handleGlobalClickOutside);
+    window.addEventListener('touchstart', handleGlobalClickOutside, { passive: true });
+    return () => {
+      window.removeEventListener('mousedown', handleGlobalClickOutside);
+      window.removeEventListener('touchstart', handleGlobalClickOutside);
+    };
+  }, []);
+
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
     const s = stateRef.current;
-    if (e.key === 'ArrowRight') {
+    if (e.key === 'Escape') {
+      setIsEngaged(false);
+      s.isEngaged = false;
+    } else if (e.key === 'ArrowRight') {
       e.preventDefault();
       const nextIdx = (Math.round(s.pos) + 1 + totalCards) % totalCards;
       tweenToCard(nextIdx);
@@ -642,10 +669,15 @@ export const SamplePagesCarousel: React.FC<SamplePagesCarouselProps> = ({
   const handleCardClick = (idx: number, corpusId: string) => {
     if (isLoading) return;
     const s = stateRef.current;
+
+    // Hard click on a card explicitly engages the wheel/2-finger scroll mode
+    setIsEngaged(true);
+    s.isEngaged = true;
+
     const d = ((idx - s.pos + 3) % totalCards + totalCards) % totalCards - 3;
     if (Math.abs(d) >= 0.4) {
-      tweenToCard(idx);
-      scheduleResumeAutoplay(1500);
+      tweenToCard(idx, true, 400);
+      scheduleResumeAutoplay(2500);
     } else {
       onSelectSample(corpusId);
       scheduleResumeAutoplay(1500);
@@ -688,12 +720,36 @@ export const SamplePagesCarousel: React.FC<SamplePagesCarouselProps> = ({
             Illustrative examples, not from real sites.
           </span>
         </div>
+
+        {/* Dynamic Engagement Indicator */}
+        {isEngaged ? (
+          <div className="flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs font-mono">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+            <span>Card focused · scroll active</span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsEngaged(false);
+                stateRef.current.isEngaged = false;
+              }}
+              className="underline font-semibold hover:text-amber-950 cursor-pointer ml-1"
+              title="Release scroll to continue scrolling page"
+            >
+              Release
+            </button>
+          </div>
+        ) : (
+          <span className="text-[11px] text-stone-600 font-mono hidden sm:inline">
+            Click card to enable wheel scroll
+          </span>
+        )}
       </div>
 
       {/* Carousel Stage Wrapper */}
       <div
         ref={stageRef}
-        className="relative w-full h-[380px] overflow-hidden flex items-center justify-center touch-pan-y"
+        className={`relative w-full h-[380px] overflow-hidden flex items-center justify-center touch-pan-y transition-all duration-300 ${isEngaged ? 'ring-2 ring-amber-400/60 rounded-2xl' : ''}`}
         id="carousel-stage"
       >
         {/* Track Element with pure CSS mask-image edge fade */}

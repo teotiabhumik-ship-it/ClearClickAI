@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -46,6 +46,7 @@ from .ai.client import AIStatus
 from .config.thresholds import SEVERITY_MAPPING, CONFIDENCE_HYBRID, CONFIDENCE_AI_ONLY
 from .evaluation.benchmark import run_benchmark
 from .security import validate_url_safety, validate_html_payload, SlidingWindowRateLimiter
+from .detectors.url_analyzer import url_analyzer, URLAnalysisResult
 
 logger = logging.getLogger("clearclick.server")
 
@@ -184,12 +185,11 @@ async def analyze_page(req: AnalyzeRequest, request: Request):
 
     # SSRF Guard for external URL inputs
     if req.url and not req.corpus_id:
-        if req.url.startswith("http://") or req.url.startswith("https://"):
-            is_safe, reason = validate_url_safety(req.url)
-            if not is_safe:
-                raise HTTPException(status_code=400, detail=f"SSRF Security Violation: {reason}")
-        else:
-            raise HTTPException(status_code=400, detail="Only 'http' and 'https' URLs are supported.")
+        url_check = url_analyzer.analyze(req.url)
+        if not url_check.is_valid:
+            if "SSRF" in (url_check.error_code or "") or "restricted" in url_check.reason.lower() or "internal" in url_check.reason.lower():
+                raise HTTPException(status_code=400, detail=f"SSRF Security Violation: {url_check.reason}")
+            raise HTTPException(status_code=400, detail=url_check.reason)
 
     if not url_to_process and not html_to_process:
         raise HTTPException(status_code=400, detail="Must provide url, html_content, or valid corpus_id.")
@@ -409,12 +409,11 @@ async def create_scan_endpoint(req: CreateScanRequest, request: Request):
     if not rate_limiter.is_allowed(client_ip):
         raise HTTPException(status_code=429, detail="Rate limit exceeded.")
 
-    if not req.root_url.startswith("http://") and not req.root_url.startswith("https://"):
-        raise HTTPException(status_code=400, detail="Only 'http' and 'https' URLs are supported.")
-
-    is_safe, reason = validate_url_safety(req.root_url)
-    if not is_safe:
-        raise HTTPException(status_code=400, detail=f"SSRF Security Violation: {reason}")
+    url_check = url_analyzer.analyze(req.root_url)
+    if not url_check.is_valid:
+        if "SSRF" in (url_check.error_code or "") or "restricted" in url_check.reason.lower() or "internal" in url_check.reason.lower():
+            raise HTTPException(status_code=400, detail=f"SSRF Security Violation: {url_check.reason}")
+        raise HTTPException(status_code=400, detail=url_check.reason)
 
     scan = scan_manager.create_scan(
         root_url=req.root_url,
@@ -465,12 +464,11 @@ async def create_guided_flow_endpoint(req: CreateGuidedFlowRequest, request: Req
     if not rate_limiter.is_allowed(client_ip):
         raise HTTPException(status_code=429, detail="Rate limit exceeded.")
 
-    if not req.start_url.startswith("http://") and not req.start_url.startswith("https://"):
-        raise HTTPException(status_code=400, detail="Only 'http' and 'https' URLs are supported.")
-
-    is_safe, reason = validate_url_safety(req.start_url)
-    if not is_safe:
-        raise HTTPException(status_code=400, detail=f"SSRF Security Violation: {reason}")
+    url_check = url_analyzer.analyze(req.start_url)
+    if not url_check.is_valid:
+        if "SSRF" in (url_check.error_code or "") or "restricted" in url_check.reason.lower() or "internal" in url_check.reason.lower():
+            raise HTTPException(status_code=400, detail=f"SSRF Security Violation: {url_check.reason}")
+        raise HTTPException(status_code=400, detail=url_check.reason)
 
     from .crawler.guided_flow import GuidedFlowCapturer
     ai_cli = ai_text_detector.client if req.include_ai else None
@@ -487,6 +485,28 @@ def get_guided_flow_endpoint(flow_id: str):
     if not result:
         raise HTTPException(status_code=404, detail=f"Guided flow '{flow_id}' not found.")
     return result
+
+
+class ValidateURLRequest(BaseModel):
+    url: str
+
+
+@app.post("/api/validate-url", response_model=URLAnalysisResult)
+@app.get("/api/validate-url", response_model=URLAnalysisResult)
+def validate_url_endpoint(
+    url: Optional[str] = Query(None, description="URL to analyze"),
+    body: Optional[ValidateURLRequest] = None
+):
+    """
+    Server-side URL Analyzer endpoint.
+    Performs comprehensive verification of URL syntax, scheme, domain structure,
+    SSRF boundaries, and active DNS resolution strictly on the server side.
+    """
+    target = (body.url if body else None) or url
+    if not target:
+        raise HTTPException(status_code=400, detail="Target URL is required for analysis.")
+    return url_analyzer.analyze(target)
+
 
 
 
