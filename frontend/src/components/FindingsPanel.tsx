@@ -127,17 +127,17 @@ function getSeverityBadge(severity: string) {
     case 'high':
       return {
         label: 'Serious concern',
-        className: 'border border-red-pen text-red-pen bg-red-tint dark:bg-[#B91C1C]/20',
+        className: 'border border-red-pen text-red-pen bg-red-tint',
       };
     case 'medium':
       return {
         label: 'Caution',
-        className: 'border border-border-hairline dark:border-[#26324A] bg-paper dark:bg-[#0B1220] text-ink-muted dark:text-[#94A3B8]',
+        className: 'border border-border-hairline bg-paper text-ink-muted',
       };
     default:
       return {
         label: 'Notice',
-        className: 'border border-border-hairline dark:border-[#26324A] bg-paper dark:bg-[#0B1220] text-ink-muted dark:text-[#94A3B8]',
+        className: 'border border-border-hairline bg-paper text-ink-muted',
       };
   }
 }
@@ -175,12 +175,12 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
     <section className="space-y-6 flex flex-col">
       {/* Zero Findings Clean State */}
       {findings.length === 0 ? (
-        <article className="border border-border-hairline dark:border-[#26324A] bg-white dark:bg-[#111A2E] rounded-sm p-6 text-center">
+        <article className="border border-border-hairline bg-white rounded-sm p-6 text-center">
           <div className="proof-marker mx-auto mb-3 border-ink-muted text-ink-muted">✓</div>
-          <h2 className="font-serif text-lg font-semibold text-ink dark:text-[#E2E8F0] mb-2">
+          <h2 className="font-serif text-lg font-semibold text-ink mb-2">
             No deceptive patterns detected
           </h2>
-          <p className="text-sm text-ink-muted dark:text-[#94A3B8] leading-relaxed max-w-sm mx-auto">
+          <p className="text-sm text-ink-muted leading-relaxed max-w-sm mx-auto">
             ClearClick did not identify hidden fees, cancellation barriers, or one-sided consent choices in the checked regions of this page.
           </p>
         </article>
@@ -194,7 +194,7 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
           const sourceLabel = getSourceLabel(f.source, f.type);
           const methodHash =
             f.category === 'hidden_charges'
-              ? 'hidden-charges'
+               ? 'hidden-charges'
               : f.category === 'cancellation'
               ? 'cancellation'
               : 'consent';
@@ -207,8 +207,8 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
               onClick={() => onSelectFinding(idx)}
               className={`border rounded-sm p-5 relative transition-all cursor-pointer ${
                 isSelected
-                  ? 'border-red-pen ring-2 ring-red-pen bg-white dark:bg-[#111A2E] shadow-sm'
-                  : 'border-border-hairline dark:border-[#26324A] bg-white dark:bg-[#111A2E] hover:border-ink-muted'
+                  ? 'border-red-pen ring-2 ring-red-pen bg-white shadow-none'
+                  : 'border-border-hairline bg-white hover:border-ink-muted:border-[#4b4736]'
               }`}
             >
               {/* Note Header: Proof Marker + Serif Title + Severity Badge */}
@@ -219,7 +219,7 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
                   >
                     {markerNum}
                   </span>
-                  <h2 className="font-serif text-lg font-semibold text-ink dark:text-[#E2E8F0] leading-snug">
+                  <h2 className="font-serif text-lg font-semibold text-ink leading-snug">
                     {info.title}
                   </h2>
                 </div>
@@ -231,44 +231,44 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
               </div>
 
               {/* Plain English Summary */}
-              <p className="text-ink dark:text-[#E2E8F0] text-sm mb-3 leading-relaxed">
+              <p className="text-ink text-sm mb-3 leading-relaxed">
                 {info.simpleExplanation}
               </p>
 
               {/* Measured Proof Strip */}
-              <div className="bg-paper dark:bg-[#0B1220] border border-border-hairline dark:border-[#26324A] rounded-sm p-3 mb-3">
-                <div className="font-mono text-xs text-ink-muted dark:text-[#94A3B8] mb-1.5 uppercase font-medium tracking-wide">
+              <div className="bg-paper border border-border-hairline rounded-sm p-3 mb-3">
+                <div className="font-mono text-xs text-ink-muted mb-1.5 uppercase font-medium tracking-wide">
                   Measured Proof
                 </div>
                 <div className="text-xs font-mono space-y-1.5 break-words">
                   {f.evidence && (
                     <p>
-                      <span className="text-ink dark:text-white font-medium">Observed element:</span>{' '}
-                      <span className="text-ink-muted dark:text-[#94A3B8]">{f.evidence}</span>
+                      <span className="text-ink font-medium">Observed element:</span>{' '}
+                      <span className="text-ink-muted">{f.evidence}</span>
                     </p>
                   )}
                   {f.why && (
                     <p>
-                      <span className="text-ink dark:text-white font-medium">Observation:</span>{' '}
-                      <span className="text-ink-muted dark:text-[#94A3B8]">{f.why}</span>
+                      <span className="text-ink font-medium">Observation:</span>{' '}
+                      <span className="text-ink-muted">{f.why}</span>
                     </p>
                   )}
                   {f.safer_alternative && (
-                    <p className="pt-1 border-t border-border-hairline dark:border-[#26324A]">
-                      <span className="text-ink dark:text-white font-medium">Fair design alternative:</span>{' '}
-                      <span className="text-ink-muted dark:text-[#94A3B8]">{f.safer_alternative}</span>
+                    <p className="pt-1 border-t border-border-hairline">
+                      <span className="text-ink font-medium">Fair design alternative:</span>{' '}
+                      <span className="text-ink-muted">{f.safer_alternative}</span>
                     </p>
                   )}
                 </div>
               </div>
 
               {/* Note Footer: Source Attribution & Link to Fairer Version */}
-              <div className="flex items-center justify-between pt-2 border-t border-border-hairline dark:border-[#26324A] text-xs">
-                <span className="font-mono text-ink-muted dark:text-[#94A3B8]">{sourceLabel}</span>
+              <div className="flex items-center justify-between pt-2 border-t border-border-hairline text-xs">
+                <span className="font-mono text-ink-muted">{sourceLabel}</span>
                 <Link
                   to={`/methodology#${methodHash}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="text-ink dark:text-[#2DD4BF] underline decoration-1 hover:text-red-pen transition-colors font-medium"
+                  className="text-ink underline decoration-1 hover:text-red-pen transition-colors font-medium"
                 >
                   Fairer version →
                 </Link>
@@ -279,8 +279,8 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
       )}
 
       {/* Footer Informational Note Explaining Proofreader Approach */}
-      <div className="border border-dashed border-border-hairline dark:border-[#26324A] p-4 rounded-sm text-xs text-ink-muted dark:text-[#94A3B8]">
-        <p className="font-medium text-ink dark:text-[#E2E8F0] mb-1">How ClearClick marks up pages</p>
+      <div className="border border-dashed border-border-hairline p-4 rounded-sm text-xs text-ink-muted">
+        <p className="font-medium text-ink mb-1">How ClearClick marks up pages</p>
         <p className="leading-relaxed">
           Unlike automated rating engines, we do not assign an overall percentage score. We mark verifiable deviations against consumer transparency rules so you can form your own judgment.
         </p>

@@ -4,10 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ClearClick AI — Evidence-Based Dark Pattern Auditor</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="alternate icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=3" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=3" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3" />
+    <link rel="shortcut icon" href="/favicon.ico?v=3" />
     <script type="text/javascript">
+      // Ensure dark mode is completely removed and stripped
+      document.documentElement.classList.remove('dark');
+      try { localStorage.removeItem('clearclick_theme'); } catch(e) {}
       // Restore SPA URL if redirected from static hosting 404.html
       (function(l) {
         if (l.search[1] === '/' ) {
@@ -21,7 +26,7 @@
       }(window.location))
     </script>
   </head>
-  <body class="bg-surface dark:bg-[#0B1220] text-on-surface dark:text-[#E2E8F0] font-sans antialiased min-h-screen">
+  <body class="bg-paper text-ink font-sans antialiased min-h-screen">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

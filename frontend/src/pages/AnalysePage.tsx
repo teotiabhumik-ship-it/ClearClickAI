@@ -332,7 +332,7 @@ export const AnalysePage: React.FC = () => {
         <div
           role="alert"
           aria-live="polite"
-          className="mb-6 p-4 bg-red-tint dark:bg-[#B91C1C]/20 border border-red-pen/40 rounded-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-red-pen dark:text-red-200"
+          className="mb-6 p-4 bg-red-tint border border-red-pen/40 rounded-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-red-pen"
         >
           <div className="flex items-start gap-3 min-w-0">
             <AlertCircle className="w-5 h-5 text-red-pen shrink-0 mt-0.5" aria-hidden="true" />
@@ -351,7 +351,7 @@ export const AnalysePage: React.FC = () => {
           <button
             type="button"
             onClick={() => setErrorMsg(null)}
-            className="p-1 rounded-sm hover:bg-red-pen/10 dark:hover:bg-[#B91C1C]/30 text-red-pen dark:text-red-200 transition-colors shrink-0 self-end sm:self-center"
+            className="p-1 rounded-sm hover:bg-red-pen/10:bg-[#B91C1C]/30 text-red-pen transition-colors shrink-0 self-end sm:self-center"
             aria-label="Dismiss error notification"
             title="Dismiss error"
           >
@@ -362,16 +362,13 @@ export const AnalysePage: React.FC = () => {
 
       {/* When NO report or scan is active: Standalone Page Header */}
       {!report && !activeScan && !isScanning && (
-        <div className="mb-8">
-          <p className="font-mono text-xs text-ink-muted dark:text-[#94A3B8] uppercase tracking-wider mb-1">
-            Inspection Engine · Dark Pattern Audit
-          </p>
-          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-ink dark:text-[#E2E8F0] tracking-tight mb-2 outline-none focus:outline-none focus-visible:outline-none">
-            Check a page or scan a site for design that may mislead you
-          </h1>
-          <p className="text-ink-muted dark:text-[#94A3B8] text-base leading-relaxed max-w-3xl mb-6">
-            Audit single URLs, scan priority transactional pages of a domain, drop screenshots, or inspect ground-truth fixtures. ClearClick flags hidden charges, cancellation hurdles, and one-sided consent choices.
-          </p>
+        <div className="mb-6">
+          {/* Editorial Header Section */}
+          <div className="max-w-5xl mx-auto px-4 pt-4 pb-6 text-center relative z-10">
+            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-semibold text-ink tracking-tight max-w-3xl mx-auto">
+              Inspect web pages for misleading interface patterns.
+            </h1>
+          </div>
 
           {/* Glassmorphic Carousel of Sample Pages */}
           <SamplePagesCarousel
@@ -384,7 +381,7 @@ export const AnalysePage: React.FC = () => {
 
       {/* Input Form (visible by default when no report/scan, collapsible when report/scan active) */}
       {(!report && !activeScan && !isScanning) || showInputForm ? (
-        <div className={report || activeScan ? 'mb-8 pb-8 border-b border-border-hairline dark:border-[#26324A]' : ''}>
+        <div className={report || activeScan ? 'mb-8 pb-8 border-b border-border-hairline' : 'mb-8'}>
           <InputForm
             onAnalyze={handleAnalyze}
             isLoading={isLoading || isScanning}
@@ -392,6 +389,64 @@ export const AnalysePage: React.FC = () => {
           />
         </div>
       ) : null}
+
+      {/* Editorial Diagnostics Brief (visible when no report or scan active) */}
+      {!report && !activeScan && !isScanning && (
+        <section className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 mb-12 w-full">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Link
+              to="/methodology#cancellation"
+              className="bg-white rounded-xl p-6 flex flex-col justify-between border border-outline-variant/60 shadow-[0_2px_8px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] hover:border-amber-500 transition-all group cursor-pointer"
+            >
+              <div className="space-y-2">
+                <span className="font-mono text-xs uppercase tracking-widest text-amber-700 font-semibold">Heuristic 01</span>
+                <h3 className="font-serif text-xl text-ink font-medium group-hover:text-amber-600 transition-colors">Asymmetric Friction</h3>
+                <p className="text-sm text-ink-muted leading-relaxed">
+                  Detects high cognitive loads placed on rejection or cancellation flows compared to one-click acceptance pathways.
+                </p>
+              </div>
+              <div className="mt-5 pt-3 border-t border-outline-variant/40 flex items-center gap-2 text-ink-muted text-xs font-mono">
+                <span className="text-amber-600 font-bold text-sm">⚖</span>
+                <span>Contrast &amp; Weight Diagnostics</span>
+              </div>
+            </Link>
+
+            <Link
+              to="/methodology#hidden-charges"
+              className="bg-white rounded-xl p-6 flex flex-col justify-between border border-outline-variant/60 shadow-[0_2px_8px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] hover:border-rose-500 transition-all group cursor-pointer"
+            >
+              <div className="space-y-2">
+                <span className="font-mono text-xs uppercase tracking-widest text-rose-700 font-semibold">Heuristic 02</span>
+                <h3 className="font-serif text-xl text-ink font-medium group-hover:text-rose-600 transition-colors">Drip &amp; Withheld Fees</h3>
+                <p className="text-sm text-ink-muted leading-relaxed">
+                  Cross-evaluates cart updates against landing page guarantees to flag late-injected resort fees, delivery taxes, or auto-checked gratuity.
+                </p>
+              </div>
+              <div className="mt-5 pt-3 border-t border-outline-variant/40 flex items-center gap-2 text-ink-muted text-xs font-mono">
+                <span className="text-rose-600 font-bold text-sm">💳</span>
+                <span>DOM Differential Tracking</span>
+              </div>
+            </Link>
+
+            <Link
+              to="/methodology#consent"
+              className="bg-white rounded-xl p-6 flex flex-col justify-between border border-outline-variant/60 shadow-[0_2px_8px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] hover:border-sky-500 transition-all group cursor-pointer"
+            >
+              <div className="space-y-2">
+                <span className="font-mono text-xs uppercase tracking-widest text-sky-700 font-semibold">Heuristic 03</span>
+                <h3 className="font-serif text-xl text-ink font-medium group-hover:text-sky-600 transition-colors">Syntactic Pre-Selection</h3>
+                <p className="text-sm text-ink-muted leading-relaxed">
+                  Audits default state boolean toggles across checkout funnels, highlighting stealth membership additions and pre-opt-in terms.
+                </p>
+              </div>
+              <div className="mt-5 pt-3 border-t border-outline-variant/40 flex items-center gap-2 text-ink-muted text-xs font-mono">
+                <span className="text-sky-600 font-bold text-sm">✓</span>
+                <span>Regulatory Compliance (EU/FTC)</span>
+              </div>
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* Live Site Scan Progress Screen */}
       {isScanning && activeScan && (
@@ -415,7 +470,7 @@ export const AnalysePage: React.FC = () => {
                 setReport(null);
                 setShowInputForm(true);
               }}
-              className="text-xs font-mono underline hover:text-red-pen transition-colors text-ink dark:text-[#2DD4BF] cursor-pointer"
+              className="text-xs font-mono underline hover:text-red-pen transition-colors text-ink cursor-pointer"
             >
               ← Scan another site or check a page
             </button>
@@ -436,22 +491,22 @@ export const AnalysePage: React.FC = () => {
       {report && (
         <div className="flex flex-col w-full">
           {/* Header Strip */}
-          <section className="border-b border-border-hairline dark:border-[#26324A] pb-6 mb-8">
+          <section className="border-b border-border-hairline pb-6 mb-8">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
                 <div className="flex items-center gap-3 mb-1">
-                  <p className="font-mono text-xs text-ink-muted dark:text-[#94A3B8] uppercase tracking-wider">
+                  <p className="font-mono text-xs text-ink-muted uppercase tracking-wider">
                     Audit Record · {report.timestamp ? new Date(report.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Checked just now'}
                   </p>
                   <button
                     type="button"
                     onClick={() => setShowInputForm((prev) => !prev)}
-                    className="text-xs font-mono underline hover:text-red-pen transition-colors text-ink dark:text-[#2DD4BF]"
+                    className="text-xs font-mono underline hover:text-red-pen transition-colors text-ink"
                   >
                     {showInputForm ? 'Hide input form' : 'Check another page'}
                   </button>
                 </div>
-                <h1 className="font-serif text-3xl font-semibold text-ink dark:text-[#E2E8F0] outline-none focus:outline-none focus-visible:outline-none">
+                <h1 className="font-serif text-3xl font-semibold text-ink outline-none focus:outline-none focus-visible:outline-none">
                   {report.page_status && report.page_status !== 'ok'
                     ? "We couldn't access this page automatically"
                     : report.findings.length === 0
@@ -460,20 +515,20 @@ export const AnalysePage: React.FC = () => {
                 </h1>
               </div>
               <div className="text-left md:text-right">
-                <p className="text-sm text-ink-muted dark:text-[#94A3B8]">
+                <p className="text-sm text-ink-muted">
                   {report.page_status && report.page_status !== 'ok'
                     ? 'Automated fetch blocked or restricted by host'
                     : 'Automated warnings for you to judge, not legal conclusions.'}
                 </p>
-                <p className="font-mono text-xs text-ink-muted dark:text-[#94A3B8] mt-0.5">
+                <p className="font-mono text-xs text-ink-muted mt-0.5">
                   Status:{' '}
-                  <span className="text-ink dark:text-[#E2E8F0] font-medium">
+                  <span className="text-ink font-medium">
                     {report.page_status && report.page_status !== 'ok'
                       ? `Access status: ${report.page_status}`
                       : `AI analysis: ${report.ai_status === 'completed' || report.ai_status === 'ran' ? 'on' : report.ai_status === 'failed' || report.ai_status === 'unavailable' ? 'unavailable' : 'off'}`}
                   </span>{' '}
                   · Engine:{' '}
-                  <span className="text-ink dark:text-[#E2E8F0] font-medium">
+                  <span className="text-ink font-medium">
                     {report.page_status && report.page_status !== 'ok' ? 'Block Guard' : report.ai_status === 'completed' || report.ai_status === 'ran' ? 'Rules + Vision LLM' : 'Deterministic Rules'}
                   </span>
                 </p>
@@ -483,33 +538,33 @@ export const AnalysePage: React.FC = () => {
 
           {/* Access Blocked Banner */}
           {report.page_status && report.page_status !== 'ok' ? (
-            <div className="p-8 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800 rounded-sm mb-8">
+            <div className="p-8 bg-amber-50/60 border border-amber-300 rounded-sm mb-8">
               <div className="flex items-start gap-4">
-                <ShieldAlert className="w-8 h-8 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <ShieldAlert className="w-8 h-8 text-amber-600 shrink-0 mt-0.5" />
                 <div className="space-y-3">
                   <div>
-                    <h2 className="font-serif text-2xl font-semibold text-ink dark:text-[#E2E8F0] mb-1">
+                    <h2 className="font-serif text-2xl font-semibold text-ink mb-1">
                       We couldn't access this page automatically
                     </h2>
-                    <p className="text-sm text-ink-muted dark:text-[#94A3B8] leading-relaxed">
+                    <p className="text-sm text-ink-muted leading-relaxed">
                       {report.status_reason || 'This website returned an anti-bot challenge or requires interactive authentication.'}
                     </p>
                   </div>
-                  <p className="text-xs text-ink-muted dark:text-[#94A3B8] leading-relaxed">
+                  <p className="text-xs text-ink-muted leading-relaxed">
                     ClearClick AI strictly adheres to automated politeness: we do not bypass bot walls, spoof fingerprints, or solve CAPTCHAs. Because the page could not be accessed, it has not been scored or certified as clean.
                   </p>
                   <div className="flex flex-wrap items-center gap-3 pt-2">
                     <button
                       type="button"
                       onClick={() => setShowInputForm(true)}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-ink dark:bg-[#2DD4BF] text-paper dark:text-[#0F172A] text-xs font-mono font-medium rounded-sm hover:opacity-90 transition-opacity"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-ink text-paper text-xs font-mono font-medium rounded-sm hover:opacity-90 transition-opacity"
                     >
                       <UploadCloud className="w-4 h-4" />
                       Upload Screenshot Instead
                     </button>
                     <Link
                       to="/methodology#limits"
-                      className="inline-flex items-center gap-1 text-xs font-mono underline text-ink-muted dark:text-[#94A3B8] hover:text-ink dark:hover:text-[#E2E8F0]"
+                      className="inline-flex items-center gap-1 text-xs font-mono underline text-ink-muted hover:text-ink:text-[#e6e1df]"
                     >
                       Read about automated access limits
                       <ArrowRight className="w-3.5 h-3.5" />

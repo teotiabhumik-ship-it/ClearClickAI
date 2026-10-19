@@ -54,42 +54,42 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
       switch (reason) {
         case 'skipped_cap':
           return (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-300">
               <span aria-hidden="true">⏸</span>
               <span>Skipped (quota cap)</span>
             </span>
           );
         case 'skipped_low_priority':
           return (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-300">
               <span aria-hidden="true">⏭</span>
               <span>Skipped (low priority)</span>
             </span>
           );
         case 'skipped_duplicate':
           return (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-300">
               <span aria-hidden="true">⎘</span>
               <span>Skipped (duplicate template)</span>
             </span>
           );
         case 'skipped_robots':
           return (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-900 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-900 border border-purple-300">
               <span aria-hidden="true">🤖</span>
               <span>Robots disallowed</span>
             </span>
           );
         case 'skipped_blocked_domain':
           return (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900 border border-amber-300">
               <span aria-hidden="true">⛔</span>
               <span>Domain cooldown</span>
             </span>
           );
         default:
           return (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-300">
               <span aria-hidden="true">⏸</span>
               <span>Skipped</span>
             </span>
@@ -101,49 +101,49 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
     switch (page.page_status) {
       case 'ok':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-300">
             <span aria-hidden="true">✓</span>
             <span>Analysed</span>
           </span>
         );
       case 'blocked':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900 border border-amber-300">
             <span aria-hidden="true">⛔</span>
             <span>Blocked by site</span>
           </span>
         );
       case 'needs_login':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-900 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-300 dark:border-blue-800">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-900 border border-blue-300">
             <span aria-hidden="true">🔒</span>
             <span>Requires login</span>
           </span>
         );
       case 'robots_disallowed':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-900 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-900 border border-purple-300">
             <span aria-hidden="true">🤖</span>
             <span>Robots disallowed</span>
           </span>
         );
       case 'empty':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300 border border-gray-300 dark:border-gray-700">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 border border-gray-300">
             <span aria-hidden="true">⚠️</span>
             <span>Sparse/Empty content</span>
           </span>
         );
       case 'timeout':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-900 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-900 border border-rose-300">
             <span aria-hidden="true">⏱</span>
             <span>Timeout</span>
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300 border border-gray-300 dark:border-gray-700">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 border border-gray-300">
             <span aria-hidden="true">❓</span>
             <span>{page.page_status}</span>
           </span>
@@ -155,19 +155,19 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
     switch (severity) {
       case 'high':
         return (
-          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
+          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-300">
             High Severity
           </span>
         );
       case 'medium':
         return (
-          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300">
             Medium Severity
           </span>
         );
       default:
         return (
-          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-300">
             Low Severity
           </span>
         );
@@ -188,30 +188,30 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
   return (
     <div className="w-full space-y-8 animate-fadeIn">
       {/* Header Bar */}
-      <div className="bg-white dark:bg-[#111A2E] rounded-sm p-6 border border-border-hairline dark:border-[#26324A] shadow-sm">
+      <div className="bg-white rounded-sm p-6 border border-border-hairline shadow-none">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs uppercase tracking-wider font-mono font-semibold text-ink-muted dark:text-[#94A3B8]">
+              <span className="text-xs uppercase tracking-wider font-mono font-semibold text-ink-muted">
                 Multi-Page Site Audit
               </span>
-              <span className="text-xs px-2 py-0.5 rounded bg-paper dark:bg-[#0B1220] text-ink font-mono border border-border-hairline dark:border-[#26324A]">
+              <span className="text-xs px-2 py-0.5 rounded bg-paper text-ink font-mono border border-border-hairline">
                 {scan.status.toUpperCase()}
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold font-serif text-ink dark:text-[#E2E8F0] break-all">
+            <h2 className="text-xl sm:text-2xl font-bold font-serif text-ink break-all">
               {scan.root_url}
             </h2>
-            <p className="text-xs text-ink-muted dark:text-[#94A3B8] mt-1 font-mono">
+            <p className="text-xs text-ink-muted mt-1 font-mono">
               Scanned on {new Date(scan.created_at).toLocaleString()} • Concurrency: 1 • Delay: 1.0s
             </p>
           </div>
 
           <div className="text-right">
-            <span className="text-xs text-ink-muted dark:text-[#94A3B8] block">Audited pages</span>
-            <span className="text-2xl font-bold font-mono text-ink dark:text-[#2DD4BF]">
+            <span className="text-xs text-ink-muted block">Audited pages</span>
+            <span className="text-2xl font-bold font-mono text-ink">
               {scan.coverage.pages_analysed}
-              <span className="text-sm font-normal text-ink-muted dark:text-[#94A3B8]"> / {scan.coverage.pages_discovered} found</span>
+              <span className="text-sm font-normal text-ink-muted"> / {scan.coverage.pages_discovered} found</span>
             </span>
           </div>
         </div>
@@ -222,22 +222,22 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
         <button
           type="button"
           onClick={() => setSelectedFilter(selectedFilter === 'hidden_charges' ? null : 'hidden_charges')}
-          className={`p-5 rounded-sm bg-white dark:bg-[#111A2E] border text-left transition-all ${
+          className={`p-5 rounded-sm bg-white border text-left transition-all ${
             selectedFilter === 'hidden_charges'
               ? 'border-red-pen ring-1 ring-red-pen'
-              : 'border-border-hairline dark:border-[#26324A] hover:border-ink-muted'
+              : 'border-border-hairline hover:border-ink-muted:border-[#4b4736]'
           }`}
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted dark:text-[#94A3B8]">
+            <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
               Hidden charges
             </span>
             <CreditCard className="w-5 h-5 text-red-pen" aria-hidden="true" />
           </div>
-          <div className="text-3xl font-bold font-mono text-ink dark:text-[#E2E8F0]">
+          <div className="text-3xl font-bold font-mono text-ink">
             {categoryCounts.hidden_charges}
           </div>
-          <p className="text-xs text-ink-muted dark:text-[#94A3B8] mt-1">
+          <p className="text-xs text-ink-muted mt-1">
             Mandatory fees or surcharges withheld until payment
           </p>
         </button>
@@ -245,22 +245,22 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
         <button
           type="button"
           onClick={() => setSelectedFilter(selectedFilter === 'cancellation' ? null : 'cancellation')}
-          className={`p-5 rounded-sm bg-white dark:bg-[#111A2E] border text-left transition-all ${
+          className={`p-5 rounded-sm bg-white border text-left transition-all ${
             selectedFilter === 'cancellation'
               ? 'border-red-pen ring-1 ring-red-pen'
-              : 'border-border-hairline dark:border-[#26324A] hover:border-ink-muted'
+              : 'border-border-hairline hover:border-ink-muted:border-[#4b4736]'
           }`}
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted dark:text-[#94A3B8]">
+            <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
               Cancellation
             </span>
-            <Ban className="w-5 h-5 text-ink-muted dark:text-[#94A3B8]" aria-hidden="true" />
+            <Ban className="w-5 h-5 text-ink-muted" aria-hidden="true" />
           </div>
-          <div className="text-3xl font-bold font-mono text-ink dark:text-[#E2E8F0]">
+          <div className="text-3xl font-bold font-mono text-ink">
             {categoryCounts.cancellation}
           </div>
-          <p className="text-xs text-ink-muted dark:text-[#94A3B8] mt-1">
+          <p className="text-xs text-ink-muted mt-1">
             Concealed cancellation paths or asymmetric retention steps
           </p>
         </button>
@@ -268,22 +268,22 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
         <button
           type="button"
           onClick={() => setSelectedFilter(selectedFilter === 'consent' ? null : 'consent')}
-          className={`p-5 rounded-sm bg-white dark:bg-[#111A2E] border text-left transition-all ${
+          className={`p-5 rounded-sm bg-white border text-left transition-all ${
             selectedFilter === 'consent'
               ? 'border-red-pen ring-1 ring-red-pen'
-              : 'border-border-hairline dark:border-[#26324A] hover:border-ink-muted'
+              : 'border-border-hairline hover:border-ink-muted:border-[#4b4736]'
           }`}
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted dark:text-[#94A3B8]">
+            <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
               Consent choices
             </span>
-            <CheckSquare className="w-5 h-5 text-ink dark:text-[#2DD4BF]" aria-hidden="true" />
+            <CheckSquare className="w-5 h-5 text-ink" aria-hidden="true" />
           </div>
-          <div className="text-3xl font-bold font-mono text-ink dark:text-[#E2E8F0]">
+          <div className="text-3xl font-bold font-mono text-ink">
             {categoryCounts.consent}
           </div>
-          <p className="text-xs text-ink-muted dark:text-[#94A3B8] mt-1">
+          <p className="text-xs text-ink-muted mt-1">
             Pre-ticked opt-ins or visually asymmetric consent controls
           </p>
         </button>
@@ -293,18 +293,18 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
       <section
         id="coverage-panel"
         aria-labelledby="coverage-heading"
-        className="bg-white dark:bg-[#111A2E] rounded-sm p-6 border border-border-hairline dark:border-[#26324A] shadow-sm space-y-4"
+        className="bg-white rounded-sm p-6 border border-border-hairline shadow-none space-y-4"
       >
-        <div className="flex items-center justify-between border-b border-border-hairline dark:border-[#26324A] pb-3">
+        <div className="flex items-center justify-between border-b border-border-hairline pb-3">
           <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-ink dark:text-[#2DD4BF]" aria-hidden="true" />
-            <h3 id="coverage-heading" className="text-lg font-bold font-serif text-ink dark:text-[#E2E8F0]">
-              Coverage & Inspection Scope
+            <Layers className="w-5 h-5 text-ink" aria-hidden="true" />
+            <h3 id="coverage-heading" className="text-lg font-bold font-serif text-ink">
+              Coverage &amp; Inspection Scope
             </h3>
           </div>
           <Link
             to="/methodology#limits"
-            className="text-xs font-medium text-ink dark:text-[#2DD4BF] hover:underline inline-flex items-center gap-1"
+            className="text-xs font-medium text-ink hover:underline inline-flex items-center gap-1"
           >
             <span>Methodology limits</span>
             <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
@@ -312,69 +312,69 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
         </div>
 
         {/* Mandatory Disclosure Alert */}
-        <div className="p-4 rounded-sm bg-paper dark:bg-[#0B1220] border-l-4 border-ink dark:border-[#2DD4BF] text-sm text-ink dark:text-[#E2E8F0]">
+        <div className="p-4 rounded-sm bg-paper border-l-4 border-ink text-sm text-ink">
           <p className="font-semibold">
             Results cover only the pages reached. No findings does not mean the whole site is fair.
           </p>
-          <p className="text-xs text-ink-muted dark:text-[#94A3B8] mt-1">
+          <p className="text-xs text-ink-muted mt-1">
             Pages requiring user accounts, payment credentials, or excluded by bot protection were not audited. Review unreached areas manually.
           </p>
         </div>
 
         {/* Coverage Metrics Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-          <div className="p-3 rounded-sm bg-paper/60 dark:bg-[#0B1220]/60 border border-border-hairline dark:border-[#26324A]">
-            <span className="text-xs text-ink-muted dark:text-[#94A3B8] block">Pages Discovered</span>
-            <span className="text-xl font-bold font-mono text-ink dark:text-[#E2E8F0]">
+          <div className="p-3 rounded-sm bg-paper/60 border border-border-hairline">
+            <span className="text-xs text-ink-muted block">Pages Discovered</span>
+            <span className="text-xl font-bold font-mono text-ink">
               {scan.coverage.pages_discovered}
             </span>
           </div>
-          <div className="p-3 rounded-sm bg-paper/60 dark:bg-[#0B1220]/60 border border-border-hairline dark:border-[#26324A]">
-            <span className="text-xs text-ink-muted dark:text-[#94A3B8] block">Pages Analysed</span>
-            <span className="text-xl font-bold font-mono text-ink dark:text-[#2DD4BF]">
+          <div className="p-3 rounded-sm bg-paper/60 border border-border-hairline">
+            <span className="text-xs text-ink-muted block">Pages Analysed</span>
+            <span className="text-xl font-bold font-mono text-ink">
               {scan.coverage.pages_analysed}
             </span>
           </div>
-          <div className="p-3 rounded-sm bg-paper/60 dark:bg-[#0B1220]/60 border border-border-hairline dark:border-[#26324A]">
-            <span className="text-xs text-ink-muted dark:text-[#94A3B8] block">AI Inspected</span>
-            <span className="text-xl font-bold font-mono text-ink dark:text-[#E2E8F0]">
+          <div className="p-3 rounded-sm bg-paper/60 border border-border-hairline">
+            <span className="text-xs text-ink-muted block">AI Inspected</span>
+            <span className="text-xl font-bold font-mono text-ink">
               {scan.coverage.pages_ai_analysed}
-              <span className="text-xs font-normal text-ink-muted dark:text-[#94A3B8]"> ({scan.coverage.ai_calls_used} calls)</span>
+              <span className="text-xs font-normal text-ink-muted"> ({scan.coverage.ai_calls_used} calls)</span>
             </span>
           </div>
-          <div className="p-3 rounded-sm bg-paper/60 dark:bg-[#0B1220]/60 border border-border-hairline dark:border-[#26324A]">
-            <span className="text-xs text-ink-muted dark:text-[#94A3B8] block">Blocked / Auth Needed</span>
-            <span className="text-xl font-bold font-mono text-amber-700 dark:text-amber-400">
+          <div className="p-3 rounded-sm bg-paper/60 border border-border-hairline">
+            <span className="text-xs text-ink-muted block">Blocked / Auth Needed</span>
+            <span className="text-xl font-bold font-mono text-amber-700">
               {scan.coverage.pages_blocked + scan.coverage.pages_needs_login}
             </span>
           </div>
         </div>
 
         {/* Key Transactional Areas Reached */}
-        <div className="pt-2 text-xs text-ink-muted dark:text-[#94A3B8] flex flex-wrap gap-4">
+        <div className="pt-2 text-xs text-ink-muted flex flex-wrap gap-4">
           <div>
-            <span className="font-semibold text-ink dark:text-[#E2E8F0]">Key areas discovered: </span>
+            <span className="font-semibold text-ink">Key areas discovered: </span>
             <span>{scan.coverage.key_page_types_found.join(', ') || 'None found'}</span>
           </div>
           <div>
-            <span className="font-semibold text-ink dark:text-[#E2E8F0]">Key areas reached: </span>
+            <span className="font-semibold text-ink">Key areas reached: </span>
             <span>{scan.coverage.key_page_types_reached.join(', ') || 'None reached'}</span>
           </div>
         </div>
 
         {/* Skipped Reason Breakdown */}
         {Object.keys(scan.coverage.pages_skipped_by_reason).length > 0 && (
-          <div className="pt-2 text-xs border-t border-border-hairline dark:border-[#26324A]">
-            <span className="font-semibold text-ink dark:text-[#E2E8F0] block mb-1">
+          <div className="pt-2 text-xs border-t border-border-hairline">
+            <span className="font-semibold text-ink block mb-1">
               Pages skipped by policy:
             </span>
             <div className="flex flex-wrap gap-2">
               {Object.entries(scan.coverage.pages_skipped_by_reason).map(([reason, count]) => (
                 <span
                   key={reason}
-                  className="px-2 py-1 rounded bg-paper dark:bg-[#0B1220] border border-border-hairline dark:border-[#26324A] text-ink-muted dark:text-[#94A3B8]"
+                  className="px-2 py-1 rounded bg-paper border border-border-hairline text-ink-muted"
                 >
-                  <span className="font-mono font-medium text-ink dark:text-[#E2E8F0]">{count}</span> {reason.replace('skipped_', '').replace('_', ' ')}
+                  <span className="font-mono font-medium text-ink">{count}</span> {reason.replace('skipped_', '').replace('_', ' ')}
                 </span>
               ))}
             </div>
@@ -385,7 +385,7 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
       {/* Grouped Findings Section */}
       <section aria-labelledby="findings-heading" className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 id="findings-heading" className="text-lg font-bold font-serif text-ink dark:text-[#E2E8F0]">
+          <h3 id="findings-heading" className="text-lg font-bold font-serif text-ink">
             Verified Interface Findings ({filteredFindings.length})
           </h3>
           {selectedFilter && (
@@ -399,11 +399,11 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
         </div>
 
         {filteredFindings.length === 0 ? (
-          <div className="p-8 text-center bg-white dark:bg-[#111A2E] rounded-sm border border-border-hairline dark:border-[#26324A]">
-            <p className="text-sm font-medium text-ink dark:text-[#E2E8F0]">
+          <div className="p-8 text-center bg-white rounded-sm border border-border-hairline">
+            <p className="text-sm font-medium text-ink">
               No deceptive patterns flagged on the {scan.coverage.pages_analysed} pages reached.
             </p>
-            <p className="text-xs text-ink-muted dark:text-[#94A3B8] mt-1">
+            <p className="text-xs text-ink-muted mt-1">
               Remember: this does not guarantee unreached areas (or areas behind checkout/login) are free of dark patterns.
             </p>
           </div>
@@ -414,20 +414,20 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
               return (
                 <div
                   key={`${finding.type}-${idx}`}
-                  className="bg-white dark:bg-[#111A2E] rounded-sm border border-border-hairline dark:border-[#26324A] p-5 shadow-sm transition-all"
+                  className="bg-white rounded-sm border border-border-hairline p-5 shadow-none transition-all"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
                         {getSeverityBadge(finding.severity)}
-                        <span className="text-xs font-mono px-2 py-0.5 rounded bg-paper dark:bg-[#0B1220] text-ink dark:text-[#94A3B8] border border-border-hairline dark:border-[#26324A]">
+                        <span className="text-xs font-mono px-2 py-0.5 rounded bg-paper text-ink border border-border-hairline">
                           {finding.type}
                         </span>
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200">
                           Seen on {finding.pages.length} page{finding.pages.length > 1 ? 's' : ''}
                         </span>
                       </div>
-                      <h4 className="text-base font-semibold text-ink dark:text-[#E2E8F0] pt-1">
+                      <h4 className="text-base font-semibold text-ink pt-1">
                         {finding.why}
                       </h4>
                     </div>
@@ -435,7 +435,7 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
                     <button
                       type="button"
                       onClick={() => toggleFinding(idx)}
-                      className="self-start text-xs font-medium text-ink dark:text-[#2DD4BF] hover:underline inline-flex items-center gap-1 cursor-pointer"
+                      className="self-start text-xs font-medium text-ink hover:underline inline-flex items-center gap-1 cursor-pointer"
                     >
                       <span>{isExpanded ? 'Hide details' : 'View evidence & pages'}</span>
                       {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -444,35 +444,35 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
 
                   {/* Expanded View */}
                   {isExpanded && (
-                    <div className="mt-4 pt-4 border-t border-border-hairline dark:border-[#26324A] space-y-4 text-xs sm:text-sm">
+                    <div className="mt-4 pt-4 border-t border-border-hairline space-y-4 text-xs sm:text-sm">
                       {/* Evidence & Quote */}
-                      <div className="p-3 bg-paper dark:bg-[#0B1220] rounded-sm space-y-1">
-                        <span className="font-mono text-xs uppercase font-semibold text-ink-muted dark:text-[#94A3B8] block">
+                      <div className="p-3 bg-paper rounded-sm space-y-1">
+                        <span className="font-mono text-xs uppercase font-semibold text-ink-muted block">
                           Measured Evidence:
                         </span>
-                        <p className="font-mono text-xs text-ink dark:text-[#E2E8F0] break-words">
+                        <p className="font-mono text-xs text-ink break-words">
                           {finding.evidence}
                         </p>
                       </div>
 
                       {/* Safer Design Recommendation */}
-                      <div className="p-3 bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-sm">
-                        <span className="font-semibold text-emerald-900 dark:text-emerald-300 block mb-1">
+                      <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-sm">
+                        <span className="font-semibold text-emerald-900 block mb-1">
                           Safer Design Alternative:
                         </span>
-                        <p className="text-emerald-800 dark:text-emerald-400">
+                        <p className="text-emerald-800">
                           {finding.safer_alternative}
                         </p>
                       </div>
 
                       {/* Pages List */}
                       <div>
-                        <span className="font-semibold text-ink dark:text-[#E2E8F0] block mb-2">
+                        <span className="font-semibold text-ink block mb-2">
                           Discovered on these URLs:
                         </span>
                         <ul className="space-y-1">
                           {finding.pages.map((pUrl, pIdx) => (
-                            <li key={pIdx} className="font-mono text-xs text-ink-muted dark:text-[#94A3B8] flex items-center gap-1.5">
+                            <li key={pIdx} className="font-mono text-xs text-ink-muted flex items-center gap-1.5">
                               <span>•</span>
                               <span className="break-all">{pUrl}</span>
                             </li>
@@ -490,14 +490,14 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
 
       {/* Visual Page Inspector: Page Screenshots & Proof Marker Pins */}
       <section id="visual-page-inspector" aria-labelledby="inspector-heading" className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-hairline dark:border-[#26324A] pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-hairline pb-3">
           <div className="flex items-center gap-2">
             <Camera className="w-5 h-5 text-red-pen" aria-hidden="true" />
-            <h3 id="inspector-heading" className="text-lg font-bold font-serif text-ink dark:text-[#E2E8F0]">
-              Visual Page Inspector · Screenshots & Dark Pattern Proof Pins
+            <h3 id="inspector-heading" className="text-lg font-bold font-serif text-ink">
+              Visual Page Inspector · Screenshots &amp; Dark Pattern Proof Pins
             </h3>
           </div>
-          <span className="text-xs font-mono text-ink-muted dark:text-[#94A3B8]">
+          <span className="text-xs font-mono text-ink-muted">
             Click any pin or yellow box on the screenshot to inspect the dark pattern
           </span>
         </div>
@@ -505,7 +505,7 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
         {/* Audited Page Switcher Tabs */}
         {scan.pages.filter((p) => p.page_status === 'ok' || p.decision === 'will_analyse').length > 0 && (
           <div className="space-y-2">
-            <div className="text-xs font-mono text-ink-muted dark:text-[#94A3B8]">
+            <div className="text-xs font-mono text-ink-muted">
               Select an audited page to inspect screenshot and proof markers:
             </div>
             <div className="flex flex-wrap gap-2">
@@ -523,8 +523,8 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
                       }}
                       className={`px-3 py-2 rounded-sm text-xs font-medium border transition-all flex items-center gap-2 cursor-pointer ${
                         isSelected
-                          ? 'bg-ink dark:bg-[#2DD4BF] text-paper dark:text-[#0B1220] border-ink dark:border-[#2DD4BF] shadow-sm font-semibold'
-                          : 'bg-white dark:bg-[#111A2E] text-ink dark:text-[#E2E8F0] border-border-hairline dark:border-[#26324A] hover:border-ink-muted'
+                          ? 'bg-ink text-paper border-ink shadow-none font-semibold'
+                          : 'bg-white text-ink border-border-hairline hover:border-ink-muted:border-[#4b4736]'
                       }`}
                     >
                       <span className="font-mono opacity-80">#{idx + 1}</span>
@@ -561,17 +561,17 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
 
           return (
             <div className="space-y-4">
-              <div className="bg-paper/60 dark:bg-[#0B1220]/60 p-3 rounded-sm border border-border-hairline dark:border-[#26324A] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="bg-paper/60 p-3 rounded-sm border border-border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-semibold text-ink dark:text-[#E2E8F0]">Viewing:</span>
-                  <span className="font-mono text-ink dark:text-[#2DD4BF] truncate">{activePage.url}</span>
-                  <span className="px-1.5 py-0.5 rounded bg-white dark:bg-[#111A2E] border font-mono text-ink-muted">
+                  <span className="font-semibold text-ink">Viewing:</span>
+                  <span className="font-mono text-ink truncate">{activePage.url}</span>
+                  <span className="px-1.5 py-0.5 rounded bg-white border border-outline-variant/40 font-mono text-ink-muted">
                     {activePage.page_type}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-ink-muted">Page findings:</span>
-                  <span className="font-bold font-mono text-ink dark:text-[#E2E8F0]">
+                  <span className="font-bold font-mono text-ink">
                     {activePage.findings.length}
                   </span>
                 </div>
@@ -593,8 +593,8 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
 
                 {/* Finding Proof Margin Notes (4 cols on large screen) */}
                 <div className="lg:col-span-4 space-y-3">
-                  <div className="flex items-center justify-between pb-1 border-b border-border-hairline dark:border-[#26324A]">
-                    <span className="font-mono text-xs uppercase font-semibold text-ink-muted dark:text-[#94A3B8]">
+                  <div className="flex items-center justify-between pb-1 border-b border-border-hairline">
+                    <span className="font-mono text-xs uppercase font-semibold text-ink-muted">
                       Page Proof Annotations ({activePage.findings.length})
                     </span>
                     {selectedFindingIndex !== null && (
@@ -609,8 +609,8 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
                   </div>
 
                   {activePage.findings.length === 0 ? (
-                    <div className="p-6 text-center bg-white dark:bg-[#111A2E] rounded-sm border border-border-hairline dark:border-[#26324A] text-xs text-ink-muted">
-                      <p className="font-semibold text-ink dark:text-[#E2E8F0]">Clean page layout</p>
+                    <div className="p-6 text-center bg-white rounded-sm border border-border-hairline text-xs text-ink-muted">
+                      <p className="font-semibold text-ink">Clean page layout</p>
                       <p className="mt-1">No deceptive dark pattern markers were flagged on this page.</p>
                     </div>
                   ) : (
@@ -623,8 +623,8 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
                             onClick={() => setSelectedFindingIndex(isSelected ? null : fIdx)}
                             className={`p-3.5 rounded-sm border transition-all cursor-pointer ${
                               isSelected
-                                ? 'border-red-pen bg-red-tint/10 dark:bg-[#B91C1C]/10 shadow-sm ring-1 ring-red-pen'
-                                : 'bg-white dark:bg-[#111A2E] border-border-hairline dark:border-[#26324A] hover:border-ink-muted'
+                                ? 'border-red-pen bg-red-tint/10 shadow-none ring-1 ring-red-pen'
+                                : 'bg-white border-border-hairline hover:border-ink-muted:border-[#4b4736]'
                             }`}
                           >
                             <div className="flex items-start gap-2.5">
@@ -633,15 +633,15 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
                               </span>
                               <div className="min-w-0 flex-1 space-y-1">
                                 <div className="flex items-center justify-between gap-1">
-                                  <span className="font-semibold text-xs text-ink dark:text-[#E2E8F0] truncate">
+                                  <span className="font-semibold text-xs text-ink truncate">
                                     {f.type}
                                   </span>
                                   {getSeverityBadge(f.severity)}
                                 </div>
-                                <p className="text-[11px] font-mono text-ink dark:text-[#E2E8F0] line-clamp-2 bg-paper dark:bg-[#0B1220] p-1.5 rounded border border-border-hairline dark:border-[#26324A]">
+                                <p className="text-[11px] font-mono text-ink line-clamp-2 bg-paper p-1.5 rounded border border-border-hairline">
                                   "{f.evidence}"
                                 </p>
-                                <p className="text-[11px] text-ink-muted dark:text-[#94A3B8] line-clamp-2">
+                                <p className="text-[11px] text-ink-muted line-clamp-2">
                                   {f.why}
                                 </p>
                               </div>
@@ -661,12 +661,12 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
       {/* Discovered Pages Table */}
       <section aria-labelledby="pages-heading" className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 id="pages-heading" className="text-lg font-bold font-serif text-ink dark:text-[#E2E8F0]">
+          <h3 id="pages-heading" className="text-lg font-bold font-serif text-ink">
             Discovered Pages ({scan.pages.length} total • {scan.coverage.pages_analysed} analysed, {scan.pages.length - scan.coverage.pages_analysed} skipped)
           </h3>
           <button
             onClick={() => setExpandedPages(!expandedPages)}
-            className="text-xs font-medium text-ink dark:text-[#2DD4BF] hover:underline inline-flex items-center gap-1 cursor-pointer"
+            className="text-xs font-medium text-ink hover:underline inline-flex items-center gap-1 cursor-pointer"
           >
             <span>{expandedPages ? 'Collapse' : 'Expand'}</span>
             {expandedPages ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -674,11 +674,11 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
         </div>
 
         {expandedPages && (
-          <div className="bg-white dark:bg-[#111A2E] rounded-sm border border-border-hairline dark:border-[#26324A] overflow-hidden shadow-sm">
+          <div className="bg-white rounded-sm border border-border-hairline overflow-hidden shadow-none">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs sm:text-sm">
                 <thead>
-                  <tr className="border-b border-border-hairline dark:border-[#26324A] bg-paper dark:bg-[#0B1220] text-ink-muted dark:text-[#94A3B8]">
+                  <tr className="border-b border-border-hairline bg-paper text-ink-muted">
                     <th className="p-3 font-semibold">Page URL</th>
                     <th className="p-3 font-semibold">Type</th>
                     <th className="p-3 font-semibold">Decision / Status</th>
@@ -686,18 +686,18 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
                     <th className="p-3 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border-hairline dark:divide-[#26324A]">
+                <tbody className="divide-y divide-border-hairline">
                   {scan.pages.map((p, idx) => (
-                    <tr key={idx} className="hover:bg-paper/50 dark:hover:bg-[#0B1220]/50 transition-colors">
-                      <td className="p-3 font-mono text-xs text-ink dark:text-[#E2E8F0] break-all max-w-[280px]">
+                    <tr key={idx} className="hover:bg-paper/50:bg-[#211f1e]/60 transition-colors">
+                      <td className="p-3 font-mono text-xs text-ink break-all max-w-[280px]">
                         {p.url}
                         {p.status_reason && (p.page_status !== 'ok' || p.decision !== 'will_analyse') && (
-                          <span className="block text-[11px] text-ink-muted dark:text-[#94A3B8] font-sans mt-0.5">
+                          <span className="block text-[11px] text-ink-muted font-sans mt-0.5">
                             {p.status_reason}
                           </span>
                         )}
                       </td>
-                      <td className="p-3 capitalize font-medium text-ink dark:text-[#E2E8F0]">
+                      <td className="p-3 capitalize font-medium text-ink">
                         {p.page_type}
                       </td>
                       <td className="p-3">
@@ -707,7 +707,7 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
                         {p.findings.length > 0 ? (
                           <span className="text-red-pen font-semibold">{p.findings.length}</span>
                         ) : (
-                          <span className="text-ink-muted dark:text-[#94A3B8]">0</span>
+                          <span className="text-ink-muted">0</span>
                         )}
                       </td>
                       <td className="p-3 text-right">
@@ -716,7 +716,7 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
                             <button
                               type="button"
                               onClick={onOpenUpload}
-                              className="px-2 py-1 rounded text-xs font-medium bg-ink dark:bg-[#2DD4BF] text-paper dark:text-[#0B1220] hover:opacity-90 transition-opacity"
+                              className="px-2 py-1 rounded text-xs font-medium bg-ink text-paper hover:opacity-90 transition-opacity"
                               title="Upload saved HTML or screenshot"
                             >
                               Upload
@@ -724,7 +724,7 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
                             <button
                               type="button"
                               onClick={() => onStartFlow && onStartFlow(p.url)}
-                              className="px-2 py-1 rounded text-xs font-medium border border-border-hairline dark:border-[#26324A] text-ink dark:text-[#E2E8F0] hover:bg-paper dark:hover:bg-[#0B1220]"
+                              className="px-2 py-1 rounded text-xs font-medium border border-border-hairline text-ink hover:bg-paper:bg-[#211f1e]"
                               title="Scripted checkout flow"
                             >
                               Flow
@@ -738,14 +738,14 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
                               setSelectedFindingIndex(null);
                               document.getElementById('visual-page-inspector')?.scrollIntoView({ behavior: 'smooth' });
                             }}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-white dark:bg-[#111A2E] text-ink dark:text-[#2DD4BF] border border-border-hairline dark:border-[#26324A] hover:border-ink hover:shadow-sm transition-all cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-white text-ink border border-border-hairline hover:border-ink hover:shadow-none transition-all cursor-pointer"
                             title="Inspect page screenshot and proof markers"
                           >
                             <Camera className="w-3.5 h-3.5 text-red-pen" />
                             <span>Inspect Screenshot</span>
                           </button>
                         ) : (
-                          <span className="text-ink-muted dark:text-[#94A3B8] text-xs">—</span>
+                          <span className="text-ink-muted text-xs">—</span>
                         )}
                       </td>
                     </tr>

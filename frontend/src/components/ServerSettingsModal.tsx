@@ -73,12 +73,12 @@ export const ServerSettingsModal: React.FC<ServerSettingsModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="server-settings-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 dark:bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-xs animate-in fade-in duration-150"
     >
-      <div className="bg-paper dark:bg-[#111A2E] border border-border-hairline dark:border-[#26324A] rounded-sm shadow-xl max-w-md w-full p-6 text-ink dark:text-[#E2E8F0]">
-        <div className="flex items-center justify-between pb-4 border-b border-border-hairline dark:border-[#26324A]">
+      <div className="bg-paper border border-border-hairline rounded-sm shadow-none max-w-md w-full p-6 text-ink">
+        <div className="flex items-center justify-between pb-4 border-b border-border-hairline">
           <div className="flex items-center gap-2">
-            <Server className="w-5 h-5 text-ink dark:text-[#2DD4BF]" aria-hidden="true" />
+            <Server className="w-5 h-5 text-ink" aria-hidden="true" />
             <h2 id="server-settings-title" className="font-serif text-lg font-semibold">
               Backend Server Connection
             </h2>
@@ -86,7 +86,7 @@ export const ServerSettingsModal: React.FC<ServerSettingsModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-sm text-ink-muted hover:text-ink dark:hover:text-[#E2E8F0] transition-colors"
+            className="p-1 rounded-sm text-ink-muted hover:text-ink:text-[#e6e1df] transition-colors"
             aria-label="Close server settings"
           >
             <X className="w-4 h-4" />
@@ -95,7 +95,7 @@ export const ServerSettingsModal: React.FC<ServerSettingsModalProps> = ({
 
         <form onSubmit={handleSave} className="mt-4 space-y-4">
           <div>
-            <label htmlFor="backend-url-input" className="block text-xs font-mono uppercase tracking-wider text-ink-muted dark:text-[#94A3B8] mb-1">
+            <label htmlFor="backend-url-input" className="block text-xs font-mono uppercase tracking-wider text-ink-muted mb-1">
               API Base URL
             </label>
             <input
@@ -104,21 +104,21 @@ export const ServerSettingsModal: React.FC<ServerSettingsModalProps> = ({
               placeholder="e.g. http://127.0.0.1:8000 or https://api.yourdomain.com"
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
-              className="w-full px-3 py-2 text-sm font-mono bg-white dark:bg-[#0B1220] border border-border-hairline dark:border-[#26324A] rounded-sm focus:outline-none focus:ring-1 focus:ring-ink dark:focus:ring-[#2DD4BF]"
+              className="w-full px-3 py-2 text-sm font-mono bg-white border border-border-hairline rounded-sm focus:outline-none focus:ring-1 focus:ring-ink:ring-[#fbe36a]"
             />
-            <p className="mt-1 text-xs text-ink-muted dark:text-[#94A3B8]">
+            <p className="mt-1 text-xs text-ink-muted">
               Leave blank to use the default same-origin address (for localhost or full-stack deployments).
             </p>
           </div>
 
           {/* Connection Status Box */}
-          <div className="p-3 bg-white dark:bg-[#0B1220] border border-border-hairline dark:border-[#26324A] rounded-sm text-xs flex items-start gap-2">
+          <div className="p-3 bg-white border border-border-hairline rounded-sm text-xs flex items-start gap-2">
             {testing ? (
               <RefreshCw className="w-4 h-4 text-ink-muted animate-spin shrink-0 mt-0.5" />
             ) : status === 'healthy' ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             ) : status === 'error' ? (
-              <AlertCircle className="w-4 h-4 text-red-pen dark:text-red-400 shrink-0 mt-0.5" />
+              <AlertCircle className="w-4 h-4 text-red-pen shrink-0 mt-0.5" />
             ) : (
               <Server className="w-4 h-4 text-ink-muted shrink-0 mt-0.5" />
             )}
@@ -132,7 +132,7 @@ export const ServerSettingsModal: React.FC<ServerSettingsModalProps> = ({
                   ? 'Connection Failed'
                   : 'Status Unknown'}
               </span>
-              {statusMessage && <span className="text-ink-muted dark:text-[#94A3B8] break-words">{statusMessage}</span>}
+              {statusMessage && <span className="text-ink-muted break-words">{statusMessage}</span>}
             </div>
           </div>
 
@@ -140,7 +140,7 @@ export const ServerSettingsModal: React.FC<ServerSettingsModalProps> = ({
             <button
               type="button"
               onClick={handleReset}
-              className="text-xs text-ink-muted dark:text-[#94A3B8] hover:text-ink dark:hover:text-[#E2E8F0] underline underline-offset-2"
+              className="text-xs text-ink-muted hover:text-ink:text-[#e6e1df] underline underline-offset-2"
             >
               Reset to Default
             </button>
@@ -149,13 +149,13 @@ export const ServerSettingsModal: React.FC<ServerSettingsModalProps> = ({
                 type="button"
                 onClick={() => checkHealth(urlInput)}
                 disabled={testing}
-                className="px-3 py-1.5 text-xs font-medium border border-border-hairline dark:border-[#26324A] rounded-sm hover:bg-black/5 dark:hover:bg-white/5 transition-colors disabled:opacity-50"
+                className="px-3 py-1.5 text-xs font-medium border border-border-hairline rounded-sm hover:bg-black/5:bg-white/5 transition-colors disabled:opacity-50 text-ink"
               >
                 Test
               </button>
               <button
                 type="submit"
-                className="px-4 py-1.5 text-xs font-medium bg-ink text-paper dark:bg-[#2DD4BF] dark:text-[#0B1220] rounded-sm hover:opacity-90 transition-opacity"
+                className="px-4 py-1.5 text-xs font-medium bg-ink text-paper rounded-sm hover:opacity-90 transition-opacity"
               >
                 Save
               </button>

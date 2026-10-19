@@ -71,14 +71,6 @@ export default {
         "highlight-tint": "rgba(255, 230, 109, 0.35)",
         "red-pen": "#C0392B",
         "red-tint": "#FDEDEC",
-
-        // Required Dark Theme Tokens
-        "dark-bg": "#0B1220",
-        "dark-surface": "#111A2E",
-        "dark-border": "#26324A",
-        "dark-text": "#E2E8F0",
-        "dark-muted": "#94A3B8",
-        "dark-primary": "#2DD4BF",
       },
       borderRadius: {
         "sm": "0.25rem",
