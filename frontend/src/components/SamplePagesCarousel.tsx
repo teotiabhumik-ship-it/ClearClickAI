@@ -154,6 +154,7 @@ export const SamplePagesCarousel: React.FC<SamplePagesCarouselProps> = ({
   isLoading,
 }) => {
   const carouselRegionRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<(HTMLElement | null)[]>([]);
   const [activePip, setActivePip] = useState<number>(0);
@@ -278,25 +279,46 @@ export const SamplePagesCarousel: React.FC<SamplePagesCarouselProps> = ({
   );
 
   const tweenToCard = useCallback(
-    (targetIndex: number, userInitiated = true) => {
+    (targetIndex: number, userInitiated = true, duration = 400) => {
       const s = stateRef.current;
-      const currentNorm = s.pos % totalCards;
+      const currentNorm = ((s.pos % totalCards) + totalCards) % totalCards;
       let diff = (targetIndex - currentNorm) % totalCards;
-      if (diff > 3) diff -= 6;
-      if (diff < -3) diff += 6;
+      if (diff > totalCards / 2) diff -= totalCards;
+      if (diff < -totalCards / 2) diff += totalCards;
 
       s.tweenStartPos = s.pos;
       s.tweenTargetPos = s.pos + diff;
       s.tweenStartTime = performance.now();
-      s.tweenDuration = 600;
+      s.tweenDuration = duration;
       s.isTweening = true;
       s.targetSpeed = 0;
+      s.currentSpeed = 0;
 
       if (userInitiated) {
-        scheduleResumeAutoplay(1500);
+        scheduleResumeAutoplay(1800);
       }
     },
     [totalCards, scheduleResumeAutoplay]
+  );
+
+  const tweenByDelta = useCallback(
+    (cardDelta: number, duration = 380) => {
+      const s = stateRef.current;
+      // If already tweening towards a target, build onto that target so rapid wheels queue up smoothly
+      const basePos = s.isTweening ? s.tweenTargetPos : s.pos;
+      const targetPos = Math.round(basePos + cardDelta);
+
+      s.tweenStartPos = s.pos;
+      s.tweenTargetPos = targetPos;
+      s.tweenStartTime = performance.now();
+      s.tweenDuration = duration;
+      s.isTweening = true;
+      s.targetSpeed = 0;
+      s.currentSpeed = 0;
+
+      scheduleResumeAutoplay(1800);
+    },
+    [scheduleResumeAutoplay]
   );
 
   const updatePlayState = useCallback(() => {
@@ -418,7 +440,7 @@ export const SamplePagesCarousel: React.FC<SamplePagesCarouselProps> = ({
         s.pos = s.tweenStartPos + (s.tweenTargetPos - s.tweenStartPos) * ease;
         if (progress >= 1.0) {
           s.isTweening = false;
-          s.pos = s.tweenTargetPos;
+          s.pos = ((s.tweenTargetPos % totalCards) + totalCards) % totalCards;
           scheduleResumeAutoplay(1200);
         }
       } else {
@@ -452,6 +474,100 @@ export const SamplePagesCarousel: React.FC<SamplePagesCarouselProps> = ({
       if (s.resumeTimer) clearTimeout(s.resumeTimer);
     };
   }, [totalCards, measureLayout, scheduleResumeAutoplay]);
+
+  // Two-finger trackpad swipe and mouse scroll-wheel navigation
+  const wheelRef = useRef({
+    lastWheelTime: 0,
+    wheelTimeout: null as any,
+    isContinuous: false,
+    velocity: 0,
+    lastDelta: 0,
+  });
+
+  useEffect(() => {
+    const stageEl = stageRef.current;
+    if (!stageEl) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Prevent window vertical scroll jump while user is scrolling through carousel cards
+      e.preventDefault();
+
+      const s = stateRef.current;
+      const w = wheelRef.current;
+      const now = performance.now();
+      const timeSinceLast = now - w.lastWheelTime;
+      w.lastWheelTime = now;
+
+      // Detect dominant axis: supports horizontal 2-finger swipe, vertical wheel, or Shift+wheel
+      const absX = Math.abs(e.deltaX);
+      const absY = Math.abs(e.deltaY);
+      let dominantDelta = absX > absY ? e.deltaX : e.deltaY;
+
+      // Normalization for deltaMode:
+      // deltaMode 1 = lines (standard mouse wheel notch on Windows/Linux is typically 3 lines)
+      // deltaMode 2 = pages
+      if (e.deltaMode === 1) {
+        dominantDelta *= 32;
+      } else if (e.deltaMode === 2) {
+        dominantDelta *= s.step;
+      }
+
+      // Detection of discrete mouse wheel clicks vs continuous trackpad 2-finger stream:
+      // Mouse wheels fire discrete jumps (>= 48px or non-zero deltaMode) with intervals > 50ms.
+      // 2-finger trackpad fires high-frequency smooth float/small pixel deltas (< 48px or interval < 50ms).
+      const isDiscreteClick =
+        e.deltaMode !== 0 ||
+        (Math.abs(dominantDelta) >= 48 && timeSinceLast > 50 && !w.isContinuous);
+
+      if (isDiscreteClick) {
+        // Discrete Mouse Scroll Wheel:
+        // Advance 1 card per notch in the scroll direction, smooth and responsive (not too slow).
+        w.isContinuous = false;
+        if (w.wheelTimeout) clearTimeout(w.wheelTimeout);
+
+        const dir = dominantDelta > 0 ? 1 : -1;
+        tweenByDelta(dir, 380);
+      } else {
+        // Continuous 2-Finger Trackpad Gesture:
+        w.isContinuous = true;
+        s.isTweening = false;
+        s.targetSpeed = 0;
+        s.currentSpeed = 0;
+
+        // Tuned 1.35x responsiveness multiplier: feels light, fluid, and never sluggish
+        const sensitivity = 1.35;
+        const cardDelta = (dominantDelta / s.step) * sensitivity;
+
+        s.pos = (s.pos + cardDelta) % totalCards;
+        if (s.pos < 0) s.pos += totalCards;
+
+        // Measure instant velocity for momentum flick
+        const dt = Math.max(timeSinceLast / 1000, 0.008);
+        w.velocity = cardDelta / dt;
+
+        // Debounce end of 2-finger gesture and snap to closest card with momentum
+        if (w.wheelTimeout) clearTimeout(w.wheelTimeout);
+        w.wheelTimeout = setTimeout(() => {
+          w.isContinuous = false;
+          // Projected flick offset based on release velocity (capped between -1.5 and 1.5 cards)
+          const momentumOffset = Math.max(Math.min(w.velocity * 0.12, 1.5), -1.5);
+          const target = Math.round(s.pos + momentumOffset);
+          const targetIndex = ((target % totalCards) + totalCards) % totalCards;
+          tweenToCard(targetIndex, true, 360);
+          w.velocity = 0;
+        }, 95);
+      }
+    };
+
+    stageEl.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      stageEl.removeEventListener('wheel', handleWheel);
+      if (wheelRef.current.wheelTimeout) {
+        clearTimeout(wheelRef.current.wheelTimeout);
+      }
+    };
+  }, [totalCards, tweenToCard, tweenByDelta]);
 
   // Pointer drag interactions
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -575,7 +691,11 @@ export const SamplePagesCarousel: React.FC<SamplePagesCarouselProps> = ({
       </div>
 
       {/* Carousel Stage Wrapper */}
-      <div className="relative w-full h-[380px] overflow-hidden flex items-center justify-center touch-pan-y" id="carousel-stage">
+      <div
+        ref={stageRef}
+        className="relative w-full h-[380px] overflow-hidden flex items-center justify-center touch-pan-y"
+        id="carousel-stage"
+      >
         {/* Track Element with pure CSS mask-image edge fade */}
         <div
           ref={trackRef}
