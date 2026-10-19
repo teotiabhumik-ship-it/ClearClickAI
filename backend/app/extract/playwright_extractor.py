@@ -307,6 +307,22 @@ class PageExtractor:
                 # Re-check each redirect target against SSRF safety (Hard Rule 4)
                 redirect_violation = None
 
+                async def _guard_redirect(route):
+                    """Validate redirect requests before Playwright sends them."""
+                    nonlocal redirect_violation
+                    request = route.request
+                    if request.redirected_from is not None:
+                        target_url = request.url
+                        is_safe, reason = validate_url_safety(target_url)
+                        if not is_safe:
+                            redirect_violation = f"Redirect target '{target_url}' violates SSRF safety: {reason}"
+                            logger.warning(redirect_violation)
+                            await route.abort()
+                            return
+                    await route.continue_()
+
+                await page.route("**/*", _guard_redirect)
+
                 def _on_response(resp):
                     nonlocal redirect_violation
                     if resp.status in (301, 302, 303, 307, 308):
