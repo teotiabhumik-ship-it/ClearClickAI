@@ -15,7 +15,6 @@ from ..config.thresholds import (
     FEE_RELATIVE_FONT_SIZE_RATIO,
     FEE_ABSOLUTE_MICROPRINT_FONT_PX,
     FEE_LOW_CONTRAST_THRESHOLD,
-    FEE_RELATIVE_CONTRAST_RATIO,
     DRIP_PRICING_FLOW_RATIO,
     DRIP_PRICING_SINGLE_PAGE_RATIO,
     SEVERITY_MAPPING,
@@ -110,13 +109,10 @@ class HiddenChargesDetector(BaseDetector):
                         source="rule"
                     ))
 
-                # Contextual contrast: check if fee text contrast is significantly impaired (< 4.0:1) and degraded relative to baseline
-                if baseline_contrast > 0:
-                    is_low_contrast = (price_el.contrast_ratio < FEE_LOW_CONTRAST_THRESHOLD) or (
-                        price_el.contrast_ratio <= baseline_contrast * FEE_RELATIVE_CONTRAST_RATIO
-                    )
-                else:
-                    is_low_contrast = price_el.contrast_ratio < FEE_LOW_CONTRAST_THRESHOLD
+                # Contrast is an absolute readability measurement. A lower ratio
+                # than the headline price alone is not a violation: a 6.5:1 fee
+                # remains WCAG-readable even when the headline is black on white.
+                is_low_contrast = price_el.contrast_ratio < FEE_LOW_CONTRAST_THRESHOLD
 
                 if is_low_contrast:
                     evidence_str = (

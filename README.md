@@ -57,6 +57,12 @@ python -m backend.app.evaluation.benchmark
 ```
 Computes True Positives, False Positives, False Negatives, Precision, Recall, and F1 score across all positive fixtures and negative clean controls.
 
+The benchmark uses a development split with adversarial variations and clean
+controls plus an immutable held-out split. It scores the consolidated findings
+shown to users, so nested DOM duplicates and overlapping measurements are not
+counted as separate issues. The held-out score remains the primary honesty
+check; development fixtures are for tuning and regression coverage.
+
 The benchmark prints results without modifying tracked files. To explicitly
 refresh the frontend evaluation artifact, provide an output path:
 

@@ -5,6 +5,7 @@ Provides inspection endpoints, corpus demo fixtures, and evaluation benchmarking
 
 import os
 import json
+import re
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Literal, Any
 from dotenv import load_dotenv
@@ -20,6 +21,7 @@ import logging
 from .schema import (
     PageData,
     Finding,
+    RelatedSignal,
     AnalysisReport,
     CategoryType,
     ExtractedCheckbox,
@@ -303,7 +305,9 @@ class AnalyzeFlowRequest(BaseModel):
     steps_html: Optional[List[str]] = None
     steps_urls: Optional[List[str]] = None
     flow_type: Literal["cancellation", "checkout", "signup", "general"] = "general"
-    signup_steps_count: int = 1
+    signup_steps_count: Optional[int] = None
+    signup_interaction_metadata: Optional[dict] = None
+    cancellation_interaction_metadata: Optional[dict] = None
     include_ai: bool = True
 
 
@@ -336,11 +340,17 @@ async def analyze_flow_endpoint(req: AnalyzeFlowRequest, request: Request):
     if len(steps_data) < 2:
         raise HTTPException(status_code=400, detail="Flow analysis requires at least 2 sequential steps.")
 
-    flow = FlowData(
+    flow_kwargs = dict(
         flow_type=req.flow_type,
         steps=steps_data,
-        signup_steps_count=req.signup_steps_count
     )
+    if req.signup_steps_count is not None:
+        flow_kwargs["signup_steps_count"] = req.signup_steps_count
+    if req.signup_interaction_metadata is not None:
+        flow_kwargs["signup_interaction_metadata"] = req.signup_interaction_metadata
+    if req.cancellation_interaction_metadata is not None:
+        flow_kwargs["cancellation_interaction_metadata"] = req.cancellation_interaction_metadata
+    flow = FlowData(**flow_kwargs)
 
     # 1. Flow Analyzer
     flow_findings = await FlowAnalyzer.analyze_flow_async(
@@ -553,7 +563,73 @@ def consolidate_findings(rule_findings: List[Finding], ai_findings: List[Finding
                 seen_keys.add(dedup_key)
                 merged.append(aif)
 
-    return merged
+    return _collapse_overlapping_fee_findings(merged)
+
+
+def _collapse_overlapping_fee_findings(findings: List[Finding]) -> List[Finding]:
+    """Present overlapping fee measurements as one issue with retained evidence.
+
+    Microprint and low-contrast rules can both fire for the same fee element.
+    They are distinct measurements, so the secondary signal is retained in
+    ``related_signals`` rather than discarded, while the UI presents one
+    underlying issue instead of two independent cards.
+    """
+    overlapping_fee_types = {"microprint_fee", "low_contrast_fee"}
+    primary_by_element: Dict[tuple[str, str], Finding] = {}
+    primary_by_evidence: Dict[tuple[str, str], Finding] = {}
+    collapsed: List[Finding] = []
+
+    for finding in findings:
+        key = (finding.category, finding.element_id or "")
+        evidence_key = (finding.category, _fee_signal_evidence_key(finding.evidence))
+        is_overlapping_fee = (
+            finding.category == "hidden_charges"
+            and finding.type in overlapping_fee_types
+            and (bool(finding.element_id) or bool(evidence_key[1]))
+        )
+
+        if not is_overlapping_fee:
+            collapsed.append(finding)
+            continue
+
+        primary = primary_by_element.get(key) if finding.element_id else None
+        if primary is None:
+            primary = primary_by_evidence.get(evidence_key)
+
+        if primary is None:
+            collapsed.append(finding)
+            if finding.element_id:
+                primary_by_element[key] = finding
+            if evidence_key[1]:
+                primary_by_evidence[evidence_key] = finding
+            continue
+
+        if primary.type == finding.type:
+            continue
+
+        duplicate_signal = any(
+            signal.type == finding.type and signal.evidence == finding.evidence
+            for signal in primary.related_signals
+        )
+        if not duplicate_signal:
+            primary.related_signals.append(RelatedSignal(
+                type=finding.type,
+                severity=finding.severity,
+                confidence=finding.confidence,
+                evidence=finding.evidence,
+                element_id=finding.element_id,
+                source=finding.source,
+            ))
+
+    return collapsed
+
+
+def _fee_signal_evidence_key(evidence: str) -> str:
+    """Normalize nested DOM fee evidence so one row is not reported repeatedly."""
+    match = re.search(r"fee:\s*'([^']+)'", evidence, re.IGNORECASE)
+    text = match.group(1) if match else evidence
+    text = re.sub(r"[\$€£₹]\s*\d+(?:\.\d{2})?", "", text)
+    return " ".join(text.lower().split()).strip(" :;,.\n\r\t")
 
 
 # Mount compiled React frontend if built

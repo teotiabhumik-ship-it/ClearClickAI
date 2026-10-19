@@ -37,6 +37,7 @@ ALLOWED_TYPES: Set[str] = {
     "gamification_referral",
     "visual_cancellation_obstacle",
     "cancel_barrier",
+    "review_needed",
     # Hidden charges dark patterns
     "microprint_fee",
     "low_contrast_fee",
@@ -75,6 +76,7 @@ CATEGORY_ALLOWED_TYPES: Dict[str, Set[str]] = {
         "gamification_referral",
         "visual_cancellation_obstacle",
         "cancel_barrier",
+        "review_needed",
     },
     "hidden_charges": {
         "microprint_fee",
@@ -131,6 +133,7 @@ SEVERITY_MAPPING: Dict[str, SeverityType] = {
     "gamified_retention": "medium",
     "gamification_referral": "medium",
     "cancel_barrier": "low",
+    "review_needed": "low",
     "hallucinated_finding": "high",
 }
 
@@ -141,6 +144,14 @@ CONFIDENCE_HYBRID: float = 0.95        # Both deterministic rule and AI detector
 CONFIDENCE_RULE_BASE: float = 0.90      # Deterministic DOM/CSS measurement verified
 CONFIDENCE_AI_ONLY: float = 0.75       # AI detector claim without deterministic corroboration
 CONFIDENCE_UNVERIFIED_VISION: float = 0.60 # Vision claim that cannot be measured against DOM
+
+# ---------------------------------------------------------------------------
+# Signal-strength bands
+# These bands are presentation guidance derived from the calibrated confidence
+# score. They do not change detector thresholds or finding severity.
+# ---------------------------------------------------------------------------
+SIGNAL_STRENGTH_HIGH_MIN: float = 0.90
+SIGNAL_STRENGTH_MEDIUM_MIN: float = 0.75
 
 # ---------------------------------------------------------------------------
 # Verifier Minimum Quote Length

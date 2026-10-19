@@ -198,5 +198,53 @@
     "patterns": [],
     "expected_evidence_keywords": [],
     "notes": "Tricky Clean: Cancel link is normal 14px size, legible contrast 4.6:1"
+  },
+  {
+    "id": "consent_double_negative_vendor",
+    "file": "dev/positive/consent_double_negative_vendor.html",
+    "category": "consent",
+    "patterns": ["double_negative_language"],
+    "expected_evidence_keywords": ["do not want to not receive"],
+    "notes": "Adversarial variation using a vendor-offer double negative in a checkbox label"
+  },
+  {
+    "id": "charges_auto_renewal_microprint",
+    "file": "dev/positive/charges_auto_renewal_microprint.html",
+    "category": "hidden_charges",
+    "patterns": ["microprint_fee", "low_contrast_fee"],
+    "expected_evidence_keywords": ["Auto-renews at $49.99/mo"],
+    "notes": "Trial renewal terms shown in small, low-contrast text"
+  },
+  {
+    "id": "cancel_forced_offline",
+    "file": "dev/positive/cancel_forced_offline.html",
+    "category": "cancellation",
+    "patterns": ["asymmetric_cancellation_steps"],
+    "expected_evidence_keywords": ["must call our retention department"],
+    "notes": "Online cancellation is unavailable while retention support is required"
+  },
+  {
+    "id": "consent_equal_three_choices",
+    "file": "dev/negative/consent_equal_three_choices.html",
+    "category": "consent",
+    "patterns": [],
+    "expected_evidence_keywords": [],
+    "notes": "Clean three-choice consent dialog with equal button treatment"
+  },
+  {
+    "id": "charges_explicit_renewal",
+    "file": "dev/negative/charges_explicit_renewal.html",
+    "category": "hidden_charges",
+    "patterns": [],
+    "expected_evidence_keywords": [],
+    "notes": "Renewal amount is explicit, legible, and adjacent to the headline price"
+  },
+  {
+    "id": "cancel_optional_support",
+    "file": "dev/negative/cancel_optional_support.html",
+    "category": "cancellation",
+    "patterns": [],
+    "expected_evidence_keywords": [],
+    "notes": "Self-service cancellation is available; support is optional"
   }
 ]

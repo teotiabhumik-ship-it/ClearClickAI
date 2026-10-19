@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Finding, CategoryType } from '../types';
+import { Finding, CategoryType, SignalStrengthType } from '../types';
 
 interface FindingsPanelProps {
   findings: Finding[];
@@ -106,6 +106,11 @@ const PLAIN_ENGLISH_INFO: Record<string, PlainEnglishInfo> = {
     simpleExplanation: 'Sponsored promotional links are styled to look indistinguishable from organic editorial navigation.',
     whatToDo: 'Inspect the destination URL and tiny sponsor disclaimers before clicking.',
   },
+  review_needed: {
+    title: 'More evidence is needed before drawing a conclusion',
+    simpleExplanation: 'The available flow information is incomplete, so ClearClick is not treating this as a confirmed dark pattern.',
+    whatToDo: 'Capture both the signup and cancellation journeys, including prompts and required actions, before comparing them.',
+  },
 };
 
 function getPlainEnglish(type: string): PlainEnglishInfo {
@@ -155,6 +160,24 @@ function getSourceLabel(source: string, type: string) {
   }
 }
 
+function getSignalStrength(confidence: number, signalStrength?: SignalStrengthType): SignalStrengthType {
+  if (signalStrength) return signalStrength;
+  if (confidence >= 0.9) return 'high';
+  if (confidence >= 0.75) return 'medium';
+  return 'review';
+}
+
+function getSignalStrengthBadge(signalStrength: SignalStrengthType) {
+  switch (signalStrength) {
+    case 'high':
+      return { label: 'High signal', className: 'border border-green-700 text-green-800 bg-green-50' };
+    case 'medium':
+      return { label: 'Medium signal', className: 'border border-border-hairline bg-paper text-ink-muted' };
+    default:
+      return { label: 'Review signal', className: 'border border-amber-700 text-amber-800 bg-amber-50' };
+  }
+}
+
 export const FindingsPanel: React.FC<FindingsPanelProps> = ({
   findings,
   selectedFindingIndex,
@@ -191,6 +214,7 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
           const isSelected = selectedFindingIndex === idx;
           const info = getPlainEnglish(f.type);
           const severityInfo = getSeverityBadge(f.severity);
+          const signalStrengthInfo = getSignalStrengthBadge(getSignalStrength(f.confidence, f.signal_strength));
           const sourceLabel = getSourceLabel(f.source, f.type);
           const methodHash =
             f.category === 'hidden_charges'
@@ -228,6 +252,12 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
                 >
                   {severityInfo.label}
                 </span>
+                <span
+                  className={`text-xs font-mono px-2 py-0.5 rounded-sm shrink-0 ${signalStrengthInfo.className}`}
+                  title={`Calibrated confidence: ${Math.round(f.confidence * 100)}%`}
+                >
+                  {signalStrengthInfo.label}
+                </span>
               </div>
 
               {/* Plain English Summary */}
@@ -259,8 +289,34 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
                       <span className="text-ink-muted">{f.safer_alternative}</span>
                     </p>
                   )}
+                  {(f.rule_evidence || f.ai_evidence) && (
+                    <div className="pt-1 border-t border-border-hairline">
+                      <span className="text-ink font-medium">Evidence provenance:</span>
+                      {f.rule_evidence && <p className="text-ink-muted">Rule measurement: {f.rule_evidence}</p>}
+                      {f.ai_evidence && <p className="text-ink-muted">AI interpretation: {f.ai_evidence}</p>}
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {f.related_signals && f.related_signals.length > 0 && (
+                <div className="border border-dashed border-border-hairline rounded-sm p-3 mb-3 bg-white">
+                  <p className="font-mono text-xs uppercase font-medium tracking-wide text-ink mb-1.5">
+                    Related measured signals
+                  </p>
+                  <p className="text-xs text-ink-muted leading-relaxed mb-2">
+                    These signals point to the same element and may describe one underlying issue, rather than separate problems.
+                  </p>
+                  <div className="font-mono text-xs space-y-1.5 break-words">
+                    {f.related_signals.map((signal, signalIndex) => (
+                      <p key={`${signal.type}-${signalIndex}`}>
+                        <span className="text-ink font-medium">{signal.type.replace(/_/g, ' ')}:</span>{' '}
+                        <span className="text-ink-muted">{signal.evidence}</span>
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Note Footer: Source Attribution & Link to Fairer Version */}
               <div className="flex items-center justify-between pt-2 border-t border-border-hairline text-xs">

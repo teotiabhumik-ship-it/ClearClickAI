@@ -117,13 +117,17 @@ async def run_benchmark(
         rule_findings.extend(charges_detector.detect(page_data))
         rule_findings.extend(cancel_detector.detect(page_data))
 
-        rule_pattern_types = list(set(f.type for f in rule_findings))
+        # Score the same consolidated rule findings that the user sees. This
+        # avoids treating nested DOM duplicates or overlapping measurements as
+        # separate issues in the benchmark.
+        consolidated_rule_findings = consolidate_findings(rule_findings, [])
+        rule_pattern_types = _finding_types_with_related(consolidated_rule_findings)
         is_clean_control = len(expected_patterns) == 0
 
         # Score Rules-Only against ground truth
         tp_r = len(set(rule_pattern_types).intersection(set(expected_patterns)))
         fn_r = len(set(expected_patterns) - set(rule_pattern_types))
-        fp_r = len(rule_findings) if is_clean_control else len(set(rule_pattern_types) - set(expected_patterns))
+        fp_r = len(consolidated_rule_findings) if is_clean_control else len(set(rule_pattern_types) - set(expected_patterns))
 
         rules_stats["overall"]["tp"] += tp_r
         rules_stats["overall"]["fp"] += fp_r
@@ -142,7 +146,7 @@ async def run_benchmark(
             ai_tf, _, _ = await ai_text_detector.detect(page_data)
             ai_vf, _, _ = await ai_vision_detector.detect(page_data)
             combined_findings = consolidate_findings(rule_findings, ai_tf + ai_vf)
-            combined_pattern_types = list(set(f.type for f in combined_findings))
+            combined_pattern_types = _finding_types_with_related(combined_findings)
 
             tp_c = len(set(combined_pattern_types).intersection(set(expected_patterns)))
             fn_c = len(set(expected_patterns) - set(combined_pattern_types))
@@ -282,6 +286,14 @@ async def run_benchmark(
         "categories": ai_stats["categories"] if (include_ai and ai_stats) else rules_stats["categories"],
         "details": details
     }
+
+
+def _finding_types_with_related(findings: List[Finding]) -> List[str]:
+    """Include retained overlapping measurements in benchmark detection types."""
+    types = {finding.type for finding in findings}
+    for finding in findings:
+        types.update(signal.type for signal in finding.related_signals)
+    return list(types)
 
 
 if __name__ == "__main__":

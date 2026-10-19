@@ -1,17 +1,31 @@
 export type CategoryType = 'hidden_charges' | 'cancellation' | 'consent';
 export type SeverityType = 'low' | 'medium' | 'high';
 export type SourceType = 'rule' | 'ai' | 'hybrid';
+export type SignalStrengthType = 'high' | 'medium' | 'review';
+
+export interface RelatedSignal {
+  type: string;
+  severity: SeverityType;
+  confidence: number;
+  evidence: string;
+  element_id?: string;
+  source: SourceType;
+  signal_strength?: SignalStrengthType;
+}
 
 export interface Finding {
   category: CategoryType;
   type: string;
   severity: SeverityType;
   confidence: number;
+  signal_strength?: SignalStrengthType;
   evidence: string;
   bbox: [number, number, number, number];
   why: string;
   safer_alternative: string;
   source: SourceType;
+  element_id?: string;
+  related_signals?: RelatedSignal[];
   rule_confidence?: number;
   ai_confidence?: number;
   rule_evidence?: string;

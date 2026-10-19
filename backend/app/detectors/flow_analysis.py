@@ -9,7 +9,7 @@ Deterministic code strictly controls decisions, calculations, and severity mappi
 
 import re
 from typing import List, Dict, Any, Optional
-from ..schema import FlowData, PageData, Finding, ExtractedElement
+from ..schema import FlowData, PageData, Finding, ExtractedElement, FlowInteractionMetadata
 from ..config.thresholds import (
     DRIP_PRICING_FLOW_RATIO,
     CANCEL_RETENTION_MAZE_STEPS,
@@ -162,33 +162,121 @@ Extract screen_purpose, visible_prices, and button_labels strictly as JSON.
             for s in steps
         )
 
+        if not is_cancel:
+            return findings
+
         signup_steps_count = getattr(flow, "signup_steps_count", 1)
-        if is_cancel and len(steps) > signup_steps_count and len(steps) >= CANCEL_RETENTION_MAZE_STEPS:
+        # ``model_fields_set`` lets us distinguish the legacy default of one
+        # signup step from an explicit comparison supplied by a caller.
+        signup_count_provided = "signup_steps_count" in getattr(flow, "model_fields_set", set())
+        signup_metadata = getattr(flow, "signup_interaction_metadata", None)
+        cancellation_metadata = getattr(flow, "cancellation_interaction_metadata", None)
+        metadata_supplied = signup_metadata is not None or cancellation_metadata is not None
+
+        signup_metrics = cls._interaction_metrics(signup_metadata)
+        cancellation_metrics = cls._interaction_metrics(cancellation_metadata)
+        comparable_metrics = [
+            (label, signup_metrics[label], cancellation_metrics[label])
+            for label in ("retention prompts", "required actions")
+            if signup_metrics.get(label) is not None and cancellation_metrics.get(label) is not None
+        ]
+        metadata_is_ambiguous = metadata_supplied and not comparable_metrics
+        metric_differences = [
+            f"{label}: cancellation {cancel_count} vs signup {signup_count}"
+            for label, signup_count, cancel_count in comparable_metrics
+            if cancel_count != signup_count
+        ]
+        metric_friction = any(
+            cancel_count > signup_count
+            for _, signup_count, cancel_count in comparable_metrics
+        )
+        step_friction = signup_count_provided and len(steps) > signup_steps_count
+        comparative_friction = step_friction or metric_friction
+
+        if metadata_is_ambiguous and not comparative_friction:
+            return findings + [cls._review_needed_finding(
+                len(steps),
+                "Signup and cancellation interaction metadata does not contain a comparable retention-prompt or required-action pair.",
+            )]
+
+        if comparative_friction and len(steps) >= CANCEL_RETENTION_MAZE_STEPS:
+            comparative_parts = []
+            if step_friction:
+                comparative_parts.append(
+                    f"cancellation {len(steps)} vs signup {signup_steps_count} steps ({len(steps)}:{signup_steps_count} friction ratio)"
+                )
+            comparative_parts.extend(metric_differences)
+            evidence = (
+                f"Raw cancellation step count: {len(steps)}. "
+                f"Cancellation requires {len(steps)} interaction steps vs. {signup_steps_count} step for signup "
+                f"({len(steps)}:{signup_steps_count} friction ratio). "
+                f"Comparative friction evidence: {'; '.join(comparative_parts)}."
+            )
+            if metadata_is_ambiguous:
+                evidence += " Retention metadata is incomplete; review needed for that aspect."
             findings.append(Finding(
                 category="cancellation",
                 type="asymmetric_cancellation_steps",
                 severity=SEVERITY_MAPPING.get("asymmetric_cancellation_steps", "high"),
                 confidence=0.95,
-                evidence=f"Cancellation requires {len(steps)} interaction steps vs. {signup_steps_count} step for signup ({len(steps)}:1 friction ratio)",
+                evidence=evidence,
                 bbox=[0.0, 0.0, 0.0, 0.0],
-                why=f"Cancelling requires traversing {len(steps)} screens with retention prompts, surveys, and multi-step confirmations, creating severe asymmetric friction compared to {signup_steps_count}-step onboarding.",
+                why=f"Cancelling requires traversing {len(steps)} screens, creating asymmetric step friction compared to {signup_steps_count}-step onboarding. The evidence compares measured steps and does not assume unobserved retention actions.",
                 safer_alternative="Allow cancellation in equal or fewer steps than signup without interstitial survey or offer walls.",
                 source="rule"
             ))
-        elif is_cancel and len(steps) >= CANCEL_RETENTION_MAZE_STEPS:
+        elif not metadata_supplied and not signup_count_provided and len(steps) >= CANCEL_RETENTION_MAZE_STEPS:
             findings.append(Finding(
                 category="cancellation",
                 type="asymmetric_cancellation_steps",
                 severity=SEVERITY_MAPPING.get("asymmetric_cancellation_steps", "high"),
                 confidence=0.95,
-                evidence=f"Cancellation flow requires {len(steps)} sequential interaction steps (threshold: {CANCEL_RETENTION_MAZE_STEPS} steps)",
+                evidence=(
+                    f"Cancellation flow requires {len(steps)} sequential interaction steps "
+                    f"(threshold: {CANCEL_RETENTION_MAZE_STEPS} steps). Raw step-count evidence is present; "
+                    "comparative signup friction was not supplied."
+                ),
                 bbox=[0.0, 0.0, 0.0, 0.0],
-                why=f"Cancelling requires traversing {len(steps)} screens with retention prompts, surveys, and multi-step confirmations, creating asymmetric friction compared to onboarding.",
+                why=f"The cancellation flow contains {len(steps)} sequential screens, which exceeds the raw-flow threshold. Signup and retention-action comparisons were not supplied, so this finding does not claim comparative friction.",
                 safer_alternative="Allow cancellation in 1 or 2 straightforward steps without interstitial survey or offer walls.",
                 source="rule"
             ))
 
         return findings
+
+    @staticmethod
+    def _interaction_metrics(metadata: Optional[FlowInteractionMetadata]) -> Dict[str, Optional[int]]:
+        """Normalize count-or-label metadata into comparable counts."""
+        if metadata is None:
+            return {"retention prompts": None, "required actions": None}
+
+        def count(value: Any) -> Optional[int]:
+            if value is None:
+                return None
+            if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+                return value
+            if isinstance(value, list):
+                return len(value)
+            return None
+
+        return {
+            "retention prompts": count(metadata.retention_prompts),
+            "required actions": count(metadata.required_actions),
+        }
+
+    @staticmethod
+    def _review_needed_finding(step_count: int, reason: str) -> Finding:
+        return Finding(
+            category="cancellation",
+            type="review_needed",
+            severity=SEVERITY_MAPPING.get("review_needed", "low"),
+            confidence=0.60,
+            evidence=f"Review needed: raw cancellation step count is {step_count}; {reason}",
+            bbox=[0.0, 0.0, 0.0, 0.0],
+            why="The supplied flow metadata is too incomplete to support a reliable comparative-friction conclusion.",
+            safer_alternative="Capture signup and cancellation step counts plus the retention prompts and required actions on both flows before drawing a comparison.",
+            source="rule",
+        )
 
     @classmethod
     def _extract_step_headline_price(

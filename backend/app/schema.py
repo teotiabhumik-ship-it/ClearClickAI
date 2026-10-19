@@ -4,12 +4,23 @@ Strictly conforms to Section 9 of the ClearClick AI Build Guide.
 """
 
 from typing import List, Optional, Tuple, Literal, Any, Union, Dict
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from .config.thresholds import SIGNAL_STRENGTH_HIGH_MIN, SIGNAL_STRENGTH_MEDIUM_MIN
 
 
 CategoryType = Literal["hidden_charges", "cancellation", "consent"]
 SeverityType = Literal["low", "medium", "high"]
 SourceType = Literal["rule", "ai", "hybrid"]
+SignalStrengthType = Literal["high", "medium", "review"]
+
+
+def signal_strength_for_confidence(confidence: float) -> SignalStrengthType:
+    """Map the calibrated confidence score to a user-facing signal band."""
+    if confidence >= SIGNAL_STRENGTH_HIGH_MIN:
+        return "high"
+    if confidence >= SIGNAL_STRENGTH_MEDIUM_MIN:
+        return "medium"
+    return "review"
 
 PageStatus = Literal[
     "ok",
@@ -60,7 +71,28 @@ ScanAIStatus = Literal[
 ]
 
 
+class RelatedSignal(BaseModel):
+    """Measured signal retained when two detectors point at the same element."""
+
+    model_config = ConfigDict(validate_assignment=True)
+
+    type: str
+    severity: SeverityType = "medium"
+    confidence: float = Field(ge=0.0, le=1.0)
+    evidence: str
+    element_id: Optional[str] = None
+    source: SourceType = "rule"
+    signal_strength: SignalStrengthType = "review"
+
+    @model_validator(mode="after")
+    def calibrate_signal_strength(self) -> "RelatedSignal":
+        object.__setattr__(self, "signal_strength", signal_strength_for_confidence(self.confidence))
+        return self
+
+
 class Finding(BaseModel):
+    model_config = ConfigDict(validate_assignment=True)
+
     category: CategoryType = Field(
         ...,
         description="The dark pattern category: hidden_charges, cancellation, or consent"
@@ -103,6 +135,14 @@ class Finding(BaseModel):
         default="rule",
         description="Source of finding: rule, ai, or hybrid"
     )
+    related_signals: List[RelatedSignal] = Field(
+        default_factory=list,
+        description="Additional measured signals that overlap this finding on the same element"
+    )
+    signal_strength: SignalStrengthType = Field(
+        default="review",
+        description="Calibrated presentation band derived from confidence: high, medium, or review"
+    )
     rule_confidence: Optional[float] = Field(
         default=None,
         ge=0.0,
@@ -123,6 +163,12 @@ class Finding(BaseModel):
         default=None,
         description="Original evidence from the AI detector when source is hybrid"
     )
+
+    @model_validator(mode="after")
+    def calibrate_signal_strength(self) -> "Finding":
+        """Keep the presentation band derived from confidence after mutations."""
+        object.__setattr__(self, "signal_strength", signal_strength_for_confidence(self.confidence))
+        return self
 
 
 class ExtractedCheckbox(BaseModel):
@@ -192,10 +238,24 @@ class PageData(BaseModel):
         return self.buttons + self.links + self.prices + self.text_elements + self.checkboxes
 
 
+class FlowInteractionMetadata(BaseModel):
+    """Optional interaction counts used to compare signup and cancellation friction.
+
+    Metrics may be supplied as measured counts or as labels captured during a
+    flow.  Accepting both keeps the API useful for crawlers that have not
+    reduced their observations to counts yet.
+    """
+
+    retention_prompts: Optional[Union[int, List[str]]] = None
+    required_actions: Optional[Union[int, List[str]]] = None
+
+
 class FlowData(BaseModel):
     flow_type: Literal["cancellation", "checkout", "signup", "general"] = "general"
     steps: List[PageData] = Field(default_factory=list)
     signup_steps_count: int = 1
+    signup_interaction_metadata: Optional[FlowInteractionMetadata] = None
+    cancellation_interaction_metadata: Optional[FlowInteractionMetadata] = None
 
 
 class CategorySummary(BaseModel):
