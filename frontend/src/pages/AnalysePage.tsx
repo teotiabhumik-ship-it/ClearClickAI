@@ -12,6 +12,7 @@ import corpusCatalog from '../data/corpusCatalog.json';
 import sampleReports from '../data/sampleReports.json';
 import { ServerSettingsModal } from '../components/ServerSettingsModal';
 import { SamplePagesCarousel } from '../components/SamplePagesCarousel';
+import { AnalysisLoadingSkeleton, SiteScanStartingSkeleton } from '../components/SkeletonLoader';
 
 export const AnalysePage: React.FC = () => {
   const [report, setReport] = useState<AnalysisReport | null>(null);
@@ -362,7 +363,7 @@ export const AnalysePage: React.FC = () => {
       )}
 
       {/* When NO report or scan is active: Standalone Page Header */}
-      {!report && !activeScan && !isScanning && (
+      {!report && !activeScan && !isScanning && !isLoading && (
         <div className="mb-6">
           {/* Editorial Header Section */}
           <div className="max-w-5xl mx-auto px-4 pt-4 pb-6 text-center relative z-10">
@@ -391,8 +392,14 @@ export const AnalysePage: React.FC = () => {
         </div>
       ) : null}
 
+      {/* Initial single-page/sample analysis loading state */}
+      {isLoading && !report && !activeScan && !isScanning && <AnalysisLoadingSkeleton />}
+
+      {/* Brief transition while the asynchronous site scan is being created */}
+      {isScanning && !activeScan && <SiteScanStartingSkeleton />}
+
       {/* Editorial Diagnostics Brief (visible when no report or scan active) */}
-      {!report && !activeScan && !isScanning && (
+      {!report && !activeScan && !isScanning && !isLoading && (
         <section className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 mb-12 w-full">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Link
