@@ -424,7 +424,7 @@ class GuidedFlowCapturer:
         """Extract structured PageData snapshot at the current flow step."""
         from ..extract.playwright_extractor import EXTRACTION_JS
         data: Dict[str, Any] = await page.evaluate(EXTRACTION_JS)
-        screenshot_bytes = await page.screenshot(full_page=False, type="png")
+        screenshot_bytes = await page.screenshot(full_page=False, type="jpeg", quality=82)
         import base64
         screenshot_base64 = base64.b64encode(screenshot_bytes).decode("utf-8")
 

@@ -370,8 +370,8 @@ class PageExtractor:
                 # Dynamic wait for late-loading cookie banners or dialogs
                 await cls._wait_for_dynamic_content(page)
 
-                # Capture full-page screenshot aligned to CSS pixels (scale 1.0)
-                screenshot_bytes = await page.screenshot(full_page=True, type="png")
+                # Capture full-page screenshot aligned to CSS pixels (scale 1.0) with fast, optimized JPEG compression
+                screenshot_bytes = await page.screenshot(full_page=True, type="jpeg", quality=82)
                 screenshot_base64 = base64.b64encode(screenshot_bytes).decode("utf-8")
 
                 # Execute DOM & computed styles extraction script (pierces shadow DOM)

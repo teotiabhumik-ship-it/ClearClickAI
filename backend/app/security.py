@@ -77,6 +77,13 @@ def validate_url_safety(url: str) -> Tuple[bool, str]:
     if hostname_lower in DISALLOWED_HOSTS or hostname_lower.endswith(".local") or hostname_lower.endswith(".internal"):
         return False, f"Target host '{hostname}' is an internal or local reserved domain (SSRF Guard)."
 
+    # Domain structure check: single-label relative names lack a valid public TLD
+    try:
+        ipaddress.ip_address(hostname_lower)
+    except ValueError:
+        if "." not in hostname_lower:
+            return False, f"Hostname '{hostname}' must contain a valid top-level domain (TLD)."
+
     # 3. DNS Resolution and IP checks
     try:
         # Resolve all addresses (IPv4 & IPv6) for the hostname

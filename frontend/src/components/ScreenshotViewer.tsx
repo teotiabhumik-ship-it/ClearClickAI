@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { Finding } from '../types';
+import { ScreenshotLoadingSkeleton } from './SkeletonLoader';
 
 interface ScreenshotViewerProps {
   screenshotBase64?: string;
@@ -34,11 +35,13 @@ export const ScreenshotViewer: React.FC<ScreenshotViewerProps> = ({
 }) => {
   const [zoom, setZoom] = useState<number>(1);
   const [imageError, setImageError] = useState<boolean>(false);
+  const [isImageLoading, setIsImageLoading] = useState<boolean>(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Reset error state when input screenshot or url changes
+  // Reset error and loading state when input screenshot or url changes
   useEffect(() => {
     setImageError(false);
+    setIsImageLoading(true);
   }, [screenshotBase64, url]);
 
   // Determine image source
@@ -51,11 +54,10 @@ export const ScreenshotViewer: React.FC<ScreenshotViewerProps> = ({
       ) {
         return screenshotBase64;
       }
-      return `data:image/png;base64,${screenshotBase64}`;
-    }
-    if (url && /^https?:\/\//i.test(url)) {
-      // Use high-fidelity web snapshot service
-      return `https://s0.wp.com/mshots/v1/${encodeURIComponent(url)}?w=1280&h=900`;
+      // Detect if JPEG (/9j/ magic bytes in base64) or PNG
+      const isJpeg = screenshotBase64.startsWith('/9j/') || screenshotBase64.slice(0, 30).includes('/9j/');
+      const mime = isJpeg ? 'image/jpeg' : 'image/png';
+      return `data:${mime};base64,${screenshotBase64}`;
     }
     return null;
   };
@@ -189,72 +191,87 @@ export const ScreenshotViewer: React.FC<ScreenshotViewerProps> = ({
       >
         {imageSrc && !imageError ? (
           <div
-            className="relative transition-transform duration-100 origin-top shadow-md rounded-sm bg-white overflow-hidden min-w-[780px] max-w-[1280px]"
+            className="relative transition-transform duration-100 origin-top shadow-md rounded-sm bg-white overflow-hidden min-w-[780px] max-w-[1280px] w-full"
             style={{ transform: `scale(${zoom})` }}
           >
+            {/* Custom Loading Skeleton while screenshot is downloading or decoding */}
+            {isImageLoading && (
+              <div className="w-full">
+                <ScreenshotLoadingSkeleton url={url} />
+              </div>
+            )}
+
             {/* Captured Webpage Image */}
             <img
               src={imageSrc}
               alt="Audited Page Screenshot Preview"
-              onError={() => setImageError(true)}
-              className="block w-full pointer-events-none select-none max-w-none"
-              style={{ minHeight: '680px' }}
+              onLoad={() => setIsImageLoading(false)}
+              onError={() => {
+                setImageError(true);
+                setIsImageLoading(false);
+              }}
+              className={`block w-full pointer-events-none select-none max-w-none transition-opacity duration-300 ${
+                isImageLoading ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'
+              }`}
+              style={{ minHeight: isImageLoading ? '0px' : '680px' }}
             />
 
             {/* Visual Overlays: Numbered Proof Markers & Yellow Dashed Highlights */}
-            <div className="absolute inset-0 pointer-events-none">
-              {visualFindings.map((f) => {
-                const box = f.box;
-                const isSelected = selectedFindingIndex === f.originalIndex;
-                const markerNum = f.originalIndex + 1;
+            {!isImageLoading && (
+              <div className="absolute inset-0 pointer-events-none">
+                {visualFindings.map((f) => {
+                  const box = f.box;
+                  const isSelected = selectedFindingIndex === f.originalIndex;
+                  const markerNum = f.originalIndex + 1;
 
-                return (
-                  <React.Fragment key={f.originalIndex}>
-                    {/* Yellow Highlighter Box Overlay */}
-                    <div
-                      className={`absolute rounded-sm highlight-overlay transition-all pointer-events-auto cursor-pointer ${
-                        isSelected
-                          ? 'ring-2 ring-red-pen shadow-lg border-2 border-red-pen bg-yellow-200/40'
-                          : 'hover:border-red-pen border border-dashed border-amber-500 bg-amber-300/20'
-                      }`}
-                      style={{
-                        left: `${box.x}px`,
-                        top: `${box.y}px`,
-                        width: `${box.width}px`,
-                        height: `${box.height}px`,
-                        zIndex: isSelected ? 25 : 10,
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectFinding(f.originalIndex);
-                      }}
-                      title={`Finding #${markerNum}: ${f.type}`}
-                    />
+                  return (
+                    <React.Fragment key={f.originalIndex}>
+                      {/* Yellow Highlighter Box Overlay */}
+                      <div
+                        className={`absolute rounded-sm highlight-overlay transition-all pointer-events-auto cursor-pointer ${
+                          isSelected
+                            ? 'ring-2 ring-red-pen shadow-lg border-2 border-red-pen bg-yellow-200/40'
+                            : 'hover:border-red-pen border border-dashed border-amber-500 bg-amber-300/20'
+                        }`}
+                        style={{
+                          left: `${box.x}px`,
+                          top: `${box.y}px`,
+                          width: `${box.width}px`,
+                          height: `${box.height}px`,
+                          zIndex: isSelected ? 25 : 10,
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectFinding(f.originalIndex);
+                        }}
+                        title={`Finding #${markerNum}: ${f.type}`}
+                      />
 
-                    {/* Red Circular Proof Marker Pin */}
-                    <button
-                      type="button"
-                      className={`absolute proof-marker ${
-                        isSelected ? 'marker-active scale-125 ring-2 ring-white' : ''
-                      } pointer-events-auto cursor-pointer transition-transform hover:scale-125 shadow-md`}
-                      style={{
-                        left: `${Math.max(4, box.x - 14)}px`,
-                        top: `${Math.max(4, box.y - 14)}px`,
-                        zIndex: isSelected ? 40 : 30,
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectFinding(f.originalIndex);
-                      }}
-                      aria-label={`View finding ${markerNum}`}
-                      title={`Marker #${markerNum}: ${f.type}. Click to inspect proof.`}
-                    >
-                      {markerNum}
-                    </button>
-                  </React.Fragment>
-                );
-              })}
-            </div>
+                      {/* Red Circular Proof Marker Pin */}
+                      <button
+                        type="button"
+                        className={`absolute proof-marker ${
+                          isSelected ? 'marker-active scale-125 ring-2 ring-white' : ''
+                        } pointer-events-auto cursor-pointer transition-transform hover:scale-125 shadow-md`}
+                        style={{
+                          left: `${Math.max(4, box.x - 14)}px`,
+                          top: `${Math.max(4, box.y - 14)}px`,
+                          zIndex: isSelected ? 40 : 30,
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectFinding(f.originalIndex);
+                        }}
+                        aria-label={`View finding ${markerNum}`}
+                        title={`Marker #${markerNum}: ${f.type}. Click to inspect proof.`}
+                      >
+                        {markerNum}
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ) : (
           /* Interactive Layout Schematic Canvas (Fallback when image unavailable or fails to load) */

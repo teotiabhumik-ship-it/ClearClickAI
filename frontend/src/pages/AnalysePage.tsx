@@ -216,6 +216,7 @@ export const AnalysePage: React.FC = () => {
         if (scanErr.name === 'AbortError') return;
         if (isMountedRef.current) {
           setIsScanning(false);
+          setShowInputForm(true);
           setErrorMsg(scanErr.message || 'Failed to start multi-page site scan');
         }
       }

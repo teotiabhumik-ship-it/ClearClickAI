@@ -6,8 +6,10 @@ import {
   Lock,
   X,
   CheckCircle,
+  AlertCircle,
 } from 'lucide-react';
 import { CorpusItem } from '../types';
+import { buildApiUrl } from '../config/api';
 
 interface InputFormProps {
   onAnalyze: (payload: {
@@ -104,6 +106,8 @@ export const InputForm: React.FC<InputFormProps> = ({
   const [includeAi, setIncludeAi] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [droppedFeedback, setDroppedFeedback] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
 
   const dragCounter = useRef(0);
   const urlInputRef = useRef<HTMLInputElement>(null);
@@ -157,6 +161,7 @@ export const InputForm: React.FC<InputFormProps> = ({
     const foundUrl = await extractUrlFromDataTransfer(e.dataTransfer);
     if (foundUrl) {
       setUrl(foundUrl);
+      setUrlError(null);
       setDroppedFeedback(`URL loaded: ${foundUrl}`);
       if (feedbackTimeoutRef.current) {
         clearTimeout(feedbackTimeoutRef.current);
@@ -168,9 +173,9 @@ export const InputForm: React.FC<InputFormProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading) return;
+    if (isLoading || isValidating) return;
 
     let rawUrl = url.trim();
     if (!rawUrl) {
@@ -180,6 +185,61 @@ export const InputForm: React.FC<InputFormProps> = ({
     if (!/^https?:\/\//i.test(rawUrl)) {
       rawUrl = `https://${rawUrl}`;
     }
+
+    setUrlError(null);
+    setIsValidating(true);
+
+    try {
+      const validateEndpoint = buildApiUrl(`/api/validate-url?url=${encodeURIComponent(rawUrl)}`);
+      const res = await fetch(validateEndpoint);
+      if (res.ok) {
+        const valData = await res.json();
+        if (!valData.is_valid) {
+          setUrlError(valData.reason || 'The entered URL does not exist or has an invalid domain format.');
+          setIsValidating(false);
+          urlInputRef.current?.focus();
+          return;
+        }
+        if (valData.normalized_url) {
+          rawUrl = valData.normalized_url;
+        }
+      } else {
+        // Fallback syntax inspection if server returns non-200
+        try {
+          const parsed = new URL(rawUrl);
+          if (!parsed.hostname.includes('.') && parsed.hostname !== 'localhost') {
+            setUrlError(`Hostname '${parsed.hostname}' must contain a valid top-level domain (TLD).`);
+            setIsValidating(false);
+            urlInputRef.current?.focus();
+            return;
+          }
+        } catch {
+          setUrlError('Please enter a valid website URL with a domain name.');
+          setIsValidating(false);
+          urlInputRef.current?.focus();
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('URL validation network check skipped:', err);
+      try {
+        const parsed = new URL(rawUrl);
+        if (!parsed.hostname.includes('.') && parsed.hostname !== 'localhost') {
+          setUrlError(`Hostname '${parsed.hostname}' must contain a valid top-level domain (TLD).`);
+          setIsValidating(false);
+          urlInputRef.current?.focus();
+          return;
+        }
+      } catch {
+        setUrlError('Please enter a valid website URL with a domain name.');
+        setIsValidating(false);
+        urlInputRef.current?.focus();
+        return;
+      }
+    } finally {
+      setIsValidating(false);
+    }
+
     onAnalyze({ scan_url: rawUrl, include_ai: includeAi });
   };
 
@@ -243,13 +303,17 @@ export const InputForm: React.FC<InputFormProps> = ({
               placeholder="https://example-shop.com (or drag URL here)"
               type="text"
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                if (urlError) setUrlError(null);
+              }}
             />
-            {url && !isLoading && (
+            {url && !isLoading && !isValidating && (
               <button
                 type="button"
                 onClick={() => {
                   setUrl('');
+                  setUrlError(null);
                   urlInputRef.current?.focus();
                 }}
                 className="text-stone-400 hover:text-stone-700 p-1 rounded-md transition-colors cursor-pointer shrink-0 ml-1"
@@ -259,6 +323,28 @@ export const InputForm: React.FC<InputFormProps> = ({
               </button>
             )}
           </div>
+
+          {/* Inline URL Verification Error Feedback */}
+          {urlError && (
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-50/90 border border-red-200 text-red-800 text-xs animate-in fade-in slide-in-from-top-1 duration-200 shadow-xs"
+            >
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold block text-red-900 font-mono text-[11px]">URL Verification Failed</span>
+                <p className="mt-0.5 text-red-700 leading-relaxed font-sans">{urlError}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setUrlError(null)}
+                className="text-red-500 hover:text-red-800 p-0.5 shrink-0 cursor-pointer"
+                aria-label="Dismiss error"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
 
           {/* Plain words limits disclosure */}
           <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/40 text-xs text-ink-muted space-y-1">
@@ -349,15 +435,20 @@ export const InputForm: React.FC<InputFormProps> = ({
             <button
               id="btn-submit-analyse"
               type="submit"
-              disabled={isLoading}
-              aria-busy={isLoading}
+              disabled={isLoading || isValidating}
+              aria-busy={isLoading || isValidating}
               className={`w-full py-3.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-stone-900 font-bold transition-all flex items-center justify-center gap-2 shadow-sm text-base tracking-wide focus:outline-none focus:ring-2 focus:ring-amber-500 ${
-                isLoading
+                isLoading || isValidating
                   ? 'opacity-60 cursor-not-allowed'
                   : 'cursor-pointer active:scale-[0.99]'
               }`}
             >
-              {isLoading ? (
+              {isValidating ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin text-stone-900" aria-hidden="true" />
+                  <span>Checking if URL exists...</span>
+                </>
+              ) : isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                   <span>Scanning site priority pages...</span>
