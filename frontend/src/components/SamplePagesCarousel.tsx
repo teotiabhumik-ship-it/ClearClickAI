@@ -722,10 +722,10 @@ export const SamplePagesCarousel: React.FC<SamplePagesCarouselProps> = ({
         </div>
 
         {/* Dynamic Engagement Indicator */}
-        {isEngaged ? (
+        {isEngaged && (
           <div className="flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs font-mono">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-            <span>Card focused · scroll active</span>
+            <span>Card focused</span>
             <button
               type="button"
               onClick={(e) => {
@@ -734,15 +734,11 @@ export const SamplePagesCarousel: React.FC<SamplePagesCarouselProps> = ({
                 stateRef.current.isEngaged = false;
               }}
               className="underline font-semibold hover:text-amber-950 cursor-pointer ml-1"
-              title="Release scroll to continue scrolling page"
+              title="Release card focus"
             >
               Release
             </button>
           </div>
-        ) : (
-          <span className="text-[11px] text-stone-600 font-mono hidden sm:inline">
-            Click card to enable wheel scroll
-          </span>
         )}
       </div>
 
