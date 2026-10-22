@@ -46,7 +46,12 @@ def normalize_url(raw_url: str, base_url: str = "") -> str:
 
     raw_clean = raw_url.strip()
     if base_url:
-        full_url = urljoin(base_url, raw_clean)
+        base_clean = base_url.strip()
+        parsed_base = urlparse(base_clean)
+        last_seg = parsed_base.path.split('/')[-1] if parsed_base.path else ""
+        if parsed_base.path and not parsed_base.path.endswith('/') and '.' not in last_seg:
+            base_clean = f"{base_clean}/"
+        full_url = urljoin(base_clean, raw_clean)
     else:
         full_url = raw_clean
 

@@ -344,6 +344,13 @@ export default async function handler(req: any, res: any) {
     const seenUrls = new Set<string>();
     seenUrls.add(rootUrl.replace(/\/+$/, ''));
 
+    // Ensure base URL ends with slash if it represents a directory without a file extension
+    let baseResolveUrl = rootUrl.trim();
+    const lastSeg = parsedRoot.pathname.split('/').pop() || '';
+    if (parsedRoot.pathname && !parsedRoot.pathname.endsWith('/') && !lastSeg.includes('.')) {
+      baseResolveUrl = `${baseResolveUrl}/`;
+    }
+
     if (rootHtml) {
       const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi;
       let lMatch: RegExpExecArray | null;
@@ -354,7 +361,7 @@ export default async function handler(req: any, res: any) {
           continue;
         }
         try {
-          const resolved = new URL(rawHref, rootUrl);
+          const resolved = new URL(rawHref, baseResolveUrl);
           if (resolved.hostname === parsedRoot.hostname) {
             resolved.hash = '';
             // Remove tracking params
