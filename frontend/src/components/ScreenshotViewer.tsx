@@ -41,7 +41,19 @@ export const ScreenshotViewer: React.FC<ScreenshotViewerProps> = ({
   // Reset error and loading state when input screenshot or url changes
   useEffect(() => {
     setImageError(false);
+    if (!screenshotBase64 || screenshotBase64.trim().length === 0) {
+      setIsImageLoading(false);
+      return;
+    }
+
     setIsImageLoading(true);
+
+    // Fail-safe timeout: never leave skeleton loader stuck for more than 4s
+    const timer = setTimeout(() => {
+      setIsImageLoading(false);
+    }, 4000);
+
+    return () => clearTimeout(timer);
   }, [screenshotBase64, url]);
 
   // Determine image source

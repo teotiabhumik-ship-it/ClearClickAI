@@ -135,7 +135,7 @@ function detectDarkPatterns(html: string): Finding[] {
   // 3. Cookie banner asymmetric choice
   if (/(cookie|privacy\s+preference|tracking)/i.test(cleanText)) {
     const hasAccept = /(accept\s+all|agree\s+to\s+all|allow\s+all)/i.test(html);
-    const hasReject = /(reject\s+all|refuse\s+all|decline\s+all)/i.test(html);
+    const hasReject = /(reject(\s+all)?|refuse(\s+all)?|decline(\s+all)?|only\s+necessary|strictly\s+necessary|necessary\s+only|essential\s+only|use\s+necessary(\s+cookies)?|don'?t\s+accept)/i.test(html);
     const hasPreferences = /(manage\s+preferences|cookie\s+settings|more\s+options)/i.test(html);
 
     if (hasAccept && !hasReject && hasPreferences) {
@@ -154,7 +154,7 @@ function detectDarkPatterns(html: string): Finding[] {
   }
 
   // 4. Microprint fee or drip pricing
-  const microMatch = html.match(/font-size\s*:\s*([6-9]|10|11)px[^>]*>[^<]*(?:fee|surcharge|charge|mandatory|resort)[^<]*/i);
+  const microMatch = html.match(/<(?:span|p|small|div|em|strong)[^>]*style=["'][^"']*font-size\s*:\s*([6-9]|10|11)px[^"']*["'][^>]*>([^<]*(?:fee|surcharge|charge|mandatory|resort)[^<]*)</i);
   if (microMatch) {
     findings.push({
       category: 'hidden_charges',

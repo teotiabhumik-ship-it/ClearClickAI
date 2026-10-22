@@ -276,6 +276,13 @@ class ScanManager:
             )
 
             scan.pages = discovered_pages
+            # Seed root page data immediately so its screenshot is available on first poll
+            for p in scan.pages:
+                if (p.url == root_url or p.url.rstrip('/') == root_url.rstrip('/')) and root_page_data:
+                    p.screenshot_base64 = root_page_data.screenshot_base64
+                    p.page_title = root_page_data.title
+                    p.page_status = root_page_data.page_status
+                    p.status_reason = root_page_data.status_reason
             scan.coverage = self._compute_coverage(scan.pages, ai_calls_used)
 
             # Step 2: Sequential Analysis (1 page at a time per domain)
@@ -310,7 +317,7 @@ class ScanManager:
                     await self._polite_domain_wait(domain)
 
                     # For root page, reuse root_page_data if available
-                    if page.url == root_url and root_page_data:
+                    if (page.url == root_url or page.url.rstrip('/') == root_url.rstrip('/')) and root_page_data:
                         pdata = root_page_data
                     else:
                         pdata = await PageExtractor.extract_from_url_or_html(url=page.url)

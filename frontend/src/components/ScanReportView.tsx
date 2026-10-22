@@ -42,7 +42,8 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
   const [expandedPages, setExpandedPages] = useState<boolean>(true);
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
   const [selectedPageUrl, setSelectedPageUrl] = useState<string>(() => {
-    const firstAnalysed = scan.pages.find((p) => p.page_status === 'ok') || scan.pages[0];
+    const firstWithScreenshot = scan.pages.find((p) => p.screenshot_base64 && p.screenshot_base64.trim().length > 0);
+    const firstAnalysed = firstWithScreenshot || scan.pages.find((p) => p.decision === 'will_analyse' && p.page_status === 'ok') || scan.pages[0];
     return firstAnalysed ? firstAnalysed.url : scan.root_url;
   });
   const [selectedFindingIndex, setSelectedFindingIndex] = useState<number | null>(null);
@@ -591,14 +592,14 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
         </div>
 
         {/* Audited Page Switcher Tabs */}
-        {scan.pages.filter((p) => p.page_status === 'ok' || p.decision === 'will_analyse').length > 0 && (
+        {scan.pages.filter((p) => (p.screenshot_base64 && p.screenshot_base64.trim().length > 0) || p.decision === 'will_analyse').length > 0 && (
           <div className="space-y-2">
             <div className="text-xs font-mono text-ink-muted">
               Select an audited page to inspect screenshot and proof markers:
             </div>
             <div className="flex flex-wrap gap-2">
               {scan.pages
-                .filter((p) => p.page_status === 'ok' || p.decision === 'will_analyse')
+                .filter((p) => (p.screenshot_base64 && p.screenshot_base64.trim().length > 0) || p.decision === 'will_analyse')
                 .map((p, idx) => {
                   const isSelected = p.url === selectedPageUrl;
                   return (
@@ -827,7 +828,7 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({
                               Flow
                             </button>
                           </div>
-                        ) : p.page_status === 'ok' || p.decision === 'will_analyse' ? (
+                        ) : (p.screenshot_base64 && p.screenshot_base64.trim().length > 0) || (p.decision === 'will_analyse' && p.page_status === 'ok') ? (
                           <button
                             type="button"
                             onClick={() => {
