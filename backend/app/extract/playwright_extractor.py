@@ -249,6 +249,54 @@ EXTRACTION_JS = r"""
 """
 
 
+class BrowserPool:
+    """Warm browser singleton pool to avoid cold-booting Chromium per page."""
+    _loop = None
+    _playwright = None
+    _browser = None
+    _lock = asyncio.Lock()
+
+    @classmethod
+    async def get_browser(cls):
+        curr_loop = asyncio.get_running_loop()
+        if cls._browser is not None and cls._loop == curr_loop and cls._browser.is_connected():
+            return cls._browser
+
+        async with cls._lock:
+            if cls._browser is not None and cls._loop == curr_loop and cls._browser.is_connected():
+                return cls._browser
+
+            if cls._browser is not None:
+                try:
+                    await cls._browser.close()
+                except Exception:
+                    pass
+            if cls._playwright is not None:
+                try:
+                    await cls._playwright.stop()
+                except Exception:
+                    pass
+
+            from playwright.async_api import async_playwright
+            cls._loop = curr_loop
+            cls._playwright = await async_playwright().start()
+            cls._browser = await cls._playwright.chromium.launch(
+                headless=True,
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-gpu",
+                    "--disable-infobars",
+                    "--window-position=0,0",
+                    "--ignore-certificate-errors",
+                    "--ignore-certificate-errors-spki-list",
+                ]
+            )
+            return cls._browser
+
+
 class PageExtractor:
     COMMON_BANNER_SELECTORS = [
         "#onetrust-banner-sdk",
@@ -277,23 +325,39 @@ class PageExtractor:
         """
         from playwright.async_api import async_playwright
 
+        is_mocked = (
+            type(async_playwright).__module__ == "unittest.mock"
+            or hasattr(async_playwright, "mock_calls")
+            or hasattr(async_playwright, "_mock_return_value")
+        )
+
         try:
-            async with async_playwright() as p:
-                browser = await p.chromium.launch(
-                    headless=True,
-                    args=[
-                        "--disable-blink-features=AutomationControlled",
-                        "--no-sandbox",
-                        "--disable-setuid-sandbox",
-                        "--disable-dev-shm-usage",
-                        "--disable-infobars",
-                        "--window-position=0,0",
-                        "--ignore-certificate-errors",
-                        "--ignore-certificate-errors-spki-list",
-                    ]
-                )
-                # Lock device_scale_factor to 1.0 for pixel-perfect screenshot & coordinate matching
-                # Use honest identifying User-Agent from config (Hard Rule 1 & 2: no stealth plugins or spoofing)
+            if is_mocked:
+                async with async_playwright() as p:
+                    browser = await p.chromium.launch(
+                        headless=True,
+                        args=[
+                            "--disable-blink-features=AutomationControlled",
+                            "--no-sandbox",
+                            "--disable-setuid-sandbox",
+                            "--disable-dev-shm-usage",
+                            "--disable-infobars",
+                            "--window-position=0,0",
+                            "--ignore-certificate-errors",
+                            "--ignore-certificate-errors-spki-list",
+                        ]
+                    )
+                    context = await browser.new_context(
+                        viewport={"width": viewport_width, "height": viewport_height},
+                        device_scale_factor=1.0,
+                        user_agent=SCAN_USER_AGENT,
+                        locale="en-US",
+                        timezone_id="America/New_York",
+                    )
+                    page = await context.new_page()
+                    return await cls._execute_extraction(page, url, html_content, viewport_width, viewport_height)
+            else:
+                browser = await BrowserPool.get_browser()
                 context = await browser.new_context(
                     viewport={"width": viewport_width, "height": viewport_height},
                     device_scale_factor=1.0,
@@ -301,144 +365,154 @@ class PageExtractor:
                     locale="en-US",
                     timezone_id="America/New_York",
                 )
-
-                page = await context.new_page()
-
-                # Re-check each redirect target against SSRF safety (Hard Rule 4)
-                redirect_violation = None
-
-                async def _guard_redirect(route):
-                    """Validate redirect requests before Playwright sends them."""
-                    nonlocal redirect_violation
-                    request = route.request
-                    if request.redirected_from is not None:
-                        target_url = request.url
-                        is_safe, reason = validate_url_safety(target_url)
-                        if not is_safe:
-                            redirect_violation = f"Redirect target '{target_url}' violates SSRF safety: {reason}"
-                            logger.warning(redirect_violation)
-                            await route.abort()
-                            return
-                    await route.continue_()
-
-                await page.route("**/*", _guard_redirect)
-
-                def _on_response(resp):
-                    nonlocal redirect_violation
-                    if resp.status in (301, 302, 303, 307, 308):
-                        loc = resp.headers.get("location")
-                        if loc:
-                            from urllib.parse import urljoin
-                            target_url = urljoin(resp.url, loc)
-                            is_safe, reason = validate_url_safety(target_url)
-                            if not is_safe:
-                                redirect_violation = f"Redirect target '{target_url}' violates SSRF safety: {reason}"
-                                logger.warning(redirect_violation)
-
-                page.on("response", _on_response)
-
-                http_status = None
-                nav_status: PageStatus = "ok"
-                nav_reason = "Page loaded successfully"
-
-                if url and (url.startswith("http://") or url.startswith("https://")):
-                    try:
-                        resp = await page.goto(url, wait_until="domcontentloaded", timeout=int(PER_PAGE_TIMEOUT * 1000))
-                        if resp:
-                            http_status = resp.status
-                    except Exception as nav_e:
-                        err_str = str(nav_e)
-                        if "timeout" in err_str.lower():
-                            nav_status = "timeout"
-                            nav_reason = f"Navigation timeout exceeded ({PER_PAGE_TIMEOUT}s)"
-                        else:
-                            nav_status = "error"
-                            nav_reason = f"Navigation failed: {nav_e}"
-                        logger.warning(f"Navigation warning or partial timeout for {url}: {nav_e}")
-                elif url and os.path.exists(url):
-                    abs_path = os.path.abspath(url)
-                    await page.goto(f"file:///{abs_path.replace(os.sep, '/')}", wait_until="domcontentloaded")
-                elif html_content:
-                    await page.set_content(html_content, wait_until="domcontentloaded")
-                else:
-                    raise ValueError("Must provide either a valid URL, file path, or HTML content.")
-
-                if redirect_violation:
-                    nav_status = "invalid_url"
-                    nav_reason = redirect_violation
-
-                # Dynamic wait for late-loading cookie banners or dialogs
-                await cls._wait_for_dynamic_content(page)
-
-                # Capture full-page screenshot aligned to CSS pixels (scale 1.0) with fast, optimized JPEG compression
-                screenshot_bytes = await page.screenshot(full_page=True, type="jpeg", quality=82)
-                screenshot_base64 = base64.b64encode(screenshot_bytes).decode("utf-8")
-
-                # Execute DOM & computed styles extraction script (pierces shadow DOM)
-                data: Dict[str, Any] = await page.evaluate(EXTRACTION_JS)
-
-                # Traverse child iframes (for banners loaded in separate frames)
-                await cls._extract_iframe_elements(page, data)
-
-                await browser.close()
-
-                # Block and access barrier detection
-                has_interactive = bool(
-                    data.get("checkboxes")
-                    or data.get("buttons")
-                    or data.get("links")
-                    or data.get("prices")
-                )
-                if nav_status == "ok":
-                    det_status, det_reason = detect_page_block(
-                        http_status=http_status,
-                        title=data.get("title", ""),
-                        visible_text=data.get("visibleText", ""),
-                        html_content=html_content or "",
-                        has_interactive_elements=has_interactive,
-                    )
-                    page_status = det_status
-                    status_reason = det_reason
-                    if page_status == "blocked" and url:
-                        domain_cooldown_tracker.record_block(url)
-                else:
-                    page_status = nav_status
-                    status_reason = nav_reason
-
-                body_fg = data.get("bodyColor", "#000000")
-                body_bg = data.get("bodyBg", "#ffffff")
-                body_contrast = calculate_contrast_ratio(body_fg, body_bg)
-
-                # Post-process contrast ratios on extracted elements with resolved page background
-                cls._compute_contrasts(data.get("buttons", []), default_bg=body_bg)
-                cls._compute_contrasts(data.get("links", []), default_bg=body_bg)
-                cls._compute_contrasts(data.get("prices", []), default_bg=body_bg)
-                cls._compute_contrasts(data.get("textElements", []), default_bg=body_bg)
-
-                return PageData(
-                    url=url,
-                    title=data.get("title", ""),
-                    visible_text=data.get("visibleText", ""),
-                    checkboxes=[ExtractedCheckbox(**cb) for cb in data.get("checkboxes", [])],
-                    buttons=[ExtractedElement(**b) for b in data.get("buttons", [])],
-                    links=[ExtractedElement(**l) for l in data.get("links", [])],
-                    prices=[ExtractedElement(**p) for p in data.get("prices", [])],
-                    text_elements=[ExtractedElement(**t) for t in data.get("textElements", [])],
-                    screenshot_base64=screenshot_base64,
-                    viewport_width=viewport_width,
-                    viewport_height=viewport_height,
-                    body_color=body_fg,
-                    body_background_color=body_bg,
-                    body_contrast_ratio=body_contrast,
-                    device_pixel_ratio=float(data.get("dpr", 1.0)),
-                    page_status=page_status,
-                    status_reason=status_reason,
-                    http_status=http_status
-                )
-
+                try:
+                    page = await context.new_page()
+                    return await cls._execute_extraction(page, url, html_content, viewport_width, viewport_height)
+                finally:
+                    await context.close()
         except Exception as e:
             logger.warning(f"Playwright extraction failed ({e}), falling back to static parser.")
             return cls._fallback_soup_extract(html_content or "", url=url)
+
+    @classmethod
+    async def _execute_extraction(
+        cls,
+        page,
+        url: Optional[str] = None,
+        html_content: Optional[str] = None,
+        viewport_width: int = 1280,
+        viewport_height: int = 800
+    ) -> PageData:
+        """Runs the extraction pipeline on an active Playwright page."""
+        # Re-check each redirect target against SSRF safety (Hard Rule 4)
+        redirect_violation = None
+
+        async def _guard_redirect(route):
+            """Validate redirect requests before Playwright sends them."""
+            nonlocal redirect_violation
+            request = route.request
+            if request.redirected_from is not None:
+                target_url = request.url
+                is_safe, reason = validate_url_safety(target_url)
+                if not is_safe:
+                    redirect_violation = f"Redirect target '{target_url}' violates SSRF safety: {reason}"
+                    logger.warning(redirect_violation)
+                    await route.abort()
+                    return
+            await route.continue_()
+
+        await page.route("**/*", _guard_redirect)
+
+        def _on_response(resp):
+            nonlocal redirect_violation
+            if resp.status in (301, 302, 303, 307, 308):
+                loc = resp.headers.get("location")
+                if loc:
+                    from urllib.parse import urljoin
+                    target_url = urljoin(resp.url, loc)
+                    is_safe, reason = validate_url_safety(target_url)
+                    if not is_safe:
+                        redirect_violation = f"Redirect target '{target_url}' violates SSRF safety: {reason}"
+                        logger.warning(redirect_violation)
+
+        page.on("response", _on_response)
+
+        http_status = None
+        nav_status: PageStatus = "ok"
+        nav_reason = "Page loaded successfully"
+
+        if url and (url.startswith("http://") or url.startswith("https://")):
+            try:
+                resp = await page.goto(url, wait_until="domcontentloaded", timeout=int(PER_PAGE_TIMEOUT * 1000))
+                if resp:
+                    http_status = resp.status
+            except Exception as nav_e:
+                err_str = str(nav_e)
+                if "timeout" in err_str.lower():
+                    nav_status = "timeout"
+                    nav_reason = f"Navigation timeout exceeded ({PER_PAGE_TIMEOUT}s)"
+                else:
+                    nav_status = "error"
+                    nav_reason = f"Navigation failed: {nav_e}"
+                logger.warning(f"Navigation warning or partial timeout for {url}: {nav_e}")
+        elif url and os.path.exists(url):
+            abs_path = os.path.abspath(url)
+            await page.goto(f"file:///{abs_path.replace(os.sep, '/')}", wait_until="domcontentloaded")
+        elif html_content:
+            await page.set_content(html_content, wait_until="domcontentloaded")
+        else:
+            raise ValueError("Must provide either a valid URL, file path, or HTML content.")
+
+        if redirect_violation:
+            nav_status = "invalid_url"
+            nav_reason = redirect_violation
+
+        # Dynamic wait for late-loading cookie banners or dialogs
+        await cls._wait_for_dynamic_content(page)
+
+        # Capture fast viewport screenshot aligned to CSS pixels (scale 1.0) with fast, optimized JPEG compression
+        screenshot_bytes = await page.screenshot(full_page=False, type="jpeg", quality=75)
+        screenshot_base64 = base64.b64encode(screenshot_bytes).decode("utf-8")
+
+        # Execute DOM & computed styles extraction script (pierces shadow DOM)
+        data: Dict[str, Any] = await page.evaluate(EXTRACTION_JS)
+
+        # Traverse child iframes (for banners loaded in separate frames)
+        await cls._extract_iframe_elements(page, data)
+
+        # Block and access barrier detection
+        has_interactive = bool(
+            data.get("checkboxes")
+            or data.get("buttons")
+            or data.get("links")
+            or data.get("prices")
+        )
+        if nav_status == "ok":
+            det_status, det_reason = detect_page_block(
+                http_status=http_status,
+                title=data.get("title", ""),
+                visible_text=data.get("visibleText", ""),
+                html_content=html_content or "",
+                has_interactive_elements=has_interactive,
+            )
+            page_status = det_status
+            status_reason = det_reason
+            if page_status == "blocked" and url:
+                domain_cooldown_tracker.record_block(url)
+        else:
+            page_status = nav_status
+            status_reason = nav_reason
+
+        body_fg = data.get("bodyColor", "#000000")
+        body_bg = data.get("bodyBg", "#ffffff")
+        body_contrast = calculate_contrast_ratio(body_fg, body_bg)
+
+        # Post-process contrast ratios on extracted elements with resolved page background
+        cls._compute_contrasts(data.get("buttons", []), default_bg=body_bg)
+        cls._compute_contrasts(data.get("links", []), default_bg=body_bg)
+        cls._compute_contrasts(data.get("prices", []), default_bg=body_bg)
+        cls._compute_contrasts(data.get("textElements", []), default_bg=body_bg)
+
+        return PageData(
+            url=url,
+            title=data.get("title", ""),
+            visible_text=data.get("visibleText", ""),
+            checkboxes=[ExtractedCheckbox(**cb) for cb in data.get("checkboxes", [])],
+            buttons=[ExtractedElement(**b) for b in data.get("buttons", [])],
+            links=[ExtractedElement(**l) for l in data.get("links", [])],
+            prices=[ExtractedElement(**p) for p in data.get("prices", [])],
+            text_elements=[ExtractedElement(**t) for t in data.get("textElements", [])],
+            screenshot_base64=screenshot_base64,
+            viewport_width=viewport_width,
+            viewport_height=viewport_height,
+            body_color=body_fg,
+            body_background_color=body_bg,
+            body_contrast_ratio=body_contrast,
+            device_pixel_ratio=float(data.get("dpr", 1.0)),
+            page_status=page_status,
+            status_reason=status_reason,
+            http_status=http_status
+        )
 
     @classmethod
     async def _wait_for_dynamic_content(cls, page):

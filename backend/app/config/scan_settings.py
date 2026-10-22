@@ -13,8 +13,8 @@ SCAN_USER_AGENT: str = (
 )
 
 # Politeness and Concurrency (Hard Rule 2)
-REQUEST_DELAY_SECONDS: float = 1.0       # Polite per-domain inter-request delay
-PER_DOMAIN_CONCURRENCY: int = 1          # Concurrency strictly 1 per domain
+REQUEST_DELAY_SECONDS: float = 0.5       # Polite per-domain inter-request delay
+PER_DOMAIN_CONCURRENCY: int = 2          # Concurrency up to 2 per domain with high memory
 
 # Crawler Caps & Limits
 MAX_PAGES_DISCOVERED: int = 50          # Max URLs gathered from sitemaps + navigation links

@@ -190,7 +190,7 @@ class DiscoveryEngine:
                 robots_url,
                 headers={"User-Agent": SCAN_USER_AGENT, "Accept": "text/plain"}
             )
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=3) as resp:
                 content = resp.read().decode("utf-8", errors="replace")
                 lines = content.splitlines()
                 rp.parse(lines)
@@ -219,7 +219,7 @@ class DiscoveryEngine:
                 sitemap_url,
                 headers={"User-Agent": SCAN_USER_AGENT, "Accept": "application/xml,text/xml"}
             )
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=3) as resp:
                 xml_data = resp.read(MAX_PAGE_BYTES)
                 root = ET.fromstring(xml_data)
 

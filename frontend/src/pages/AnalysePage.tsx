@@ -15,27 +15,88 @@ import { SamplePagesCarousel } from '../components/SamplePagesCarousel';
 import { AnalysisLoadingSkeleton, SiteScanStartingSkeleton } from '../components/SkeletonLoader';
 
 export const AnalysePage: React.FC = () => {
-  const [report, setReport] = useState<AnalysisReport | null>(null);
-  const [activeScan, setActiveScan] = useState<Scan | null>(null);
-  const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [report, setReport] = useState<AnalysisReport | null>(() => {
+    try {
+      const saved = sessionStorage.getItem('clearclick_active_report');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [activeScan, setActiveScan] = useState<Scan | null>(() => {
+    try {
+      const saved = sessionStorage.getItem('clearclick_active_scan');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [isScanning, setIsScanning] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('clearclick_is_scanning') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [isCancelling, setIsCancelling] = useState<boolean>(false);
   const [corpusList, setCorpusList] = useState<CorpusItem[]>(corpusCatalog as CorpusItem[]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedFindingIndex, setSelectedFindingIndex] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [showInputForm, setShowInputForm] = useState<boolean>(true);
+  const [showInputForm, setShowInputForm] = useState<boolean>(() => {
+    try {
+      const hasReport = !!sessionStorage.getItem('clearclick_active_report');
+      const hasScan = !!sessionStorage.getItem('clearclick_active_scan');
+      return !hasReport && !hasScan;
+    } catch {
+      return true;
+    }
+  });
   const [isServerModalOpen, setIsServerModalOpen] = useState<boolean>(false);
   const analyzeAbortRef = useRef<AbortController | null>(null);
   const scanPollTimeoutRef = useRef<any>(null);
   const isMountedRef = useRef<boolean>(true);
 
-  // Set document title and clean up any pending analysis request or polling on unmount
+  // Sync state to sessionStorage so navigation between pages never wipes audits
+  useEffect(() => {
+    try {
+      if (report) {
+        sessionStorage.setItem('clearclick_active_report', JSON.stringify(report));
+      } else {
+        sessionStorage.removeItem('clearclick_active_report');
+      }
+    } catch {
+      // ignore storage quota errors
+    }
+  }, [report]);
+
+  useEffect(() => {
+    try {
+      if (activeScan) {
+        sessionStorage.setItem('clearclick_active_scan', JSON.stringify(activeScan));
+        sessionStorage.setItem('clearclick_is_scanning', String(isScanning));
+      } else {
+        sessionStorage.removeItem('clearclick_active_scan');
+        sessionStorage.removeItem('clearclick_is_scanning');
+      }
+    } catch {
+      // ignore storage quota errors
+    }
+  }, [activeScan, isScanning]);
+
+  // Set document title and resume active scan if returning from another page
   useEffect(() => {
     document.title = 'ClearClick AI — Evidence-Based Dark Pattern Auditor';
     isMountedRef.current = true;
+
+    // Auto-resume polling if an active scan was running before navigation
+    if (activeScan && (activeScan.status === 'running' || activeScan.status === 'queued')) {
+      pollScanStatus(activeScan.scan_id);
+    }
+
     return () => {
       isMountedRef.current = false;
-      analyzeAbortRef.current?.abort();
+      // Do not abort active scan fetch on navigation!
       if (scanPollTimeoutRef.current) {
         clearTimeout(scanPollTimeoutRef.current);
       }

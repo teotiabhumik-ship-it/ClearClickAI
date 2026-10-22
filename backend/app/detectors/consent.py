@@ -133,7 +133,7 @@ class ConsentDetector(BaseDetector):
         
         reject_elements = [
             b for b in buttons + links
-            if re.search(r"\b(reject(\s+all)?|decline|refuse|reject\s+optional|continue\s+without\s+accepting)\b", b.text, re.IGNORECASE)
+            if re.search(r"\b(reject(\s+all)?|decline|refuse|reject\s+optional|continue\s+without\s+accepting|only\s+necessary|strictly\s+necessary|necessary\s+only|essential\s+only|use\s+necessary(\s+cookies)?|don'?t\s+accept)\b", b.text, re.IGNORECASE)
         ]
 
         if accept_elements and not reject_elements:
